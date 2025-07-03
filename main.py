@@ -78,8 +78,11 @@ def load_data():
         user_id_counter = 1
         performance_id_counter = 1
 
-# 초기 데이터 로드
-load_data()
+# 전역 변수 초기화
+users = []
+performances = []
+user_id_counter = 1
+performance_id_counter = 1
 
 # 사용자 모델
 class User(UserMixin):
@@ -100,6 +103,9 @@ def load_user(user_id):
         if user.id == int(user_id):
             return user
     return None
+
+# 초기 데이터 로드 (User 클래스 정의 후)
+load_data()
 
 # 공연 모델 (딕셔너리 기반)
 class Performance:
@@ -308,4 +314,4 @@ if __name__ == "__main__":
         print("비밀번호: admin123")
     
     port = int(os.getenv("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=False) 
+    app.run(host="0.0.0.0", port=port, debug=True) 
