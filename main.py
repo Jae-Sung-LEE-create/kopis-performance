@@ -5,7 +5,9 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, 
+           template_folder='templates',
+           static_folder='static')
 app.secret_key = 'your-secret-key-here'
 
 # 데이터베이스 설정 - 배포 환경에서는 메모리 SQLite 사용
