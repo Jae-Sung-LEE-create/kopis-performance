@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}내 공연 신청 현황 - KOPIS 공연 홍보 플랫폼{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-list-alt me-2"></i>내 공연 신청 현황
+            </h2>
+            
+            {% if performances %}
+                <div class="row">
+                    {% for performance in performances %}
+                    <div class="col-lg-6 col-md-12 mb-4">
+                        <div class="card h-100">
+                            {% if performance.image_url %}
+                            <img src="{{ performance.image_url }}" class="card-img-top" alt="{{ performance.title }}" style="height: 200px; object-fit: cover;">
+                            {% else %}
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                <i class="fas fa-music fa-3x text-muted"></i>
+                            </div>
+                            {% endif %}
+                            
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="card-title mb-0">{{ performance.title }}</h5>
+                                    {% if performance.is_approved %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check me-1"></i>승인됨
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-clock me-1"></i>승인 대기
+                                        </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <p class="card-text text-muted">
+                                    <i class="fas fa-users me-1"></i>{{ performance.group_name }}
+                                </p>
+                                
+                                <p class="card-text">{{ performance.description[:100] }}{% if performance.description|length > 100 %}...{% endif %}</p>
+                                
+                                <div class="row text-muted small mb-3">
+                                    <div class="col-6">
+                                        <i class="fas fa-calendar me-1"></i>{{ performance.date }}
+                                    </div>
+                                    <div class="col-6">
+                                        <i class="fas fa-clock me-1"></i>{{ performance.time }}
+                                    </div>
+                                </div>
+                                
+                                <div class="row text-muted small mb-3">
+                                    <div class="col-6">
+                                        <i class="fas fa-map-marker-alt me-1"></i>{{ performance.location }}
+                                    </div>
+                                    <div class="col-6">
+                                        <i class="fas fa-ticket-alt me-1"></i>{{ performance.price }}
+                                    </div>
+                                </div>
+                                
+                                <div class="text-muted small">
+                                    <i class="fas fa-calendar-plus me-1"></i>신청일: {{ performance.created_at.strftime('%Y년 %m월 %d일') }}
+                                </div>
+                            </div>
+                            
+                            <div class="card-footer bg-transparent">
+                                {% if performance.is_approved %}
+                                    <div class="alert alert-success mb-0 text-center">
+                                        <i class="fas fa-check-circle me-2"></i>승인되었습니다! 홈페이지에서 확인할 수 있습니다.
+                                    </div>
+                                {% else %}
+                                    <div class="alert alert-info mb-0 text-center">
+                                        <i class="fas fa-info-circle me-2"></i>관리자 검토 중입니다. 승인 여부는 이메일로 알려드립니다.
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-music fa-4x text-muted mb-3"></i>
+                    <h4 class="text-muted">아직 신청한 공연이 없습니다</h4>
+                    <p class="text-muted">첫 번째 공연을 신청해보세요!</p>
+                    <a href="/submit" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>공연 신청하기
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

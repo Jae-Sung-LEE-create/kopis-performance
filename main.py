@@ -43,7 +43,7 @@ def load_user(user_id):
 
 # 공연 모델 (딕셔너리 기반)
 class Performance:
-    def __init__(self, title, group_name, description, location, price, date, time, contact_email, video_url=None, image_url=None):
+    def __init__(self, title, group_name, description, location, price, date, time, contact_email, video_url=None, image_url=None, user_id=None):
         global performance_id_counter
         self.id = performance_id_counter
         performance_id_counter += 1
@@ -57,6 +57,7 @@ class Performance:
         self.contact_email = contact_email
         self.video_url = video_url
         self.image_url = image_url
+        self.user_id = user_id  # 신청한 사용자 ID
         self.is_approved = False
         self.created_at = datetime.utcnow()
 
@@ -143,6 +144,14 @@ def logout():
     flash('로그아웃되었습니다.', 'success')
     return redirect(url_for('home'))
 
+@app.route('/my-performances')
+@login_required
+def my_performances():
+    """내 공연 신청 현황"""
+    # 현재 사용자가 신청한 공연들 찾기 (사용자 ID로 매칭)
+    my_performances = [p for p in performances if p.user_id == current_user.id]
+    return render_template('my_performances.html', performances=my_performances)
+
 @app.route('/admin')
 def admin_panel():
     """관리자 패널 - 승인 대기 중인 공연 관리"""
@@ -198,7 +207,8 @@ def submit_performance():
             time=request.form['time'],
             contact_email=request.form['contact_email'],
             video_url=request.form.get('video_url'),
-            image_url=request.form.get('image_url')
+            image_url=request.form.get('image_url'),
+            user_id=current_user.id
         )
         
         performances.append(performance)
