@@ -23,9 +23,20 @@
             <i class="fas fa-dance me-3"></i>대중무용의 새로운 시작
         </h1>
         <p class="lead mb-4">대학생 댄스동아리와 스트릿댄스 크루들의 공연을 만나보세요</p>
-        <a href="/submit" class="btn btn-light btn-lg">
-            <i class="fas fa-plus me-2"></i>공연 신청하기
-        </a>
+        {% if current_user.is_authenticated %}
+            <a href="/submit" class="btn btn-light btn-lg">
+                <i class="fas fa-plus me-2"></i>공연 신청하기
+            </a>
+        {% else %}
+            <div class="d-flex gap-3 justify-content-center">
+                <a href="/login" class="btn btn-light btn-lg">
+                    <i class="fas fa-sign-in-alt me-2"></i>로그인
+                </a>
+                <a href="/register" class="btn btn-outline-light btn-lg">
+                    <i class="fas fa-user-plus me-2"></i>회원가입
+                </a>
+            </div>
+        {% endif %}
     </div>
 </div>
 
@@ -77,9 +88,20 @@
         <i class="fas fa-music fa-4x text-muted mb-3"></i>
         <h4 class="text-muted">아직 등록된 공연이 없습니다</h4>
         <p class="text-muted">첫 번째 공연을 신청해보세요!</p>
-        <a href="/submit" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>공연 신청하기
-        </a>
+        {% if current_user.is_authenticated %}
+            <a href="/submit" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>공연 신청하기
+            </a>
+        {% else %}
+            <div class="d-flex gap-2 justify-content-center">
+                <a href="/login" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt me-2"></i>로그인
+                </a>
+                <a href="/register" class="btn btn-outline-primary">
+                    <i class="fas fa-user-plus me-2"></i>회원가입
+                </a>
+            </div>
+        {% endif %}
     </div>
     {% endif %}
 </div>
