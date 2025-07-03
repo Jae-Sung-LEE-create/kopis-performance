@@ -3,6 +3,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from datetime import datetime
 import os
 import json
+import pickle
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, 
@@ -15,11 +16,70 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# 간단한 메모리 기반 데이터 저장소
-performances = []
-performance_id_counter = 1
-users = []
-user_id_counter = 1
+# 데이터 파일 경로
+DATA_DIR = 'data'
+USERS_FILE = os.path.join(DATA_DIR, 'users.pkl')
+PERFORMANCES_FILE = os.path.join(DATA_DIR, 'performances.pkl')
+COUNTERS_FILE = os.path.join(DATA_DIR, 'counters.pkl')
+
+# 데이터 디렉토리 생성
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+# 데이터 저장 함수
+def save_data():
+    """데이터를 파일에 저장"""
+    try:
+        # 사용자 데이터 저장
+        with open(USERS_FILE, 'wb') as f:
+            pickle.dump(users, f)
+        
+        # 공연 데이터 저장
+        with open(PERFORMANCES_FILE, 'wb') as f:
+            pickle.dump(performances, f)
+        
+        # 카운터 데이터 저장
+        counters = {
+            'user_id_counter': user_id_counter,
+            'performance_id_counter': performance_id_counter
+        }
+        with open(COUNTERS_FILE, 'wb') as f:
+            pickle.dump(counters, f)
+    except Exception as e:
+        print(f"데이터 저장 중 오류: {e}")
+
+# 데이터 로드 함수
+def load_data():
+    """파일에서 데이터를 로드"""
+    global users, performances, user_id_counter, performance_id_counter
+    
+    try:
+        # 사용자 데이터 로드
+        if os.path.exists(USERS_FILE):
+            with open(USERS_FILE, 'rb') as f:
+                users = pickle.load(f)
+        
+        # 공연 데이터 로드
+        if os.path.exists(PERFORMANCES_FILE):
+            with open(PERFORMANCES_FILE, 'rb') as f:
+                performances = pickle.load(f)
+        
+        # 카운터 데이터 로드
+        if os.path.exists(COUNTERS_FILE):
+            with open(COUNTERS_FILE, 'rb') as f:
+                counters = pickle.load(f)
+                user_id_counter = counters.get('user_id_counter', 1)
+                performance_id_counter = counters.get('performance_id_counter', 1)
+    except Exception as e:
+        print(f"데이터 로드 중 오류: {e}")
+        # 오류 발생 시 기본값으로 초기화
+        users = []
+        performances = []
+        user_id_counter = 1
+        performance_id_counter = 1
+
+# 초기 데이터 로드
+load_data()
 
 # 사용자 모델
 class User(UserMixin):
@@ -105,6 +165,9 @@ def register():
         new_user = User(name, username, email, password_hash)
         users.append(new_user)
         
+        # 데이터 저장
+        save_data()
+        
         flash('회원가입이 완료되었습니다! 로그인해주세요.', 'success')
         return redirect(url_for('login'))
     
@@ -169,6 +232,10 @@ def approve_performance(performance_id):
         if performance.id == performance_id:
             performance.is_approved = True
             break
+    
+    # 데이터 저장
+    save_data()
+    
     return redirect(url_for('admin_panel'))
 
 @app.route('/admin/reject/<int:performance_id>', methods=['POST'])
@@ -176,6 +243,10 @@ def reject_performance(performance_id):
     """공연 거절"""
     global performances
     performances = [p for p in performances if p.id != performance_id]
+    
+    # 데이터 저장
+    save_data()
+    
     return redirect(url_for('admin_panel'))
 
 @app.route('/performance/<int:performance_id>')
@@ -212,6 +283,10 @@ def submit_performance():
         )
         
         performances.append(performance)
+        
+        # 데이터 저장
+        save_data()
+        
         flash('공연 신청이 완료되었습니다! 관리자 승인 후 홈페이지에 표시됩니다.', 'success')
         return redirect(url_for('submit_performance'))
     
@@ -223,6 +298,10 @@ if __name__ == "__main__":
         admin_password_hash = generate_password_hash('admin123')
         admin_user = User('관리자', 'admin', 'admin@example.com', admin_password_hash, is_admin=True)
         users.append(admin_user)
+        
+        # 데이터 저장
+        save_data()
+        
         print("기본 관리자 계정이 생성되었습니다:")
         print("이름: 관리자")
         print("아이디: admin")

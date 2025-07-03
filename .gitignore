@@ -1,3 +1,6 @@
+# 데이터 파일
+data/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -19,7 +22,24 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
 
 # PyInstaller
 *.manifest
@@ -44,9 +64,6 @@ coverage.xml
 # Environments
 .env
 .venv
-env/
-venv/
-ENV/
 env.bak/
 venv.bak/
 
@@ -54,15 +71,6 @@ venv.bak/
 *.db
 *.sqlite3
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
 # OS
 .DS_Store
-Thumbs.db
-
-# Logs
-*.log 
+Thumbs.db 
