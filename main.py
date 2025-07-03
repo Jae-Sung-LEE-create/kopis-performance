@@ -13,18 +13,14 @@ import uvicorn
 
 app = FastAPI(title="KOPIS 공연 홍보 플랫폼", description="대중무용 공연 홍보 서비스")
 
-# 데이터베이스 설정 - 배포 환경에서는 PostgreSQL 사용
+# 데이터베이스 설정 - 배포 환경에서는 메모리 SQLite 사용
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
 
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# SQLite 연결 설정 수정
-if "sqlite" in DATABASE_URL:
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-else:
-    engine = create_engine(DATABASE_URL)
-
+# SQLite 연결 설정
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -47,10 +43,7 @@ class Performance(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
 # 데이터베이스 테이블 생성
-try:
-    Base.metadata.create_all(bind=engine)
-except Exception as e:
-    print(f"Database initialization error: {e}")
+Base.metadata.create_all(bind=engine)
 
 # 템플릿 설정
 templates = Jinja2Templates(directory="templates")
