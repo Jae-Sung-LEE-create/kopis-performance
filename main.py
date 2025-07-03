@@ -1,16 +1,44 @@
-from flask import Flask, request, render_template, redirect, url_for
+from flask import Flask, request, render_template, redirect, url_for, flash
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from datetime import datetime
 import os
 import json
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__, 
            template_folder='templates',
            static_folder='static')
 app.secret_key = 'your-secret-key-here'
 
+# Flask-Login 설정
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
 # 간단한 메모리 기반 데이터 저장소
 performances = []
 performance_id_counter = 1
+users = []
+user_id_counter = 1
+
+# 사용자 모델
+class User(UserMixin):
+    def __init__(self, username, email, password_hash, is_admin=False):
+        global user_id_counter
+        self.id = user_id_counter
+        user_id_counter += 1
+        self.username = username
+        self.email = email
+        self.password_hash = password_hash
+        self.is_admin = is_admin
+        self.created_at = datetime.utcnow()
+
+@login_manager.user_loader
+def load_user(user_id):
+    for user in users:
+        if user.id == int(user_id):
+            return user
+    return None
 
 # 공연 모델 (딕셔너리 기반)
 class Performance:
@@ -36,6 +64,76 @@ def home():
     """홈페이지 - 공연 목록 표시"""
     approved_performances = [p for p in performances if p.is_approved]
     return render_template("index.html", performances=approved_performances)
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """회원가입"""
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        # 유효성 검사
+        if password != confirm_password:
+            flash('비밀번호가 일치하지 않습니다.', 'error')
+            return render_template('register.html')
+        
+        # 사용자명 중복 확인
+        for user in users:
+            if user.username == username:
+                flash('이미 사용 중인 사용자명입니다.', 'error')
+                return render_template('register.html')
+        
+        # 이메일 중복 확인
+        for user in users:
+            if user.email == email:
+                flash('이미 사용 중인 이메일입니다.', 'error')
+                return render_template('register.html')
+        
+        # 새 사용자 생성
+        password_hash = generate_password_hash(password)
+        new_user = User(username, email, password_hash)
+        users.append(new_user)
+        
+        flash('회원가입이 완료되었습니다! 로그인해주세요.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """로그인"""
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        # 사용자 찾기
+        user = None
+        for u in users:
+            if u.username == username:
+                user = u
+                break
+        
+        if user and check_password_hash(user.password_hash, password):
+            login_user(user)
+            flash('로그인되었습니다!', 'success')
+            return redirect(url_for('home'))
+        else:
+            flash('사용자명 또는 비밀번호가 올바르지 않습니다.', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    """로그아웃"""
+    logout_user()
+    flash('로그아웃되었습니다.', 'success')
+    return redirect(url_for('home'))
 
 @app.route('/admin')
 def admin_panel():
@@ -78,6 +176,7 @@ def performance_detail(performance_id):
     return render_template("performance_detail.html", performance=performance)
 
 @app.route('/submit', methods=['GET', 'POST'])
+@login_required
 def submit_performance():
     """공연 신청 폼"""
     if request.method == 'POST':
@@ -95,10 +194,20 @@ def submit_performance():
         )
         
         performances.append(performance)
-        return redirect(url_for('submit_performance', success=True))
+        flash('공연 신청이 완료되었습니다! 관리자 승인 후 홈페이지에 표시됩니다.', 'success')
+        return redirect(url_for('submit_performance'))
     
-    return render_template("submit.html", success=request.args.get('success') == 'true')
+    return render_template("submit.html")
 
 if __name__ == "__main__":
+    # 기본 관리자 계정 생성 (첫 실행 시에만)
+    if not users:
+        admin_password_hash = generate_password_hash('admin123')
+        admin_user = User('admin', 'admin@example.com', admin_password_hash, is_admin=True)
+        users.append(admin_user)
+        print("기본 관리자 계정이 생성되었습니다:")
+        print("사용자명: admin")
+        print("비밀번호: admin123")
+    
     port = int(os.getenv("PORT", 8000))
     app.run(host="0.0.0.0", port=port, debug=False) 
