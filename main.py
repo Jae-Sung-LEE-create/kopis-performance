@@ -1,63 +1,47 @@
 from flask import Flask, request, render_template, redirect, url_for
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import os
+import json
 
 app = Flask(__name__, 
            template_folder='templates',
            static_folder='static')
 app.secret_key = 'your-secret-key-here'
 
-# 데이터베이스 설정 - 배포 환경에서는 메모리 SQLite 사용
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
+# 간단한 메모리 기반 데이터 저장소
+performances = []
+performance_id_counter = 1
 
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-# SQLite 연결 설정
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
-
-# 공연 모델
-class Performance(Base):
-    __tablename__ = "performances"
-    
-    id = Column(Integer, primary_key=True, index=True)
-    title = Column(String, index=True)
-    group_name = Column(String)
-    description = Column(Text)
-    location = Column(String)
-    price = Column(String)
-    date = Column(String)
-    time = Column(String)
-    contact_email = Column(String)
-    video_url = Column(String, nullable=True)
-    image_url = Column(String, nullable=True)
-    is_approved = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-# 데이터베이스 테이블 생성
-Base.metadata.create_all(bind=engine)
+# 공연 모델 (딕셔너리 기반)
+class Performance:
+    def __init__(self, title, group_name, description, location, price, date, time, contact_email, video_url=None, image_url=None):
+        global performance_id_counter
+        self.id = performance_id_counter
+        performance_id_counter += 1
+        self.title = title
+        self.group_name = group_name
+        self.description = description
+        self.location = location
+        self.price = price
+        self.date = date
+        self.time = time
+        self.contact_email = contact_email
+        self.video_url = video_url
+        self.image_url = image_url
+        self.is_approved = False
+        self.created_at = datetime.utcnow()
 
 @app.route('/')
 def home():
     """홈페이지 - 공연 목록 표시"""
-    db = SessionLocal()
-    performances = db.query(Performance).filter(Performance.is_approved == True).order_by(Performance.created_at.desc()).all()
-    db.close()
-    
-    return render_template("index.html", performances=performances)
+    approved_performances = [p for p in performances if p.is_approved]
+    return render_template("index.html", performances=approved_performances)
 
 @app.route('/admin')
 def admin_panel():
     """관리자 패널 - 승인 대기 중인 공연 관리"""
-    db = SessionLocal()
-    pending_performances = db.query(Performance).filter(Performance.is_approved == False).order_by(Performance.created_at.desc()).all()
-    approved_performances = db.query(Performance).filter(Performance.is_approved == True).order_by(Performance.created_at.desc()).all()
-    db.close()
+    pending_performances = [p for p in performances if not p.is_approved]
+    approved_performances = [p for p in performances if p.is_approved]
     
     return render_template("admin.html", 
                          pending_performances=pending_performances,
@@ -66,31 +50,27 @@ def admin_panel():
 @app.route('/admin/approve/<int:performance_id>', methods=['POST'])
 def approve_performance(performance_id):
     """공연 승인"""
-    db = SessionLocal()
-    performance = db.query(Performance).filter(Performance.id == performance_id).first()
-    if performance:
-        performance.is_approved = True
-        db.commit()
-    db.close()
+    for performance in performances:
+        if performance.id == performance_id:
+            performance.is_approved = True
+            break
     return redirect(url_for('admin_panel'))
 
 @app.route('/admin/reject/<int:performance_id>', methods=['POST'])
 def reject_performance(performance_id):
     """공연 거절"""
-    db = SessionLocal()
-    performance = db.query(Performance).filter(Performance.id == performance_id).first()
-    if performance:
-        db.delete(performance)
-        db.commit()
-    db.close()
+    global performances
+    performances = [p for p in performances if p.id != performance_id]
     return redirect(url_for('admin_panel'))
 
 @app.route('/performance/<int:performance_id>')
 def performance_detail(performance_id):
     """공연 상세 페이지"""
-    db = SessionLocal()
-    performance = db.query(Performance).filter(Performance.id == performance_id).first()
-    db.close()
+    performance = None
+    for p in performances:
+        if p.id == performance_id:
+            performance = p
+            break
     
     if not performance or not performance.is_approved:
         return redirect(url_for('home'))
@@ -101,8 +81,6 @@ def performance_detail(performance_id):
 def submit_performance():
     """공연 신청 폼"""
     if request.method == 'POST':
-        db = SessionLocal()
-        
         performance = Performance(
             title=request.form['title'],
             group_name=request.form['group_name'],
@@ -116,10 +94,7 @@ def submit_performance():
             image_url=request.form.get('image_url')
         )
         
-        db.add(performance)
-        db.commit()
-        db.close()
-        
+        performances.append(performance)
         return redirect(url_for('submit_performance', success=True))
     
     return render_template("submit.html", success=request.args.get('success') == 'true')
