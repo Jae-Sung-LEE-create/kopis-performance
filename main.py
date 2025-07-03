@@ -1,17 +1,12 @@
-from fastapi import FastAPI, Request, Form, UploadFile, File
-from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
+from flask import Flask, request, render_template, redirect, url_for
 from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import os
-import json
-from typing import Optional
-import uvicorn
 
-app = FastAPI(title="KOPIS 공연 홍보 플랫폼", description="대중무용 공연 홍보 서비스")
+app = Flask(__name__)
+app.secret_key = 'your-secret-key-here'
 
 # 데이터베이스 설정 - 배포 환경에서는 메모리 SQLite 사용
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///:memory:")
@@ -45,46 +40,29 @@ class Performance(Base):
 # 데이터베이스 테이블 생성
 Base.metadata.create_all(bind=engine)
 
-# 템플릿 설정
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-# 데이터베이스 세션 의존성
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-@app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+@app.route('/')
+def home():
     """홈페이지 - 공연 목록 표시"""
     db = SessionLocal()
     performances = db.query(Performance).filter(Performance.is_approved == True).order_by(Performance.created_at.desc()).all()
     db.close()
     
-    return templates.TemplateResponse("index.html", {
-        "request": request, 
-        "performances": performances
-    })
+    return render_template("index.html", performances=performances)
 
-@app.get("/admin", response_class=HTMLResponse)
-async def admin_panel(request: Request):
+@app.route('/admin')
+def admin_panel():
     """관리자 패널 - 승인 대기 중인 공연 관리"""
     db = SessionLocal()
     pending_performances = db.query(Performance).filter(Performance.is_approved == False).order_by(Performance.created_at.desc()).all()
     approved_performances = db.query(Performance).filter(Performance.is_approved == True).order_by(Performance.created_at.desc()).all()
     db.close()
     
-    return templates.TemplateResponse("admin.html", {
-        "request": request,
-        "pending_performances": pending_performances,
-        "approved_performances": approved_performances
-    })
+    return render_template("admin.html", 
+                         pending_performances=pending_performances,
+                         approved_performances=approved_performances)
 
-@app.post("/admin/approve/{performance_id}")
-async def approve_performance(performance_id: int):
+@app.route('/admin/approve/<int:performance_id>', methods=['POST'])
+def approve_performance(performance_id):
     """공연 승인"""
     db = SessionLocal()
     performance = db.query(Performance).filter(Performance.id == performance_id).first()
@@ -92,10 +70,10 @@ async def approve_performance(performance_id: int):
         performance.is_approved = True
         db.commit()
     db.close()
-    return RedirectResponse(url="/admin", status_code=303)
+    return redirect(url_for('admin_panel'))
 
-@app.post("/admin/reject/{performance_id}")
-async def reject_performance(performance_id: int):
+@app.route('/admin/reject/<int:performance_id>', methods=['POST'])
+def reject_performance(performance_id):
     """공연 거절"""
     db = SessionLocal()
     performance = db.query(Performance).filter(Performance.id == performance_id).first()
@@ -103,69 +81,47 @@ async def reject_performance(performance_id: int):
         db.delete(performance)
         db.commit()
     db.close()
-    return RedirectResponse(url="/admin", status_code=303)
+    return redirect(url_for('admin_panel'))
 
-@app.get("/performance/{performance_id}", response_class=HTMLResponse)
-async def performance_detail(request: Request, performance_id: int):
+@app.route('/performance/<int:performance_id>')
+def performance_detail(performance_id):
     """공연 상세 페이지"""
     db = SessionLocal()
     performance = db.query(Performance).filter(Performance.id == performance_id).first()
     db.close()
     
     if not performance or not performance.is_approved:
-        return RedirectResponse(url="/", status_code=303)
+        return redirect(url_for('home'))
     
-    return templates.TemplateResponse("performance_detail.html", {
-        "request": request,
-        "performance": performance
-    })
+    return render_template("performance_detail.html", performance=performance)
 
-@app.get("/submit", response_class=HTMLResponse)
-async def submit_form(request: Request):
+@app.route('/submit', methods=['GET', 'POST'])
+def submit_performance():
     """공연 신청 폼"""
-    return templates.TemplateResponse("submit.html", {"request": request})
-
-@app.post("/submit")
-async def submit_performance(
-    title: str = Form(...),
-    group_name: str = Form(...),
-    description: str = Form(...),
-    location: str = Form(...),
-    price: str = Form(...),
-    date: str = Form(...),
-    time: str = Form(...),
-    contact_email: str = Form(...),
-    video_url: Optional[str] = Form(None),
-    image_url: Optional[str] = Form(None)
-):
-    """공연 신청 처리"""
-    db = SessionLocal()
+    if request.method == 'POST':
+        db = SessionLocal()
+        
+        performance = Performance(
+            title=request.form['title'],
+            group_name=request.form['group_name'],
+            description=request.form['description'],
+            location=request.form['location'],
+            price=request.form['price'],
+            date=request.form['date'],
+            time=request.form['time'],
+            contact_email=request.form['contact_email'],
+            video_url=request.form.get('video_url'),
+            image_url=request.form.get('image_url')
+        )
+        
+        db.add(performance)
+        db.commit()
+        db.close()
+        
+        return redirect(url_for('submit_performance', success=True))
     
-    performance = Performance(
-        title=title,
-        group_name=group_name,
-        description=description,
-        location=location,
-        price=price,
-        date=date,
-        time=time,
-        contact_email=contact_email,
-        video_url=video_url,
-        image_url=image_url
-    )
-    
-    db.add(performance)
-    db.commit()
-    db.close()
-    
-    return RedirectResponse(url="/submit?success=true", status_code=303)
+    return render_template("submit.html", success=request.args.get('success') == 'true')
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0", 
-        port=port,
-        reload=False,
-        workers=1
-    ) 
+    app.run(host="0.0.0.0", port=port, debug=False) 
