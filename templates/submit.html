@@ -13,7 +13,7 @@
                     </h3>
                 </div>
                 <div class="card-body p-4">
-                    {% if request.query_params.get('success') %}
+                    {% if success %}
                     <div class="alert alert-success alert-dismissible fade show" role="alert">
                         <i class="fas fa-check-circle me-2"></i>
                         공연 신청이 성공적으로 접수되었습니다! 검토 후 승인 여부를 알려드리겠습니다.
