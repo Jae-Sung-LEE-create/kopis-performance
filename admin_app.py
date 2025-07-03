@@ -1,6 +1,7 @@
 import sys
 import sqlite3
 import os
+import pickle
 from datetime import datetime
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                              QHBoxLayout, QTableWidget, QTableWidgetItem, 
@@ -189,46 +190,49 @@ class AdminApp(QMainWindow):
         
     def load_data(self):
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
+            # 웹사이트의 pickle 데이터 파일 경로
+            data_dir = os.path.join(os.path.dirname(self.db_path), "data")
+            performances_file = os.path.join(data_dir, "performances.pkl")
+            
+            if not os.path.exists(performances_file):
+                print(f"데이터 파일이 없습니다: {performances_file}")
+                self.update_pending_table([])
+                self.update_approved_table([])
+                self.update_stats(0, 0, 0)
+                return
+            
+            # pickle 파일에서 공연 데이터 로드
+            with open(performances_file, 'rb') as f:
+                performances = pickle.load(f)
             
             # 승인 대기 중인 공연
-            cursor.execute("""
-                SELECT id, title, group_name, location, date, time, contact_email 
-                FROM performances 
-                WHERE is_approved = 0 
-                ORDER BY created_at DESC
-            """)
-            pending_data = cursor.fetchall()
+            pending_data = []
+            for p in performances:
+                if not p.is_approved:
+                    pending_data.append([
+                        p.id, p.title, p.group_name, p.location, 
+                        p.date, p.time, p.contact_email
+                    ])
             
             # 승인된 공연
-            cursor.execute("""
-                SELECT id, title, group_name, location, date, time, price 
-                FROM performances 
-                WHERE is_approved = 1 
-                ORDER BY created_at DESC
-            """)
-            approved_data = cursor.fetchall()
-            
-            # 통계
-            cursor.execute("SELECT COUNT(*) FROM performances WHERE is_approved = 0")
-            pending_count = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM performances WHERE is_approved = 1")
-            approved_count = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM performances")
-            total_count = cursor.fetchone()[0]
-            
-            conn.close()
+            approved_data = []
+            for p in performances:
+                if p.is_approved:
+                    approved_data.append([
+                        p.id, p.title, p.group_name, p.location, 
+                        p.date, p.time, p.price
+                    ])
             
             # 테이블 업데이트
             self.update_pending_table(pending_data)
             self.update_approved_table(approved_data)
-            self.update_stats(pending_count, approved_count, total_count)
+            
+            # 통계 업데이트
+            self.update_stats(len(pending_data), len(approved_data), len(performances))
             
         except Exception as e:
-            QMessageBox.critical(self, "오류", f"데이터를 불러오는 중 오류가 발생했습니다: {str(e)}")
+            print(f"데이터 로드 오류: {e}")
+            QMessageBox.warning(self, "오류", f"데이터를 불러오는 중 오류가 발생했습니다: {e}")
     
     def update_pending_table(self, data):
         self.pending_table.setRowCount(len(data))
@@ -319,12 +323,27 @@ class AdminApp(QMainWindow):
     
     def approve_performance(self, performance_id):
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
+            # 웹사이트의 pickle 데이터 파일 경로
+            data_dir = os.path.join(os.path.dirname(self.db_path), "data")
+            performances_file = os.path.join(data_dir, "performances.pkl")
             
-            cursor.execute("UPDATE performances SET is_approved = 1 WHERE id = ?", (performance_id,))
-            conn.commit()
-            conn.close()
+            if not os.path.exists(performances_file):
+                QMessageBox.warning(self, "오류", "데이터 파일을 찾을 수 없습니다.")
+                return
+            
+            # pickle 파일에서 공연 데이터 로드
+            with open(performances_file, 'rb') as f:
+                performances = pickle.load(f)
+            
+            # 해당 공연 찾아서 승인
+            for p in performances:
+                if p.id == performance_id:
+                    p.is_approved = True
+                    break
+            
+            # 업데이트된 데이터 저장
+            with open(performances_file, 'wb') as f:
+                pickle.dump(performances, f)
             
             QMessageBox.information(self, "승인 완료", f"공연 ID {performance_id}가 승인되었습니다.")
             self.load_data()
@@ -339,12 +358,24 @@ class AdminApp(QMainWindow):
         
         if reply == QMessageBox.Yes:
             try:
-                conn = sqlite3.connect(self.db_path)
-                cursor = conn.cursor()
+                # 웹사이트의 pickle 데이터 파일 경로
+                data_dir = os.path.join(os.path.dirname(self.db_path), "data")
+                performances_file = os.path.join(data_dir, "performances.pkl")
                 
-                cursor.execute("DELETE FROM performances WHERE id = ?", (performance_id,))
-                conn.commit()
-                conn.close()
+                if not os.path.exists(performances_file):
+                    QMessageBox.warning(self, "오류", "데이터 파일을 찾을 수 없습니다.")
+                    return
+                
+                # pickle 파일에서 공연 데이터 로드
+                with open(performances_file, 'rb') as f:
+                    performances = pickle.load(f)
+                
+                # 해당 공연 제거
+                performances = [p for p in performances if p.id != performance_id]
+                
+                # 업데이트된 데이터 저장
+                with open(performances_file, 'wb') as f:
+                    pickle.dump(performances, f)
                 
                 QMessageBox.information(self, "거절 완료", f"공연 ID {performance_id}가 거절되었습니다.")
                 self.load_data()
