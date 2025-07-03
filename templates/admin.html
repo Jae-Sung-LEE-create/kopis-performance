@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}관리자 패널 - KOPIS 공연 홍보 플랫폼{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-cog me-2"></i>관리자 패널
+            </h2>
+        </div>
+    </div>
+
+    <!-- 승인 대기 중인 공연 -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>승인 대기 중 ({{ pending_performances|length }}건)
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if pending_performances %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>공연명</th>
+                                    <th>팀명</th>
+                                    <th>장소</th>
+                                    <th>날짜</th>
+                                    <th>연락처</th>
+                                    <th>신청일</th>
+                                    <th>작업</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for performance in pending_performances %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ performance.title }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ performance.description[:50] }}...</small>
+                                    </td>
+                                    <td>{{ performance.group_name }}</td>
+                                    <td>{{ performance.location }}</td>
+                                    <td>{{ performance.date }} {{ performance.time }}</td>
+                                    <td>{{ performance.contact_email }}</td>
+                                    <td>{{ performance.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-check me-1"></i>승인
+                                                </button>
+                                            </form>
+                                            <form method="POST" action="/admin/reject/{{ performance.id }}" style="display: inline;">
+                                                <button type="submit" class="btn btn-danger btn-sm ms-1" 
+                                                        onclick="return confirm('정말 거절하시겠습니까?')">
+                                                    <i class="fas fa-times me-1"></i>거절
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5 class="text-success">승인 대기 중인 공연이 없습니다</h5>
+                        <p class="text-muted">모든 신청이 처리되었습니다.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 승인된 공연 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-check-circle me-2"></i>승인된 공연 ({{ approved_performances|length }}건)
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if approved_performances %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>공연명</th>
+                                    <th>팀명</th>
+                                    <th>장소</th>
+                                    <th>날짜</th>
+                                    <th>가격</th>
+                                    <th>승인일</th>
+                                    <th>보기</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for performance in approved_performances %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ performance.title }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ performance.description[:50] }}...</small>
+                                    </td>
+                                    <td>{{ performance.group_name }}</td>
+                                    <td>{{ performance.location }}</td>
+                                    <td>{{ performance.date }} {{ performance.time }}</td>
+                                    <td><span class="badge bg-primary">{{ performance.price }}</span></td>
+                                    <td>{{ performance.created_at.strftime('%Y-%m-%d') }}</td>
+                                    <td>
+                                        <a href="/performance/{{ performance.id }}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>보기
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-music fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">아직 승인된 공연이 없습니다</h5>
+                        <p class="text-muted">첫 번째 공연을 승인해보세요!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 통계 -->
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                    <h5 class="card-title">대기 중</h5>
+                    <h3 class="text-warning">{{ pending_performances|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h5 class="card-title">승인됨</h5>
+                    <h3 class="text-success">{{ approved_performances|length }}</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
+                    <h5 class="card-title">총 신청</h5>
+                    <h3 class="text-primary">{{ pending_performances|length + approved_performances|length }}</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

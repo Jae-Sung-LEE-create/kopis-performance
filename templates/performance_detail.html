@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}{{ performance.title }} - KOPIS 공연 홍보 플랫폼{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- 공연 이미지 -->
+            {% if performance.image_url %}
+            <div class="mb-4">
+                <img src="{{ performance.image_url }}" class="img-fluid rounded" alt="{{ performance.title }}" style="width: 100%; max-height: 400px; object-fit: cover;">
+            </div>
+            {% endif %}
+
+            <!-- 공연 정보 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h1 class="card-title mb-3">{{ performance.title }}</h1>
+                    <p class="text-muted mb-3">
+                        <i class="fas fa-users me-2"></i>{{ performance.group_name }}
+                    </p>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-calendar text-primary me-2"></i>
+                                <span>{{ performance.date }}</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-clock text-primary me-2"></i>
+                                <span>{{ performance.time }}</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                <span>{{ performance.location }}</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-ticket-alt text-primary me-2"></i>
+                                <span class="badge bg-primary fs-6">{{ performance.price }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3">
+                        <i class="fas fa-info-circle me-2"></i>공연 소개
+                    </h5>
+                    <p class="card-text">{{ performance.description }}</p>
+                </div>
+            </div>
+
+            <!-- 홍보 동영상 -->
+            {% if performance.video_url %}
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-video me-2"></i>홍보 동영상
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="ratio ratio-16x9">
+                        {% if 'youtube.com' in performance.video_url or 'youtu.be' in performance.video_url %}
+                            {% set video_id = performance.video_url.split('v=')[1] if 'v=' in performance.video_url else performance.video_url.split('/')[-1] %}
+                            <iframe src="https://www.youtube.com/embed/{{ video_id }}" 
+                                    title="YouTube video player" frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen></iframe>
+                        {% elif 'vimeo.com' in performance.video_url %}
+                            {% set video_id = performance.video_url.split('/')[-1] %}
+                            <iframe src="https://player.vimeo.com/video/{{ video_id }}" 
+                                    title="Vimeo video player" frameborder="0" 
+                                    allow="autoplay; fullscreen; picture-in-picture" 
+                                    allowfullscreen></iframe>
+                        {% else %}
+                            <video controls style="width: 100%;">
+                                <source src="{{ performance.video_url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 사이드바 -->
+        <div class="col-lg-4">
+            <!-- 예매 정보 -->
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-ticket-alt me-2"></i>예매 정보
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="mailto:{{ performance.contact_email }}?subject={{ performance.title }} 공연 문의" 
+                           class="btn btn-primary">
+                            <i class="fas fa-envelope me-2"></i>예매 문의하기
+                        </a>
+                        <a href="tel:{{ performance.contact_email }}" class="btn btn-outline-primary">
+                            <i class="fas fa-phone me-2"></i>전화 문의
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 공연 요약 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>공연 요약
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="fas fa-music text-primary me-2"></i>
+                            <strong>공연명:</strong> {{ performance.title }}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-users text-primary me-2"></i>
+                            <strong>팀명:</strong> {{ performance.group_name }}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-calendar text-primary me-2"></i>
+                            <strong>날짜:</strong> {{ performance.date }}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-clock text-primary me-2"></i>
+                            <strong>시간:</strong> {{ performance.time }}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                            <strong>장소:</strong> {{ performance.location }}
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-ticket-alt text-primary me-2"></i>
+                            <strong>가격:</strong> {{ performance.price }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 다른 공연 보기 -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-star me-2"></i>다른 공연도 보기
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <a href="/" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-home me-2"></i>전체 공연 목록
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
