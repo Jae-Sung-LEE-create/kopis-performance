@@ -7,9 +7,12 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.16
+      - key: PYTHONPATH
+        value: /opt/render/project/src
     buildFilter:
       paths:
         - requirements.txt
         - main.py
+        - start.py
         - templates/**
         - static/** 
