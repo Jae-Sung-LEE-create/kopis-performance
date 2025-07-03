@@ -23,10 +23,11 @@ user_id_counter = 1
 
 # 사용자 모델
 class User(UserMixin):
-    def __init__(self, username, email, password_hash, is_admin=False):
+    def __init__(self, name, username, email, password_hash, is_admin=False):
         global user_id_counter
         self.id = user_id_counter
         user_id_counter += 1
+        self.name = name
         self.username = username
         self.email = email
         self.password_hash = password_hash
@@ -69,6 +70,7 @@ def home():
 def register():
     """회원가입"""
     if request.method == 'POST':
+        name = request.form['name']
         username = request.form['username']
         email = request.form['email']
         password = request.form['password']
@@ -79,10 +81,16 @@ def register():
             flash('비밀번호가 일치하지 않습니다.', 'error')
             return render_template('register.html')
         
-        # 사용자명 중복 확인
+        # 아이디 형식 검사 (영문, 숫자, 언더스코어만)
+        import re
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            flash('아이디는 영문, 숫자, 언더스코어만 사용 가능합니다.', 'error')
+            return render_template('register.html')
+        
+        # 아이디 중복 확인
         for user in users:
             if user.username == username:
-                flash('이미 사용 중인 사용자명입니다.', 'error')
+                flash('이미 사용 중인 아이디입니다.', 'error')
                 return render_template('register.html')
         
         # 이메일 중복 확인
@@ -93,7 +101,7 @@ def register():
         
         # 새 사용자 생성
         password_hash = generate_password_hash(password)
-        new_user = User(username, email, password_hash)
+        new_user = User(name, username, email, password_hash)
         users.append(new_user)
         
         flash('회원가입이 완료되었습니다! 로그인해주세요.', 'success')
@@ -203,10 +211,11 @@ if __name__ == "__main__":
     # 기본 관리자 계정 생성 (첫 실행 시에만)
     if not users:
         admin_password_hash = generate_password_hash('admin123')
-        admin_user = User('admin', 'admin@example.com', admin_password_hash, is_admin=True)
+        admin_user = User('관리자', 'admin', 'admin@example.com', admin_password_hash, is_admin=True)
         users.append(admin_user)
         print("기본 관리자 계정이 생성되었습니다:")
-        print("사용자명: admin")
+        print("이름: 관리자")
+        print("아이디: admin")
         print("비밀번호: admin123")
     
     port = int(os.getenv("PORT", 8000))
