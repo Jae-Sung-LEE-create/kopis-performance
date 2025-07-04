@@ -127,7 +127,13 @@ def register():
         
         # 새 사용자 생성
         password_hash = generate_password_hash(password)
-        new_user = User(name, username, email, phone, password_hash)
+        new_user = User(
+            name=name,
+            username=username,
+            email=email,
+            phone=phone,
+            password_hash=password_hash
+        )
         db.session.add(new_user)
         db.session.commit()
         
@@ -146,31 +152,20 @@ def login():
         username = request.form['username']
         password = request.form['password']
         
-        print(f"\n=== 로그인 시도 ===")
-        print(f"입력된 아이디: {username}")
-        print(f"입력된 비밀번호: {password}")
-        print(f"등록된 사용자 수: {User.query.count()}")
-        print(f"등록된 사용자: {[u.username for u in User.query.all()]}")
-        
         # 사용자 찾기
         user = User.query.filter_by(username=username).first()
         
         if user:
             # 비밀번호 확인
             is_password_correct = check_password_hash(user.password_hash, password)
-            print(f"비밀번호 확인 결과: {is_password_correct}")
-            print(f"저장된 해시: {user.password_hash}")
             
             if is_password_correct:
-                print(f"✅ 로그인 성공: {user.username} (관리자: {user.is_admin})")
                 login_user(user)
                 flash('로그인되었습니다!', 'success')
                 return redirect(url_for('home'))
             else:
-                print(f"❌ 비밀번호 불일치")
                 flash('사용자명 또는 비밀번호가 올바르지 않습니다.', 'error')
         else:
-            print(f"❌ 사용자를 찾을 수 없음")
             flash('사용자명 또는 비밀번호가 올바르지 않습니다.', 'error')
     
     return render_template('login.html')
