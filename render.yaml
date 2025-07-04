@@ -2,9 +2,8 @@ services:
   - type: web
     name: kopis-performance
     env: python
-    buildCommand: |
-      python3.11 -m pip install -r requirements.txt
-    startCommand: python3.11 start.py
+    buildCommand: pip install -r requirements.txt
+    startCommand: python start.py
     envVars:
       - key: PYTHONPATH
         value: /opt/render/project/src
