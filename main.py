@@ -263,7 +263,4 @@ def submit_performance():
     
     return render_template("submit.html")
 
-if __name__ == "__main__":
-    create_tables()
-    port = int(os.getenv("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=False) 
+# 앱 실행은 start.py에서 처리 
