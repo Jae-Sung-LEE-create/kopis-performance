@@ -8,7 +8,6 @@ from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
-print("DB URL:", os.getenv("DATABASE_URL"))
 
 app = Flask(__name__, 
            template_folder='templates',
