@@ -217,7 +217,8 @@
                                 <tr><td><strong>이름:</strong></td><td>{{ user.name }}</td></tr>
                                 <tr><td><strong>아이디:</strong></td><td>{{ user.username }}</td></tr>
                                 <tr><td><strong>이메일:</strong></td><td>{{ user.email }}</td></tr>
-                                <tr><td><strong>연락처:</strong></td><td>{{ performance.contact_email }}</td></tr>
+                                <tr><td><strong>휴대폰:</strong></td><td>{{ user.phone if user.phone else '미입력' }}</td></tr>
+                                <tr><td><strong>공연 연락처:</strong></td><td>{{ performance.contact_email }}</td></tr>
                                 {% endif %}
                             {% endfor %}
                         </table>

@@ -108,13 +108,14 @@ performance_id_counter = 1
 
 # 사용자 모델
 class User(UserMixin):
-    def __init__(self, name, username, email, password_hash, is_admin=False):
+    def __init__(self, name, username, email, password_hash, phone=None, is_admin=False):
         global user_id_counter
         self.id = user_id_counter
         user_id_counter += 1
         self.name = name
         self.username = username
         self.email = email
+        self.phone = phone
         self.password_hash = password_hash
         self.is_admin = is_admin
         self.created_at = datetime.utcnow()
@@ -154,6 +155,7 @@ def ensure_admin_account():
         username=admin_username,
         email=admin_email,
         password_hash=generate_password_hash(admin_password),
+        phone="010-0000-0000",
         is_admin=True
     )
     users.append(admin_user)
@@ -197,6 +199,7 @@ def register():
         name = request.form['name']
         username = request.form['username']
         email = request.form['email']
+        phone = request.form.get('phone', '')  # 휴대폰 번호 (선택사항)
         password = request.form['password']
         confirm_password = request.form['confirm_password']
         
@@ -225,7 +228,7 @@ def register():
         
         # 새 사용자 생성
         password_hash = generate_password_hash(password)
-        new_user = User(name, username, email, password_hash)
+        new_user = User(name, username, email, password_hash, phone)
         users.append(new_user)
         
         # 데이터 저장
