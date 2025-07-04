@@ -11,6 +11,14 @@ app = Flask(__name__,
            static_folder='static')
 app.secret_key = 'your-secret-key-here'
 
+# 템플릿 필터 추가
+@app.template_filter('nl2br')
+def nl2br_filter(text):
+    """줄바꿈을 <br> 태그로 변환"""
+    if text:
+        return text.replace('\n', '<br>')
+    return text
+
 # Flask-Login 설정
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -30,13 +38,17 @@ if not os.path.exists(DATA_DIR):
 def save_data():
     """데이터를 파일에 저장"""
     try:
+        print(f"데이터 저장 시작 - 사용자: {len(users)}명, 공연: {len(performances)}개")
+        
         # 사용자 데이터 저장
         with open(USERS_FILE, 'wb') as f:
             pickle.dump(users, f)
+        print(f"사용자 데이터 저장 완료: {USERS_FILE}")
         
         # 공연 데이터 저장
         with open(PERFORMANCES_FILE, 'wb') as f:
             pickle.dump(performances, f)
+        print(f"공연 데이터 저장 완료: {PERFORMANCES_FILE}")
         
         # 카운터 데이터 저장
         counters = {
@@ -45,8 +57,14 @@ def save_data():
         }
         with open(COUNTERS_FILE, 'wb') as f:
             pickle.dump(counters, f)
+        print(f"카운터 데이터 저장 완료: {COUNTERS_FILE}")
+        
+        print("모든 데이터 저장 완료!")
+        
     except Exception as e:
         print(f"데이터 저장 중 오류: {e}")
+        import traceback
+        traceback.print_exc()
 
 # 데이터 로드 함수
 def load_data():
@@ -58,11 +76,13 @@ def load_data():
         if os.path.exists(USERS_FILE):
             with open(USERS_FILE, 'rb') as f:
                 users = pickle.load(f)
+                print(f"사용자 데이터 로드 완료: {len(users)}명")
         
         # 공연 데이터 로드
         if os.path.exists(PERFORMANCES_FILE):
             with open(PERFORMANCES_FILE, 'rb') as f:
                 performances = pickle.load(f)
+                print(f"공연 데이터 로드 완료: {len(performances)}개")
         
         # 카운터 데이터 로드
         if os.path.exists(COUNTERS_FILE):
@@ -70,6 +90,7 @@ def load_data():
                 counters = pickle.load(f)
                 user_id_counter = counters.get('user_id_counter', 1)
                 performance_id_counter = counters.get('performance_id_counter', 1)
+                print(f"카운터 데이터 로드 완료: user_id={user_id_counter}, performance_id={performance_id_counter}")
     except Exception as e:
         print(f"데이터 로드 중 오류: {e}")
         # 오류 발생 시 기본값으로 초기화
@@ -77,6 +98,7 @@ def load_data():
         performances = []
         user_id_counter = 1
         performance_id_counter = 1
+        print("기본값으로 초기화됨")
 
 # 전역 변수 초기화
 users = []
@@ -96,18 +118,52 @@ class User(UserMixin):
         self.password_hash = password_hash
         self.is_admin = is_admin
         self.created_at = datetime.utcnow()
+    
+    def get_id(self):
+        """Flask-Login에서 사용자 ID를 문자열로 반환"""
+        return str(self.id)
+    
+    def __repr__(self):
+        return f"<User {self.username}>"
 
 @login_manager.user_loader
 def load_user(user_id):
-    for user in users:
-        if user.id == int(user_id):
-            return user
+    try:
+        user_id_int = int(user_id)
+        for user in users:
+            if user.id == user_id_int:
+                return user
+    except (ValueError, TypeError):
+        pass
     return None
 
 # 초기 데이터 로드 (User 클래스 정의 후)
 load_data()
 
-# 공연 모델 (딕셔너리 기반)
+# 관리자 계정 자동 생성 (운영/로컬 모두 적용)
+def ensure_admin_account():
+    admin_username = "admin"
+    admin_password = "admin123"
+    admin_email = "admin@admin.com"
+    for user in users:
+        if user.username == admin_username:
+            return  # 이미 있으면 생성 안 함
+    print("새로운 관리자 계정 생성 중...")
+    admin_user = User(
+        name="관리자",
+        username=admin_username,
+        email=admin_email,
+        password_hash=generate_password_hash(admin_password),
+        is_admin=True
+    )
+    users.append(admin_user)
+    save_data()
+    print("✅ 새로운 관리자 계정 생성 완료!")
+    print(f"📋 관리자 계정:\n   아이디: {admin_username}\n   비밀번호: {admin_password}\n   관리자 권한: True\n   총 사용자 수: {len(users)}")
+
+ensure_admin_account()
+
+# 공연 모델
 class Performance:
     def __init__(self, title, group_name, description, location, price, date, time, contact_email, video_url=None, image_url=None, user_id=None):
         global performance_id_counter
@@ -189,18 +245,36 @@ def login():
         username = request.form['username']
         password = request.form['password']
         
+        print(f"\n=== 로그인 시도 ===")
+        print(f"입력된 아이디: {username}")
+        print(f"입력된 비밀번호: {password}")
+        print(f"등록된 사용자 수: {len(users)}")
+        print(f"등록된 사용자: {[u.username for u in users]}")
+        
         # 사용자 찾기
         user = None
         for u in users:
             if u.username == username:
                 user = u
+                print(f"사용자 찾음: {u.username} (ID: {u.id}, 관리자: {u.is_admin})")
                 break
         
-        if user and check_password_hash(user.password_hash, password):
-            login_user(user)
-            flash('로그인되었습니다!', 'success')
-            return redirect(url_for('home'))
+        if user:
+            # 비밀번호 확인
+            is_password_correct = check_password_hash(user.password_hash, password)
+            print(f"비밀번호 확인 결과: {is_password_correct}")
+            print(f"저장된 해시: {user.password_hash}")
+            
+            if is_password_correct:
+                print(f"✅ 로그인 성공: {user.username} (관리자: {user.is_admin})")
+                login_user(user)
+                flash('로그인되었습니다!', 'success')
+                return redirect(url_for('home'))
+            else:
+                print(f"❌ 비밀번호 불일치")
+                flash('사용자명 또는 비밀번호가 올바르지 않습니다.', 'error')
         else:
+            print(f"❌ 사용자를 찾을 수 없음")
             flash('사용자명 또는 비밀번호가 올바르지 않습니다.', 'error')
     
     return render_template('login.html')
@@ -224,12 +298,18 @@ def my_performances():
 @app.route('/admin')
 def admin_panel():
     """관리자 패널 - 승인 대기 중인 공연 관리"""
+    # 관리자 권한 확인
+    if not current_user.is_authenticated or not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('login'))
+    
     pending_performances = [p for p in performances if not p.is_approved]
     approved_performances = [p for p in performances if p.is_approved]
     
     return render_template("admin.html", 
                          pending_performances=pending_performances,
-                         approved_performances=approved_performances)
+                         approved_performances=approved_performances,
+                         users=users)
 
 @app.route('/admin/approve/<int:performance_id>', methods=['POST'])
 def approve_performance(performance_id):
@@ -289,6 +369,7 @@ def submit_performance():
         )
         
         performances.append(performance)
+        print(f"공연 추가됨: ID={performance.id}, 제목={performance.title}")
         
         # 데이터 저장
         save_data()
@@ -299,19 +380,32 @@ def submit_performance():
     return render_template("submit.html")
 
 if __name__ == "__main__":
-    # 기본 관리자 계정 생성 (첫 실행 시에만)
-    if not users:
-        admin_password_hash = generate_password_hash('admin123')
-        admin_user = User('관리자', 'admin', 'admin@example.com', admin_password_hash, is_admin=True)
-        users.append(admin_user)
-        
-        # 데이터 저장
-        save_data()
-        
-        print("기본 관리자 계정이 생성되었습니다:")
-        print("이름: 관리자")
-        print("아이디: admin")
-        print("비밀번호: admin123")
+    print("=== KOPIS 공연 홍보 플랫폼 시작 ===")
+    
+    # 강제로 새로운 관리자 계정 생성
+    print("새로운 관리자 계정 생성 중...")
+    
+    # 기존 데이터 초기화
+    users = []
+    performances = []
+    user_id_counter = 1
+    performance_id_counter = 1
+    
+    # 새로운 관리자 계정 생성
+    admin_password_hash = generate_password_hash('admin123')
+    admin_user = User('관리자', 'admin', 'admin@example.com', admin_password_hash, is_admin=True)
+    users.append(admin_user)
+    
+    # 데이터 저장
+    save_data()
+    
+    print("✅ 새로운 관리자 계정 생성 완료!")
+    print("📋 관리자 계정:")
+    print("   아이디: admin")
+    print("   비밀번호: admin123")
+    print("   관리자 권한: True")
+    print(f"   총 사용자 수: {len(users)}")
+    print("🚀 서버 시작 중...")
     
     port = int(os.getenv("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=True) 
+    app.run(host="0.0.0.0", port=port, debug=False) 
