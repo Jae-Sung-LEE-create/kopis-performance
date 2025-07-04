@@ -140,30 +140,7 @@ def load_user(user_id):
 # 초기 데이터 로드 (User 클래스 정의 후)
 load_data()
 
-# 관리자 계정 자동 생성 (운영/로컬 모두 적용)
-def ensure_admin_account():
-    admin_username = "admin"
-    admin_password = "admin123"
-    admin_email = "admin@admin.com"
-    for user in users:
-        if user.username == admin_username:
-            return  # 이미 있으면 생성 안 함
-    print("새로운 관리자 계정 생성 중...")
-    admin_user = User(
-        name="관리자",
-        username=admin_username,
-        email=admin_email,
-        password_hash=generate_password_hash(admin_password),
-        is_admin=True
-    )
-    users.append(admin_user)
-    save_data()
-    print("✅ 새로운 관리자 계정 생성 완료!")
-    print(f"📋 관리자 계정:\n   아이디: {admin_username}\n   비밀번호: {admin_password}\n   관리자 권한: True\n   총 사용자 수: {len(users)}")
-
-ensure_admin_account()
-
-# 공연 모델
+# 공연 모델 (딕셔너리 기반)
 class Performance:
     def __init__(self, title, group_name, description, location, price, date, time, contact_email, video_url=None, image_url=None, user_id=None):
         global performance_id_counter
@@ -380,32 +357,19 @@ def submit_performance():
     return render_template("submit.html")
 
 if __name__ == "__main__":
-    print("=== KOPIS 공연 홍보 플랫폼 시작 ===")
-    
-    # 강제로 새로운 관리자 계정 생성
-    print("새로운 관리자 계정 생성 중...")
-    
-    # 기존 데이터 초기화
-    users = []
-    performances = []
-    user_id_counter = 1
-    performance_id_counter = 1
-    
-    # 새로운 관리자 계정 생성
-    admin_password_hash = generate_password_hash('admin123')
-    admin_user = User('관리자', 'admin', 'admin@example.com', admin_password_hash, is_admin=True)
-    users.append(admin_user)
-    
-    # 데이터 저장
-    save_data()
-    
-    print("✅ 새로운 관리자 계정 생성 완료!")
-    print("📋 관리자 계정:")
-    print("   아이디: admin")
-    print("   비밀번호: admin123")
-    print("   관리자 권한: True")
-    print(f"   총 사용자 수: {len(users)}")
-    print("🚀 서버 시작 중...")
+    # 기본 관리자 계정 생성 (첫 실행 시에만)
+    if not users:
+        admin_password_hash = generate_password_hash('admin123')
+        admin_user = User('관리자', 'admin', 'admin@example.com', admin_password_hash, is_admin=True)
+        users.append(admin_user)
+        
+        # 데이터 저장
+        save_data()
+        
+        print("기본 관리자 계정이 생성되었습니다:")
+        print("이름: 관리자")
+        print("아이디: admin")
+        print("비밀번호: admin123")
     
     port = int(os.getenv("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=False) 
+    app.run(host="0.0.0.0", port=port, debug=True) 

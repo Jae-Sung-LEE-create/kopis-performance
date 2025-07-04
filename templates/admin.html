@@ -29,6 +29,7 @@
                                 <tr>
                                     <th>공연명</th>
                                     <th>팀명</th>
+                                    <th>신청자</th>
                                     <th>장소</th>
                                     <th>날짜</th>
                                     <th>연락처</th>
@@ -45,12 +46,24 @@
                                         <small class="text-muted">{{ performance.description[:50] }}...</small>
                                     </td>
                                     <td>{{ performance.group_name }}</td>
+                                    <td>
+                                        {% for user in users %}
+                                            {% if user.id == performance.user_id %}
+                                                <strong>{{ user.name }}</strong><br>
+                                                <small class="text-muted">{{ user.username }}</small>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </td>
                                     <td>{{ performance.location }}</td>
                                     <td>{{ performance.date }} {{ performance.time }}</td>
                                     <td>{{ performance.contact_email }}</td>
                                     <td>{{ performance.created_at.strftime('%Y-%m-%d') }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-info btn-sm" 
+                                                    data-bs-toggle="modal" data-bs-target="#detailModal{{ performance.id }}">
+                                                <i class="fas fa-eye me-1"></i>상세
+                                            </button>
                                             <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
                                                 <button type="submit" class="btn btn-success btn-sm">
                                                     <i class="fas fa-check me-1"></i>승인
@@ -171,4 +184,87 @@
         </div>
     </div>
 </div>
+
+<!-- 공연 상세 정보 모달들 -->
+{% for performance in pending_performances %}
+<div class="modal fade" id="detailModal{{ performance.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-music me-2"></i>{{ performance.title }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-info-circle me-2"></i>기본 정보</h6>
+                        <table class="table table-sm">
+                            <tr><td><strong>공연명:</strong></td><td>{{ performance.title }}</td></tr>
+                            <tr><td><strong>팀명:</strong></td><td>{{ performance.group_name }}</td></tr>
+                            <tr><td><strong>장소:</strong></td><td>{{ performance.location }}</td></tr>
+                            <tr><td><strong>날짜:</strong></td><td>{{ performance.date }}</td></tr>
+                            <tr><td><strong>시간:</strong></td><td>{{ performance.time }}</td></tr>
+                            <tr><td><strong>가격:</strong></td><td>{{ performance.price }}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-user me-2"></i>신청자 정보</h6>
+                        <table class="table table-sm">
+                            {% for user in users %}
+                                {% if user.id == performance.user_id %}
+                                <tr><td><strong>이름:</strong></td><td>{{ user.name }}</td></tr>
+                                <tr><td><strong>아이디:</strong></td><td>{{ user.username }}</td></tr>
+                                <tr><td><strong>이메일:</strong></td><td>{{ user.email }}</td></tr>
+                                <tr><td><strong>연락처:</strong></td><td>{{ performance.contact_email }}</td></tr>
+                                {% endif %}
+                            {% endfor %}
+                        </table>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6><i class="fas fa-align-left me-2"></i>공연 설명</h6>
+                        <div class="border rounded p-3 bg-light">
+                            {{ performance.description|nl2br }}
+                        </div>
+                    </div>
+                </div>
+                {% if performance.video_url %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6><i class="fas fa-video me-2"></i>동영상 링크</h6>
+                        <a href="{{ performance.video_url }}" target="_blank" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-external-link-alt me-1"></i>동영상 보기
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% if performance.image_url %}
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6><i class="fas fa-image me-2"></i>이미지</h6>
+                        <img src="{{ performance.image_url }}" class="img-fluid rounded" style="max-height: 200px;">
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>승인
+                    </button>
+                </form>
+                <form method="POST" action="/admin/reject/{{ performance.id }}" style="display: inline;">
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('정말 거절하시겠습니까?')">
+                        <i class="fas fa-times me-1"></i>거절
+                    </button>
+                </form>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %} 

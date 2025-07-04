@@ -27,10 +27,11 @@
 
 ## 🛠 기술 스택
 
-- **Backend**: FastAPI (Python)
-- **Database**: SQLite (개발용) / PostgreSQL (배포용)
+- **Backend**: Flask (Python)
+- **Database**: Pickle 파일 기반 (개발용) / SQLite (배포용)
 - **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
 - **Template Engine**: Jinja2
+- **Authentication**: Flask-Login
 
 ## 🚀 설치 및 실행
 
@@ -49,6 +50,14 @@ python main.py
 http://localhost:8000
 ```
 
+### 🔐 관리자 계정
+
+애플리케이션 실행 시 자동으로 관리자 계정이 생성됩니다:
+- **아이디**: `admin`
+- **비밀번호**: `admin123`
+
+관리자로 로그인하면 네비게이션 바에 "관리자" 링크가 나타나며, 공연 승인/거절 기능을 사용할 수 있습니다.
+
 ## 🌐 배포 방법
 
 ### Railway 배포 (추천)
@@ -64,16 +73,20 @@ http://localhost:8000
 ## 📁 프로젝트 구조
 
 ```
-├── main.py                 # FastAPI 메인 애플리케이션
-├── admin_app.py           # 관리자 데스크톱 프로그램
+├── main.py                 # Flask 메인 애플리케이션
 ├── requirements.txt        # Python 의존성
 ├── Procfile              # 배포 설정
 ├── railway.json          # Railway 설정
+├── render.yaml           # Render 설정
+├── data/                 # 데이터 저장소 (pickle 파일들)
 ├── templates/             # HTML 템플릿
 │   ├── base.html         # 기본 레이아웃
 │   ├── index.html        # 홈페이지
+│   ├── login.html        # 로그인 페이지
+│   ├── register.html     # 회원가입 페이지
 │   ├── submit.html       # 공연 신청 폼
 │   ├── admin.html        # 관리자 패널
+│   ├── my_performances.html  # 내 공연 신청 현황
 │   └── performance_detail.html  # 공연 상세 페이지
 ├── static/               # 정적 파일 (CSS, JS, 이미지)
 └── README.md            # 프로젝트 설명서
@@ -88,10 +101,12 @@ http://localhost:8000
 4. 신청서 제출
 
 ### 관리자 기능
-1. `dist/admin_app.exe` 실행 (데스크톱 프로그램)
-2. 승인 대기 중인 공연 확인
-3. 승인 또는 거절 처리
-4. 승인된 공연 관리
+1. 관리자 계정으로 로그인 (`admin` / `admin123`)
+2. 네비게이션 바의 "관리자" 링크 클릭
+3. 승인 대기 중인 공연 확인
+4. "상세" 버튼으로 공연 정보 확인
+5. "승인" 또는 "거절" 버튼으로 처리
+6. 승인된 공연은 홈페이지에 자동 표시
 
 ### 공연 정보 확인
 1. 홈페이지에서 공연 목록 확인
