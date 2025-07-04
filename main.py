@@ -13,7 +13,11 @@ app = Flask(__name__,
            template_folder='templates',
            static_folder='static')
 app.secret_key = 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
+# Render PostgreSQL URL 처리
+database_url = os.getenv('DATABASE_URL')
+if database_url and database_url.startswith('postgres://'):
+    database_url = database_url.replace('postgres://', 'postgresql://', 1)
+app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -262,4 +266,4 @@ def submit_performance():
 if __name__ == "__main__":
     create_tables()
     port = int(os.getenv("PORT", 8000))
-    app.run(host="0.0.0.0", port=port, debug=True) 
+    app.run(host="0.0.0.0", port=port, debug=False) 
