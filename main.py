@@ -286,4 +286,17 @@ def submit_performance():
         return redirect(url_for('submit_performance'))
     return render_template("submit.html")
 
+@app.route('/admin/delete/<int:performance_id>', methods=['POST'])
+def delete_approved_performance(performance_id):
+    """관리자 승인 공연 삭제"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('login'))
+    performance = Performance.query.get(performance_id)
+    if performance:
+        db.session.delete(performance)
+        db.session.commit()
+        flash('공연이 삭제되었습니다.', 'success')
+    return redirect(url_for('admin_panel'))
+
 # 앱 실행은 start.py에서 처리 
