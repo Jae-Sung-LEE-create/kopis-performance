@@ -17,6 +17,10 @@ app.secret_key = 'your-secret-key-here'
 database_url = os.getenv('DATABASE_URL')
 if database_url and database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
+elif not database_url:
+    # 로컬 개발용 SQLite 데이터베이스
+    database_url = 'sqlite:///app.db'
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
