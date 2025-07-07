@@ -29,7 +29,7 @@ elif not database_url:
     # 로컬 개발용 SQLite 데이터베이스
     database_url = 'sqlite:///app.db'
 
-print(f"Database URL: {database_url}")  # 디버깅용 로그
+logger.info(f"Database URL: {database_url}")  # 디버깅용 로그
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -48,6 +48,16 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
 # SQLAlchemy 초기화
 db = SQLAlchemy()
 db.init_app(app)
+
+def check_database_connection():
+    """데이터베이스 연결 상태 확인"""
+    try:
+        db.session.execute('SELECT 1')
+        db.session.commit()
+        return True
+    except Exception as e:
+        logger.error(f"Database connection failed: {e}")
+        return False
 
 # Flask-Login 설정
 login_manager = LoginManager()
@@ -134,6 +144,12 @@ def home():
     """홈페이지 - 공연 목록 표시"""
     try:
         logger.info("Accessing home page")
+        
+        # 데이터베이스 연결 확인
+        if not check_database_connection():
+            logger.warning("Database connection failed, showing empty page")
+            return render_template("index.html", performances=[])
+        
         approved_performances = Performance.query.filter_by(is_approved=True).all()
         logger.info(f"Found {len(approved_performances)} approved performances")
         return render_template("index.html", performances=approved_performances)
@@ -335,11 +351,13 @@ def health_check():
     """헬스체크 엔드포인트"""
     try:
         # 데이터베이스 연결 테스트
-        db.session.execute('SELECT 1')
-        return {'status': 'healthy', 'database': 'connected'}, 200
+        if check_database_connection():
+            return {'status': 'healthy', 'database': 'connected'}, 200
+        else:
+            return {'status': 'unhealthy', 'database': 'disconnected'}, 500
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        return {'status': 'unhealthy', 'database': 'disconnected', 'error': str(e)}, 500
+        return {'status': 'unhealthy', 'database': 'error', 'error': str(e)}, 500
 
 @app.errorhandler(500)
 def internal_error(error):
