@@ -1,11 +1,12 @@
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func
-from flask import Flask, request, render_template, redirect, url_for, flash
+from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+import uuid
 
 load_dotenv()
 
@@ -257,6 +258,15 @@ def performance_detail(performance_id):
 def submit_performance():
     """공연 신청 폼"""
     if request.method == 'POST':
+        image_url = None
+        if 'image_file' in request.files and request.files['image_file'].filename:
+            image = request.files['image_file']
+            ext = image.filename.rsplit('.', 1)[-1].lower()
+            filename = f"{uuid.uuid4().hex}.{ext}"
+            upload_dir = os.path.join('static', 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            image.save(os.path.join(upload_dir, filename))
+            image_url = f"/static/uploads/{filename}"
         performance = Performance(
             title=request.form['title'],
             group_name=request.form['group_name'],
@@ -264,19 +274,16 @@ def submit_performance():
             location=request.form['location'],
             price=request.form['price'],
             date=request.form['date'],
-            time=request.form['time'],
+            time=f"{request.form['start_time']}~{request.form['end_time']}",
             contact_email=request.form['contact_email'],
             video_url=request.form.get('video_url'),
-            image_url=request.form.get('image_url'),
+            image_url=image_url,
             user_id=current_user.id
         )
-        
         db.session.add(performance)
         db.session.commit()
-        
         flash('공연 신청이 완료되었습니다! 관리자 승인 후 홈페이지에 표시됩니다.', 'success')
         return redirect(url_for('submit_performance'))
-    
     return render_template("submit.html")
 
 # 앱 실행은 start.py에서 처리 

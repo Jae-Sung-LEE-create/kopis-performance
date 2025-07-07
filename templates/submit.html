@@ -114,12 +114,41 @@
                         </div>
 
                         <div class="mb-4">
-                            <label for="image_url" class="form-label">
-                                <i class="fas fa-image me-1"></i>홍보 이미지 URL (선택)
+                            <label for="image_file" class="form-label">
+                                <i class="fas fa-image me-1"></i>홍보 이미지 업로드 (드래그&드롭 또는 클릭)
                             </label>
-                            <input type="url" class="form-control" id="image_url" name="image_url" 
-                                   placeholder="공연 포스터나 팀 사진 링크">
+                            <div id="dropzone" class="border border-2 border-primary rounded p-4 text-center bg-light" style="cursor:pointer;">
+                                <i class="fas fa-cloud-upload-alt fa-2x text-primary mb-2"></i>
+                                <div>이미지를 여기에 드래그하거나 클릭해서 첨부하세요</div>
+                                <input type="file" class="form-control d-none" id="image_file" name="image_file" accept="image/*">
+                                <img id="preview" src="#" alt="미리보기" class="img-fluid mt-3 d-none" style="max-height:200px;"/>
+                            </div>
                         </div>
+                        <script>
+                            const dropzone = document.getElementById('dropzone');
+                            const fileInput = document.getElementById('image_file');
+                            const preview = document.getElementById('preview');
+                            dropzone.addEventListener('click', () => fileInput.click());
+                            dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('bg-primary', 'text-white'); });
+                            dropzone.addEventListener('dragleave', e => { e.preventDefault(); dropzone.classList.remove('bg-primary', 'text-white'); });
+                            dropzone.addEventListener('drop', e => {
+                                e.preventDefault();
+                                dropzone.classList.remove('bg-primary', 'text-white');
+                                fileInput.files = e.dataTransfer.files;
+                                showPreview();
+                            });
+                            fileInput.addEventListener('change', showPreview);
+                            function showPreview() {
+                                if (fileInput.files && fileInput.files[0]) {
+                                    const reader = new FileReader();
+                                    reader.onload = e => {
+                                        preview.src = e.target.result;
+                                        preview.classList.remove('d-none');
+                                    };
+                                    reader.readAsDataURL(fileInput.files[0]);
+                                }
+                            }
+                        </script>
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg">
