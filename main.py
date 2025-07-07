@@ -13,7 +13,8 @@ app = Flask(__name__,
            template_folder='templates',
            static_folder='static')
 app.secret_key = 'your-secret-key-here'
-# Render PostgreSQL URL 처리
+
+# 데이터베이스 설정
 database_url = os.getenv('DATABASE_URL')
 if database_url and database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
@@ -24,7 +25,9 @@ elif not database_url:
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-db = SQLAlchemy(app)
+# SQLAlchemy 초기화
+db = SQLAlchemy()
+db.init_app(app)
 
 # Flask-Login 설정
 login_manager = LoginManager()
