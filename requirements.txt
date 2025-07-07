@@ -1,6 +1,7 @@
 flask==2.2.5
-flask-login==0.6.2
+flask-login==0.6.3
 flask-sqlalchemy==3.0.2
 python-dotenv==0.21.1
 psycopg2-binary==2.9.5
-gunicorn==20.1.0 
+gunicorn==20.1.0
+werkzeug==2.2.3 
