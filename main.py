@@ -30,9 +30,13 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
-    'pool_timeout': 20,
+    'pool_timeout': 10,
     'max_overflow': 0,
-    'pool_size': 10
+    'pool_size': 5,
+    'connect_args': {
+        'connect_timeout': 10,
+        'application_name': 'kopis-performance'
+    }
 }
 
 # SQLAlchemy 초기화

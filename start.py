@@ -1,5 +1,4 @@
 import os
-import time
 from main import app, create_tables
 
 # 데이터베이스 테이블 생성 및 관리자 계정 초기화
