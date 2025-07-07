@@ -30,6 +30,9 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
     'pool_recycle': 300,
+    'pool_timeout': 20,
+    'max_overflow': 0,
+    'pool_size': 10
 }
 
 # SQLAlchemy 초기화
@@ -80,27 +83,32 @@ def load_user(user_id):
 
 def create_tables():
     with app.app_context():
-        print("Creating database tables...")  # 디버깅용 로그
-        db.create_all()
-        print("Database tables created successfully!")  # 디버깅용 로그
-        
-        # 관리자 계정 자동 생성
-        admin = User.query.filter_by(username='admin').first()
-        if not admin:
-            print("Creating admin user...")  # 디버깅용 로그
-            admin_user = User(
-                name='관리자',
-                username='admin',
-                email='admin@admin.com',
-                phone='010-0000-0000',
-                password_hash=generate_password_hash('admin123'),
-                is_admin=True
-            )
-            db.session.add(admin_user)
-            db.session.commit()
-            print("Admin user created successfully!")  # 디버깅용 로그
-        else:
-            print("Admin user already exists!")  # 디버깅용 로그
+        try:
+            print("Creating database tables...")  # 디버깅용 로그
+            db.create_all()
+            print("Database tables created successfully!")  # 디버깅용 로그
+            
+            # 관리자 계정 자동 생성
+            admin = User.query.filter_by(username='admin').first()
+            if not admin:
+                print("Creating admin user...")  # 디버깅용 로그
+                admin_user = User(
+                    name='관리자',
+                    username='admin',
+                    email='admin@admin.com',
+                    phone='010-0000-0000',
+                    password_hash=generate_password_hash('admin123'),
+                    is_admin=True
+                )
+                db.session.add(admin_user)
+                db.session.commit()
+                print("Admin user created successfully!")  # 디버깅용 로그
+            else:
+                print("Admin user already exists!")  # 디버깅용 로그
+        except Exception as e:
+            print(f"Error creating tables: {e}")
+            # 데이터베이스 연결 실패 시에도 앱은 계속 실행
+            pass
 
 # 템플릿 필터 추가
 @app.template_filter('nl2br')
@@ -113,8 +121,13 @@ def nl2br_filter(text):
 @app.route('/')
 def home():
     """홈페이지 - 공연 목록 표시"""
-    approved_performances = Performance.query.filter_by(is_approved=True).all()
-    return render_template("index.html", performances=approved_performances)
+    try:
+        approved_performances = Performance.query.filter_by(is_approved=True).all()
+        return render_template("index.html", performances=approved_performances)
+    except Exception as e:
+        print(f"Error loading performances: {e}")
+        # 데이터베이스 오류 시 빈 목록으로 표시
+        return render_template("index.html", performances=[])
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -302,5 +315,15 @@ def delete_approved_performance(performance_id):
         db.session.commit()
         flash('공연이 삭제되었습니다.', 'success')
     return redirect(url_for('admin_panel'))
+
+@app.route('/health')
+def health_check():
+    """헬스체크 엔드포인트"""
+    try:
+        # 데이터베이스 연결 테스트
+        db.session.execute('SELECT 1')
+        return {'status': 'healthy', 'database': 'connected'}, 200
+    except Exception as e:
+        return {'status': 'unhealthy', 'database': 'disconnected', 'error': str(e)}, 500
 
 # 앱 실행은 start.py에서 처리 
