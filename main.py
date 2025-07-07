@@ -27,6 +27,10 @@ print(f"Database URL: {database_url}")  # 디버깅용 로그
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 300,
+}
 
 # SQLAlchemy 초기화
 db = SQLAlchemy()
