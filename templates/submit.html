@@ -71,15 +71,29 @@
                                 <label for="date" class="form-label">
                                     <i class="fas fa-calendar me-1"></i>공연 날짜 *
                                 </label>
-                                <input type="text" class="form-control" id="date" name="date" 
-                                       placeholder="예: 2024년 3월 15일" required>
+                                <input type="date" class="form-control" id="date" name="date" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="time" class="form-label">
+                                <label class="form-label">
                                     <i class="fas fa-clock me-1"></i>공연 시간 *
                                 </label>
-                                <input type="text" class="form-control" id="time" name="time" 
-                                       placeholder="예: 오후 7시" required>
+                                <div class="d-flex gap-2 align-items-center">
+                                    <select class="form-select" id="start_time" name="start_time" required>
+                                        <option value="">시작 시간</option>
+                                        {% for h in range(10,24) %}
+                                            <option value="{{'%02d:00' % h}}">{{'%02d:00' % h}}</option>
+                                            <option value="{{'%02d:30' % h}}">{{'%02d:30' % h}}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <span>~</span>
+                                    <select class="form-select" id="end_time" name="end_time" required>
+                                        <option value="">종료 시간</option>
+                                        {% for h in range(10,24) %}
+                                            <option value="{{'%02d:00' % h}}">{{'%02d:00' % h}}</option>
+                                            <option value="{{'%02d:30' % h}}">{{'%02d:30' % h}}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
