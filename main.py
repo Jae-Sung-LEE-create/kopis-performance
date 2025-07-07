@@ -22,6 +22,8 @@ elif not database_url:
     # 로컬 개발용 SQLite 데이터베이스
     database_url = 'sqlite:///app.db'
 
+print(f"Database URL: {database_url}")  # 디버깅용 로그
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -73,10 +75,14 @@ def load_user(user_id):
 
 def create_tables():
     with app.app_context():
+        print("Creating database tables...")  # 디버깅용 로그
         db.create_all()
+        print("Database tables created successfully!")  # 디버깅용 로그
+        
         # 관리자 계정 자동 생성
         admin = User.query.filter_by(username='admin').first()
         if not admin:
+            print("Creating admin user...")  # 디버깅용 로그
             admin_user = User(
                 name='관리자',
                 username='admin',
@@ -87,6 +93,9 @@ def create_tables():
             )
             db.session.add(admin_user)
             db.session.commit()
+            print("Admin user created successfully!")  # 디버깅용 로그
+        else:
+            print("Admin user already exists!")  # 디버깅용 로그
 
 # 템플릿 필터 추가
 @app.template_filter('nl2br')
