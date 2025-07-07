@@ -102,34 +102,38 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 def create_tables():
-    with app.app_context():
-        try:
+    try:
+        with app.app_context():
             logger.info("Creating database tables...")
             db.create_all()
             logger.info("Database tables created successfully!")
             
             # 관리자 계정 자동 생성
-            admin = User.query.filter_by(username='admin').first()
-            if not admin:
-                logger.info("Creating admin user...")
-                admin_user = User(
-                    name='관리자',
-                    username='admin',
-                    email='admin@admin.com',
-                    phone='010-0000-0000',
-                    password_hash=generate_password_hash('admin123'),
-                    is_admin=True
-                )
-                db.session.add(admin_user)
-                db.session.commit()
-                logger.info("Admin user created successfully!")
-            else:
-                logger.info("Admin user already exists!")
-        except Exception as e:
-            logger.error(f"Error creating tables: {e}")
-            logger.error(f"Traceback: {traceback.format_exc()}")
-            # 데이터베이스 연결 실패 시에도 앱은 계속 실행
-            pass
+            try:
+                admin = User.query.filter_by(username='admin').first()
+                if not admin:
+                    logger.info("Creating admin user...")
+                    admin_user = User(
+                        name='관리자',
+                        username='admin',
+                        email='admin@admin.com',
+                        phone='010-0000-0000',
+                        password_hash=generate_password_hash('admin123'),
+                        is_admin=True
+                    )
+                    db.session.add(admin_user)
+                    db.session.commit()
+                    logger.info("Admin user created successfully!")
+                else:
+                    logger.info("Admin user already exists!")
+            except Exception as user_error:
+                logger.error(f"Error creating admin user: {user_error}")
+                
+    except Exception as e:
+        logger.error(f"Error creating tables: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        # 데이터베이스 연결 실패 시에도 앱은 계속 실행
+        pass
 
 # 템플릿 필터 추가
 @app.template_filter('nl2br')
@@ -138,6 +142,11 @@ def nl2br_filter(text):
     if text:
         return text.replace('\n', '<br>')
     return text
+
+@app.route('/test')
+def test_page():
+    """간단한 테스트 페이지"""
+    return "Flask 애플리케이션이 정상 작동 중입니다!"
 
 @app.route('/')
 def home():
@@ -156,8 +165,12 @@ def home():
     except Exception as e:
         logger.error(f"Error loading performances: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
-        # 데이터베이스 오류 시 빈 목록으로 표시
-        return render_template("index.html", performances=[])
+        # 에러 발생 시에도 기본 페이지 표시
+        try:
+            return render_template("index.html", performances=[])
+        except Exception as template_error:
+            logger.error(f"Template error: {template_error}")
+            return "서비스 점검 중입니다. 잠시 후 다시 시도해주세요.", 503
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
