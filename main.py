@@ -4,11 +4,17 @@ from flask import Flask, request, render_template, redirect, url_for, flash, sen
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
+import logging
 from datetime import datetime
 from dotenv import load_dotenv
 import uuid
+import traceback
 
 load_dotenv()
+
+# 로깅 설정
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, 
            template_folder='templates',
@@ -88,14 +94,14 @@ def load_user(user_id):
 def create_tables():
     with app.app_context():
         try:
-            print("Creating database tables...")  # 디버깅용 로그
+            logger.info("Creating database tables...")
             db.create_all()
-            print("Database tables created successfully!")  # 디버깅용 로그
+            logger.info("Database tables created successfully!")
             
             # 관리자 계정 자동 생성
             admin = User.query.filter_by(username='admin').first()
             if not admin:
-                print("Creating admin user...")  # 디버깅용 로그
+                logger.info("Creating admin user...")
                 admin_user = User(
                     name='관리자',
                     username='admin',
@@ -106,11 +112,12 @@ def create_tables():
                 )
                 db.session.add(admin_user)
                 db.session.commit()
-                print("Admin user created successfully!")  # 디버깅용 로그
+                logger.info("Admin user created successfully!")
             else:
-                print("Admin user already exists!")  # 디버깅용 로그
+                logger.info("Admin user already exists!")
         except Exception as e:
-            print(f"Error creating tables: {e}")
+            logger.error(f"Error creating tables: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
             # 데이터베이스 연결 실패 시에도 앱은 계속 실행
             pass
 
@@ -126,10 +133,13 @@ def nl2br_filter(text):
 def home():
     """홈페이지 - 공연 목록 표시"""
     try:
+        logger.info("Accessing home page")
         approved_performances = Performance.query.filter_by(is_approved=True).all()
+        logger.info(f"Found {len(approved_performances)} approved performances")
         return render_template("index.html", performances=approved_performances)
     except Exception as e:
-        print(f"Error loading performances: {e}")
+        logger.error(f"Error loading performances: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
         # 데이터베이스 오류 시 빈 목록으로 표시
         return render_template("index.html", performances=[])
 
@@ -328,6 +338,20 @@ def health_check():
         db.session.execute('SELECT 1')
         return {'status': 'healthy', 'database': 'connected'}, 200
     except Exception as e:
+        logger.error(f"Health check failed: {e}")
         return {'status': 'unhealthy', 'database': 'disconnected', 'error': str(e)}, 500
+
+@app.errorhandler(500)
+def internal_error(error):
+    """500 에러 핸들러"""
+    logger.error(f"Internal Server Error: {error}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
+    return "Internal Server Error - Check logs for details", 500
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """404 에러 핸들러"""
+    logger.error(f"Page not found: {request.url}")
+    return "Page not found", 404
 
 # 앱 실행은 start.py에서 처리 
