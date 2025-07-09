@@ -21,37 +21,8 @@ app = Flask(__name__,
            static_folder='static')
 app.secret_key = 'your-secret-key-here'
 
-# 데이터베이스 설정
-database_url = os.getenv('DATABASE_URL')
-if database_url and database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
-    # PostgreSQL 설정
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'pool_timeout': 5,
-        'max_overflow': 0,
-        'pool_size': 3,
-        'connect_args': {
-            'connect_timeout': 5,
-            'application_name': 'kopis-performance'
-        }
-    }
-elif not database_url:
-    # 로컬 개발용 SQLite 데이터베이스
-    database_url = 'sqlite:///app.db'
-    # SQLite 설정 (connect_timeout 제외)
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'pool_timeout': 5,
-        'max_overflow': 0,
-        'pool_size': 3
-    }
-
-logger.info(f"Database URL: {database_url}")
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+# 데이터베이스 설정 - SQLite 사용
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kopis.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # SQLAlchemy 초기화
