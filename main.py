@@ -374,7 +374,9 @@ def submit_performance():
         flash('공연 신청이 완료되었습니다! 관리자 승인 후 홈페이지에 표시됩니다.', 'success')
         return redirect(url_for('submit_performance'))
     
-    return render_template("submit.html")
+    # 오늘 날짜를 YYYY-MM-DD 형식으로 전달
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    return render_template("submit.html", today_date=today_date)
 
 @app.route('/performance/<int:performance_id>')
 def performance_detail(performance_id):

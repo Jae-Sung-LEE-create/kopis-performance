@@ -52,12 +52,17 @@
     <div class="row">
         {% for performance in performances %}
         <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card performance-card h-100">
+            <div class="card performance-card h-100 shadow-sm">
                 {% if performance.image_url %}
-                <img src="{{ performance.image_url }}" class="card-img-top" alt="{{ performance.title }}" style="height: 200px; object-fit: cover;">
+                <img src="{{ performance.image_url }}" class="card-img-top" alt="{{ performance.title }}" 
+                     style="height: 200px; object-fit: cover;">
                 {% else %}
-                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
-                    <i class="fas fa-music fa-3x text-muted"></i>
+                <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center" 
+                     style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="text-center text-white">
+                        <i class="fas fa-music fa-3x mb-2"></i>
+                        <div class="small">이미지 없음</div>
+                    </div>
                 </div>
                 {% endif %}
                 <div class="card-body">

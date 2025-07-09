@@ -27,6 +27,7 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th>이미지</th>
                                     <th>공연명</th>
                                     <th>팀명</th>
                                     <th>신청자</th>
@@ -40,6 +41,17 @@
                             <tbody>
                                 {% for performance in pending_performances %}
                                 <tr>
+                                    <td>
+                                        {% if performance.image_url %}
+                                            <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
+                                                 class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light d-flex align-items-center justify-content-center" 
+                                                 style="width: 60px; height: 60px;">
+                                                <i class="fas fa-music text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         <strong>{{ performance.title }}</strong>
                                         <br>
@@ -109,6 +121,7 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th>이미지</th>
                                     <th>공연명</th>
                                     <th>팀명</th>
                                     <th>장소</th>
@@ -122,6 +135,17 @@
                             <tbody>
                                 {% for performance in approved_performances %}
                                 <tr>
+                                    <td>
+                                        {% if performance.image_url %}
+                                            <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
+                                                 class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light d-flex align-items-center justify-content-center" 
+                                                 style="width: 60px; height: 60px;">
+                                                <i class="fas fa-music text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </td>
                                     <td>
                                         <strong>{{ performance.title }}</strong>
                                         <br>
@@ -200,64 +224,56 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="fas fa-music me-2"></i>{{ performance.title }}
+                    <i class="fas fa-info-circle me-2"></i>{{ performance.title }}
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="row">
-                    <div class="col-md-6">
-                        <h6><i class="fas fa-info-circle me-2"></i>기본 정보</h6>
-                        <table class="table table-sm">
-                            <tr><td><strong>공연명:</strong></td><td>{{ performance.title }}</td></tr>
-                            <tr><td><strong>팀명:</strong></td><td>{{ performance.group_name }}</td></tr>
-                            <tr><td><strong>장소:</strong></td><td>{{ performance.location }}</td></tr>
-                            <tr><td><strong>날짜:</strong></td><td>{{ performance.date }}</td></tr>
-                            <tr><td><strong>시간:</strong></td><td>{{ performance.time }}</td></tr>
-                            <tr><td><strong>가격:</strong></td><td>{{ performance.price }}</td></tr>
-                        </table>
+                    <div class="col-md-4">
+                        {% if performance.image_url %}
+                            <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
+                                 class="img-fluid rounded mb-3" style="max-height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light d-flex align-items-center justify-content-center rounded mb-3" 
+                                 style="height: 200px;">
+                                <i class="fas fa-music fa-3x text-muted"></i>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-8">
+                        <h6><i class="fas fa-users me-2"></i>팀/크루명</h6>
+                        <p>{{ performance.group_name }}</p>
+                        
+                        <h6><i class="fas fa-align-left me-2"></i>공연 소개</h6>
+                        <p>{{ performance.description|nl2br|safe }}</p>
+                        
+                        <h6><i class="fas fa-map-marker-alt me-2"></i>공연 장소</h6>
+                        <p>{{ performance.location }}</p>
+                        
+                        <h6><i class="fas fa-calendar me-2"></i>공연 일시</h6>
+                        <p>{{ performance.date }} {{ performance.time }}</p>
+                        
+                        <h6><i class="fas fa-ticket-alt me-2"></i>티켓 가격</h6>
+                        <p>{{ performance.price }}</p>
+                        
+                        <h6><i class="fas fa-envelope me-2"></i>연락처</h6>
+                        <p>{{ performance.contact_email }}</p>
+                        
+                        {% if performance.video_url %}
+                        <h6><i class="fas fa-video me-2"></i>홍보 동영상</h6>
+                        <p><a href="{{ performance.video_url }}" target="_blank">{{ performance.video_url }}</a></p>
+                        {% endif %}
+                        
                         <h6><i class="fas fa-user me-2"></i>신청자 정보</h6>
-                        <table class="table table-sm">
-                            {% for user in users %}
-                                {% if user.id == performance.user_id %}
-                                <tr><td><strong>이름:</strong></td><td>{{ user.name }}</td></tr>
-                                <tr><td><strong>아이디:</strong></td><td>{{ user.username }}</td></tr>
-                                <tr><td><strong>이메일:</strong></td><td>{{ user.email }}</td></tr>
-                                <tr><td><strong>휴대폰:</strong></td><td>{{ user.phone if user.phone else '미입력' }}</td></tr>
-                                <tr><td><strong>공연 연락처:</strong></td><td>{{ performance.contact_email }}</td></tr>
-                                {% endif %}
-                            {% endfor %}
-                        </table>
+                        {% for user in users %}
+                            {% if user.id == performance.user_id %}
+                                <p><strong>{{ user.name }}</strong> ({{ user.username }})<br>
+                                <small class="text-muted">{{ user.email }} | {{ user.phone }}</small></p>
+                            {% endif %}
+                        {% endfor %}
                     </div>
                 </div>
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <h6><i class="fas fa-align-left me-2"></i>공연 설명</h6>
-                        <div class="border rounded p-3 bg-light">
-                            {{ performance.description|nl2br }}
-                        </div>
-                    </div>
-                </div>
-                {% if performance.video_url %}
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <h6><i class="fas fa-video me-2"></i>동영상 링크</h6>
-                        <a href="{{ performance.video_url }}" target="_blank" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-external-link-alt me-1"></i>동영상 보기
-                        </a>
-                    </div>
-                </div>
-                {% endif %}
-                {% if performance.image_url %}
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <h6><i class="fas fa-image me-2"></i>이미지</h6>
-                        <img src="{{ performance.image_url }}" class="img-fluid rounded" style="max-height: 200px;">
-                    </div>
-                </div>
-                {% endif %}
             </div>
             <div class="modal-footer">
                 <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
