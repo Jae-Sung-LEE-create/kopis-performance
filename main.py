@@ -405,5 +405,15 @@ def submit_performance():
     
     return render_template("submit.html")
 
+@app.route('/performance/<int:performance_id>')
+def performance_detail(performance_id):
+    """공연 상세 페이지"""
+    performance = Performance.query.get(performance_id)
+    
+    if not performance or not performance.is_approved:
+        return redirect(url_for('home'))
+    
+    return render_template("performance_detail.html", performance=performance)
+
 if __name__ == '__main__':
     app.run(debug=True) 
