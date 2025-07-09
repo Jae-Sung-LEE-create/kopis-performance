@@ -1,6 +1,7 @@
 # kopis-performance
 
 (자동 배포 테스트용 커밋)
+(psycopg2-binary를 psycopg2로 변경하여 Python 3.13 호환성 문제 해결)
 
 대중무용의 접근성을 높이고 대학생 댄스동아리, 스트릿댄스 크루들의 공연을 홍보하는 웹 플랫폼입니다.
 
