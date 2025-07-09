@@ -44,7 +44,8 @@
                                     <td>
                                         {% if performance.image_url %}
                                             <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
-                                                 class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
+                                                 class="img-thumbnail zoomable-img" style="width: 60px; height: 60px; object-fit: cover; cursor: zoom-in;"
+                                                 onclick="openImgZoom('{{ performance.image_url }}', event)">
                                         {% else %}
                                             <div class="bg-light d-flex align-items-center justify-content-center" 
                                                  style="width: 60px; height: 60px;">
@@ -217,6 +218,37 @@
     </div>
 </div>
 
+<style>
+.img-zoom-modal {
+  display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.8); justify-content: center; align-items: center;
+}
+.img-zoom-modal.active { display: flex; }
+.img-zoom-modal img { max-width: 90vw; max-height: 90vh; border-radius: 10px; box-shadow: 0 0 20px #000; }
+.img-zoom-modal .close-btn { position: absolute; top: 40px; right: 60px; font-size: 2.5rem; color: #fff; cursor: pointer; }
+</style>
+
+<div id="imgZoomModal" class="img-zoom-modal" onclick="closeImgZoom()">
+  <span class="close-btn" onclick="closeImgZoom(event)">&times;</span>
+  <img id="imgZoomTarget" src="" alt="확대 이미지">
+</div>
+
+<script>
+function openImgZoom(src, event) {
+  event.stopPropagation();
+  document.getElementById('imgZoomTarget').src = src;
+  document.getElementById('imgZoomModal').classList.add('active');
+}
+function closeImgZoom(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('imgZoomModal').classList.remove('active');
+  document.getElementById('imgZoomTarget').src = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeImgZoom();
+});
+</script>
+
 <!-- 공연 상세 정보 모달들 -->
 {% for performance in pending_performances %}
 <div class="modal fade" id="detailModal{{ performance.id }}" tabindex="-1">
@@ -233,7 +265,8 @@
                     <div class="col-md-4">
                         {% if performance.image_url %}
                             <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
-                                 class="img-fluid rounded mb-3" style="max-height: 200px; object-fit: cover;">
+                                 class="img-fluid rounded mb-3 zoomable-img" style="max-height: 200px; object-fit: cover; cursor: zoom-in;"
+                                 onclick="openImgZoom('{{ performance.image_url }}', event)">
                         {% else %}
                             <div class="bg-light d-flex align-items-center justify-content-center rounded mb-3" 
                                  style="height: 200px;">
