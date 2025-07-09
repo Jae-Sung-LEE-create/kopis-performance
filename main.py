@@ -107,6 +107,28 @@ def create_tables():
             logger.info("Creating database tables...")
             db.create_all()
             logger.info("Database tables created successfully!")
+            
+            # 관리자 계정 자동 생성
+            try:
+                admin = User.query.filter_by(username='admin').first()
+                if not admin:
+                    logger.info("Creating admin user...")
+                    admin_user = User(
+                        name='관리자',
+                        username='admin',
+                        email='admin@admin.com',
+                        phone='010-0000-0000',
+                        password_hash=generate_password_hash('admin123'),
+                        is_admin=True
+                    )
+                    db.session.add(admin_user)
+                    db.session.commit()
+                    logger.info("Admin user created successfully!")
+                else:
+                    logger.info("Admin user already exists!")
+            except Exception as user_error:
+                logger.error(f"Error creating admin user: {user_error}")
+                
     except Exception as e:
         logger.error(f"Error creating tables: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
@@ -285,6 +307,52 @@ def logout():
     logout_user()
     flash('로그아웃되었습니다.', 'success')
     return redirect(url_for('home'))
+
+@app.route('/admin')
+def admin_panel():
+    """관리자 패널 - 승인 대기 중인 공연 관리"""
+    # 관리자 권한 확인
+    if not current_user.is_authenticated or not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('login'))
+    
+    pending_performances = Performance.query.filter_by(is_approved=False).all()
+    approved_performances = Performance.query.filter_by(is_approved=True).all()
+    
+    return render_template("admin.html", 
+                         pending_performances=pending_performances,
+                         approved_performances=approved_performances,
+                         users=User.query.all())
+
+@app.route('/admin/approve/<int:performance_id>', methods=['POST'])
+def approve_performance(performance_id):
+    """공연 승인"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('login'))
+    
+    performance = Performance.query.get(performance_id)
+    if performance:
+        performance.is_approved = True
+        db.session.commit()
+        flash('공연이 승인되었습니다.', 'success')
+    
+    return redirect(url_for('admin_panel'))
+
+@app.route('/admin/reject/<int:performance_id>', methods=['POST'])
+def reject_performance(performance_id):
+    """공연 거절"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('login'))
+    
+    performance = Performance.query.get(performance_id)
+    if performance:
+        db.session.delete(performance)
+        db.session.commit()
+        flash('공연이 거절되었습니다.', 'success')
+    
+    return redirect(url_for('admin_panel'))
 
 if __name__ == '__main__':
     app.run(debug=True) 
