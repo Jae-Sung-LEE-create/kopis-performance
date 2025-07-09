@@ -86,10 +86,69 @@ def home():
             db.session.execute('SELECT 1')
             approved_performances = Performance.query.filter_by(is_approved=True).all()
             logger.info(f"Found {len(approved_performances)} approved performances")
-            return render_template("index.html", performances=approved_performances)
+            
+            # 템플릿 렌더링 시도
+            try:
+                return render_template("index.html", performances=approved_performances)
+            except Exception as template_error:
+                logger.error(f"Template error: {template_error}")
+                # 템플릿 렌더링 실패 시 기본 HTML 반환
+                html_content = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>공연 정보</title>
+                    <meta charset="utf-8">
+                    <style>
+                        body {{ font-family: Arial, sans-serif; margin: 40px; }}
+                        .performance {{ border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }}
+                        .title {{ font-size: 18px; font-weight: bold; color: #333; }}
+                        .info {{ color: #666; margin: 5px 0; }}
+                    </style>
+                </head>
+                <body>
+                    <h1>공연 정보</h1>
+                    <p>총 {len(approved_performances)}개의 공연이 있습니다.</p>
+                """
+                
+                for performance in approved_performances:
+                    html_content += f"""
+                    <div class="performance">
+                        <div class="title">{performance.title}</div>
+                        <div class="info">그룹: {performance.group_name}</div>
+                        <div class="info">장소: {performance.location}</div>
+                        <div class="info">날짜: {performance.date}</div>
+                        <div class="info">시간: {performance.time}</div>
+                        <div class="info">가격: {performance.price}</div>
+                    </div>
+                    """
+                
+                html_content += """
+                </body>
+                </html>
+                """
+                return html_content
+                
         except Exception as db_error:
             logger.error(f"Database error: {db_error}")
-            return render_template("index.html", performances=[])
+            return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>공연 정보</title>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
+                    .message { color: #666; }
+                </style>
+            </head>
+            <body>
+                <h1>공연 정보</h1>
+                <p class="message">현재 공연 정보를 불러올 수 없습니다.</p>
+                <p class="message">잠시 후 다시 시도해주세요.</p>
+            </body>
+            </html>
+            """
             
     except Exception as e:
         logger.error(f"Home page error: {e}")
