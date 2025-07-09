@@ -100,6 +100,14 @@ class Performance(db.Model):
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# 템플릿 필터 추가
+@app.template_filter('nl2br')
+def nl2br_filter(text):
+    """줄바꿈을 <br> 태그로 변환"""
+    if text:
+        return text.replace('\n', '<br>')
+    return text
+
 def create_tables():
     """데이터베이스 테이블 생성"""
     try:
@@ -353,6 +361,49 @@ def reject_performance(performance_id):
         flash('공연이 거절되었습니다.', 'success')
     
     return redirect(url_for('admin_panel'))
+
+@app.route('/my-performances')
+@login_required
+def my_performances():
+    """내 공연 신청 현황"""
+    # 현재 사용자가 신청한 공연들 찾기
+    my_performances = Performance.query.filter_by(user_id=current_user.id).all()
+    return render_template('my_performances.html', performances=my_performances)
+
+@app.route('/submit', methods=['GET', 'POST'])
+@login_required
+def submit_performance():
+    """공연 신청 폼"""
+    if request.method == 'POST':
+        image_url = None
+        if 'image_file' in request.files and request.files['image_file'].filename:
+            image = request.files['image_file']
+            ext = image.filename.rsplit('.', 1)[-1].lower()
+            filename = f"{uuid.uuid4().hex}.{ext}"
+            upload_dir = os.path.join('static', 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            image.save(os.path.join(upload_dir, filename))
+            image_url = f"/static/uploads/{filename}"
+        
+        performance = Performance(
+            title=request.form['title'],
+            group_name=request.form['group_name'],
+            description=request.form['description'],
+            location=request.form['location'],
+            price=request.form['price'],
+            date=request.form['date'],
+            time=f"{request.form['start_time']}~{request.form['end_time']}",
+            contact_email=request.form['contact_email'],
+            video_url=request.form.get('video_url'),
+            image_url=image_url,
+            user_id=current_user.id
+        )
+        db.session.add(performance)
+        db.session.commit()
+        flash('공연 신청이 완료되었습니다! 관리자 승인 후 홈페이지에 표시됩니다.', 'success')
+        return redirect(url_for('submit_performance'))
+    
+    return render_template("submit.html")
 
 if __name__ == '__main__':
     app.run(debug=True) 
