@@ -4,6 +4,7 @@
 (psycopg2-binary를 psycopg2로 변경하여 Python 3.13 호환성 문제 해결)
 (psycopg2-binary 2.9.9로 업그레이드하여 Python 3.13 호환성 개선)
 (PostgreSQL 대신 SQLite 사용하여 Python 3.13 호환성 문제 해결)
+(PostgreSQL로 다시 전환하여 데이터 영속성 확보)
 
 대중무용의 접근성을 높이고 대학생 댄스동아리, 스트릿댄스 크루들의 공연을 홍보하는 웹 플랫폼입니다.
 
