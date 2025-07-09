@@ -1,6 +1,6 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import func
+from sqlalchemy import func, text
 import os
 import logging
 from datetime import datetime
@@ -23,25 +23,34 @@ app.secret_key = 'your-secret-key-here'
 database_url = os.getenv('DATABASE_URL')
 if database_url and database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    # PostgreSQL 설정
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_timeout': 5,
+        'max_overflow': 0,
+        'pool_size': 3,
+        'connect_args': {
+            'connect_timeout': 5,
+            'application_name': 'kopis-performance'
+        }
+    }
 elif not database_url:
     # 로컬 개발용 SQLite 데이터베이스
     database_url = 'sqlite:///app.db'
+    # SQLite 설정 (connect_timeout 제외)
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_timeout': 5,
+        'max_overflow': 0,
+        'pool_size': 3
+    }
 
 logger.info(f"Database URL: {database_url}")
 
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-    'pool_pre_ping': True,
-    'pool_recycle': 300,
-    'pool_timeout': 5,
-    'max_overflow': 0,
-    'pool_size': 3,
-    'connect_args': {
-        'connect_timeout': 5,
-        'application_name': 'kopis-performance'
-    }
-}
 
 # SQLAlchemy 초기화
 db = SQLAlchemy()
@@ -83,7 +92,7 @@ def home():
         
         # 데이터베이스 연결 확인
         try:
-            db.session.execute('SELECT 1')
+            db.session.execute(text('SELECT 1'))
             approved_performances = Performance.query.filter_by(is_approved=True).all()
             logger.info(f"Found {len(approved_performances)} approved performances")
             
@@ -163,7 +172,7 @@ def test_page():
 def health_check():
     """헬스체크"""
     try:
-        db.session.execute('SELECT 1')
+        db.session.execute(text('SELECT 1'))
         return {'status': 'healthy', 'database': 'connected'}, 200
     except Exception as e:
         return {'status': 'unhealthy', 'database': 'disconnected', 'error': str(e)}, 500
