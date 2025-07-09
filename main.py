@@ -146,6 +146,13 @@ def home():
             approved_performances = Performance.query.filter_by(is_approved=True).all()
             logger.info(f"Found {len(approved_performances)} approved performances")
             
+            # 이미지 URL 디버깅
+            for performance in approved_performances:
+                if performance.image_url:
+                    logger.info(f"Performance '{performance.title}' has image: {performance.image_url}")
+                else:
+                    logger.info(f"Performance '{performance.title}' has no image")
+            
             # 템플릿 렌더링 시도
             try:
                 return render_template("index.html", performances=approved_performances)
@@ -179,6 +186,7 @@ def home():
                         <div class="info">날짜: {performance.date}</div>
                         <div class="info">시간: {performance.time}</div>
                         <div class="info">가격: {performance.price}</div>
+                        <div class="info">이미지: {performance.image_url or '없음'}</div>
                     </div>
                     """
                 
@@ -354,6 +362,31 @@ def reject_performance(performance_id):
     
     return redirect(url_for('admin_panel'))
 
+@app.route('/admin/delete/<int:performance_id>', methods=['POST'])
+def delete_performance(performance_id):
+    """공연 삭제"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('login'))
+    
+    performance = Performance.query.get(performance_id)
+    if performance:
+        # 이미지 파일도 삭제
+        if performance.image_url:
+            try:
+                image_path = os.path.join('static', performance.image_url.replace('/static/', ''))
+                if os.path.exists(image_path):
+                    os.remove(image_path)
+                    logger.info(f"Deleted image file: {image_path}")
+            except Exception as e:
+                logger.error(f"Error deleting image file: {e}")
+        
+        db.session.delete(performance)
+        db.session.commit()
+        flash('공연이 삭제되었습니다.', 'success')
+    
+    return redirect(url_for('admin_panel'))
+
 @app.route('/my-performances')
 @login_required
 def my_performances():
@@ -370,12 +403,30 @@ def submit_performance():
         image_url = None
         if 'image_file' in request.files and request.files['image_file'].filename:
             image = request.files['image_file']
+            logger.info(f"Image upload: {image.filename}")
+            
+            # 파일 확장자 검증
+            allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
             ext = image.filename.rsplit('.', 1)[-1].lower()
+            if ext not in allowed_extensions:
+                flash('지원하지 않는 이미지 형식입니다. (PNG, JPG, JPEG, GIF, WEBP만 가능)', 'error')
+                return redirect(url_for('submit_performance'))
+            
             filename = f"{uuid.uuid4().hex}.{ext}"
             upload_dir = os.path.join('static', 'uploads')
             os.makedirs(upload_dir, exist_ok=True)
-            image.save(os.path.join(upload_dir, filename))
-            image_url = f"/static/uploads/{filename}"
+            
+            file_path = os.path.join(upload_dir, filename)
+            logger.info(f"Saving image to: {file_path}")
+            
+            try:
+                image.save(file_path)
+                image_url = f"/static/uploads/{filename}"
+                logger.info(f"Image saved successfully: {image_url}")
+            except Exception as e:
+                logger.error(f"Error saving image: {e}")
+                flash('이미지 업로드 중 오류가 발생했습니다.', 'error')
+                return redirect(url_for('submit_performance'))
         
         performance = Performance(
             title=request.form['title'],
@@ -392,6 +443,7 @@ def submit_performance():
         )
         db.session.add(performance)
         db.session.commit()
+        logger.info(f"Performance created with image_url: {image_url}")
         flash('공연 신청이 완료되었습니다! 관리자 승인 후 홈페이지에 표시됩니다.', 'success')
         return redirect(url_for('submit_performance'))
     
