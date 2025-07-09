@@ -21,37 +21,8 @@ app = Flask(__name__,
            static_folder='static')
 app.secret_key = 'your-secret-key-here'
 
-# 데이터베이스 설정
-database_url = os.getenv('DATABASE_URL')
-if database_url and database_url.startswith('postgres://'):
-    database_url = database_url.replace('postgres://', 'postgresql://', 1)
-    # PostgreSQL 설정
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'pool_timeout': 5,
-        'max_overflow': 0,
-        'pool_size': 3,
-        'connect_args': {
-            'connect_timeout': 5,
-            'application_name': 'kopis-performance'
-        }
-    }
-elif not database_url:
-    # 로컬 개발용 SQLite 데이터베이스
-    database_url = 'sqlite:///app.db'
-    # SQLite 설정 (connect_timeout 제외)
-    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'pool_timeout': 5,
-        'max_overflow': 0,
-        'pool_size': 3
-    }
-
-logger.info(f"Database URL: {database_url}")
-
-app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+# 데이터베이스 설정 - SQLite 사용
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kopis.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # SQLAlchemy 초기화
@@ -136,6 +107,27 @@ def create_tables():
                     logger.info("Admin user already exists!")
             except Exception as user_error:
                 logger.error(f"Error creating admin user: {user_error}")
+            
+            # 샘플 사용자 계정 생성 (개발용)
+            try:
+                sample_user = User.query.filter_by(username='testuser').first()
+                if not sample_user:
+                    logger.info("Creating sample user...")
+                    sample_user = User(
+                        name='테스트 사용자',
+                        username='testuser',
+                        email='test@example.com',
+                        phone='010-1234-5678',
+                        password_hash=generate_password_hash('test123'),
+                        is_admin=False
+                    )
+                    db.session.add(sample_user)
+                    db.session.commit()
+                    logger.info("Sample user created successfully!")
+                else:
+                    logger.info("Sample user already exists!")
+            except Exception as sample_error:
+                logger.error(f"Error creating sample user: {sample_error}")
                 
     except Exception as e:
         logger.error(f"Error creating tables: {e}")
