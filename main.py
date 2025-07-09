@@ -205,5 +205,86 @@ def health_check():
     except Exception as e:
         return {'status': 'unhealthy', 'database': 'disconnected', 'error': str(e)}, 500
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """로그인"""
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        # 사용자 찾기
+        user = User.query.filter_by(username=username).first()
+        
+        if user:
+            # 비밀번호 확인
+            is_password_correct = check_password_hash(user.password_hash, password)
+            
+            if is_password_correct:
+                login_user(user)
+                flash('로그인되었습니다!', 'success')
+                return redirect(url_for('home'))
+            else:
+                flash('사용자명 또는 비밀번호가 올바르지 않습니다.', 'error')
+        else:
+            flash('사용자명 또는 비밀번호가 올바르지 않습니다.', 'error')
+    
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    """회원가입"""
+    if request.method == 'POST':
+        name = request.form['name']
+        username = request.form['username']
+        email = request.form['email']
+        phone = request.form.get('phone', '')
+        password = request.form['password']
+        confirm_password = request.form['confirm_password']
+        
+        # 유효성 검사
+        if password != confirm_password:
+            flash('비밀번호가 일치하지 않습니다.', 'error')
+            return render_template('register.html')
+        
+        # 아이디 중복 확인
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            flash('이미 사용 중인 아이디입니다.', 'error')
+            return render_template('register.html')
+        
+        # 이메일 중복 확인
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            flash('이미 사용 중인 이메일입니다.', 'error')
+            return render_template('register.html')
+        
+        # 새 사용자 생성
+        password_hash = generate_password_hash(password)
+        new_user = User(
+            name=name,
+            username=username,
+            email=email,
+            phone=phone,
+            password_hash=password_hash
+        )
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('회원가입이 완료되었습니다! 로그인해주세요.', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    """로그아웃"""
+    logout_user()
+    flash('로그아웃되었습니다.', 'success')
+    return redirect(url_for('home'))
+
 if __name__ == '__main__':
     app.run(debug=True) 
