@@ -1,5 +1,7 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, text
 import os
 import logging
@@ -56,6 +58,25 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 db.init_app(app)
 
+# Flask-Login 설정
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+# User 모델
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    phone = db.Column(db.String(20))
+    password_hash = db.Column(db.String(128), nullable=False)
+    is_admin = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=func.now())
+
+    def get_id(self):
+        return str(self.id)
+
 # Performance 모델
 class Performance(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -69,8 +90,15 @@ class Performance(db.Model):
     contact_email = db.Column(db.String(120))
     video_url = db.Column(db.String(300))
     image_url = db.Column(db.String(300))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
+
+    user = db.relationship('User', backref='performances')
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 def create_tables():
     """데이터베이스 테이블 생성"""
