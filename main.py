@@ -9,6 +9,8 @@ from datetime import datetime
 from dotenv import load_dotenv
 import uuid
 import traceback
+import cloudinary
+import cloudinary.uploader
 
 load_dotenv()
 
@@ -132,6 +134,13 @@ def create_tables():
     except Exception as e:
         logger.error(f"Error creating tables: {e}")
         logger.error(f"Traceback: {traceback.format_exc()}")
+
+# Cloudinary 설정
+cloudinary.config(
+    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+    api_key=os.getenv('CLOUDINARY_API_KEY'),
+    api_secret=os.getenv('CLOUDINARY_API_SECRET')
+)
 
 # 기본 라우트들
 @app.route('/')
@@ -374,12 +383,14 @@ def delete_performance(performance_id):
         # 이미지 파일도 삭제
         if performance.image_url:
             try:
-                image_path = os.path.join('static', performance.image_url.replace('/static/', ''))
-                if os.path.exists(image_path):
-                    os.remove(image_path)
-                    logger.info(f"Deleted image file: {image_path}")
+                # Cloudinary URL에서 파일 이름만 추출
+                image_path = performance.image_url.split('/')[-1]
+                if image_path:
+                    public_id = image_path.rsplit('.', 1)[0] # .확장자 제거
+                    cloudinary.uploader.destroy(public_id)
+                    logger.info(f"Deleted image from Cloudinary: {public_id}")
             except Exception as e:
-                logger.error(f"Error deleting image file: {e}")
+                logger.error(f"Error deleting image from Cloudinary: {e}")
         
         db.session.delete(performance)
         db.session.commit()
@@ -404,30 +415,19 @@ def submit_performance():
         if 'image_file' in request.files and request.files['image_file'].filename:
             image = request.files['image_file']
             logger.info(f"Image upload: {image.filename}")
-            
-            # 파일 확장자 검증
             allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
             ext = image.filename.rsplit('.', 1)[-1].lower()
             if ext not in allowed_extensions:
                 flash('지원하지 않는 이미지 형식입니다. (PNG, JPG, JPEG, GIF, WEBP만 가능)', 'error')
                 return redirect(url_for('submit_performance'))
-            
-            filename = f"{uuid.uuid4().hex}.{ext}"
-            upload_dir = os.path.join('static', 'uploads')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            file_path = os.path.join(upload_dir, filename)
-            logger.info(f"Saving image to: {file_path}")
-            
             try:
-                image.save(file_path)
-                image_url = f"/static/uploads/{filename}"
-                logger.info(f"Image saved successfully: {image_url}")
+                upload_result = cloudinary.uploader.upload(image)
+                image_url = upload_result['secure_url']
+                logger.info(f"Cloudinary image uploaded: {image_url}")
             except Exception as e:
-                logger.error(f"Error saving image: {e}")
+                logger.error(f"Cloudinary upload error: {e}")
                 flash('이미지 업로드 중 오류가 발생했습니다.', 'error')
                 return redirect(url_for('submit_performance'))
-        
         performance = Performance(
             title=request.form['title'],
             group_name=request.form['group_name'],
@@ -446,8 +446,6 @@ def submit_performance():
         logger.info(f"Performance created with image_url: {image_url}")
         flash('공연 신청이 완료되었습니다! 관리자 승인 후 홈페이지에 표시됩니다.', 'success')
         return redirect(url_for('submit_performance'))
-    
-    # 오늘 날짜를 YYYY-MM-DD 형식으로 전달
     today_date = datetime.now().strftime('%Y-%m-%d')
     return render_template("submit.html", today_date=today_date)
 
