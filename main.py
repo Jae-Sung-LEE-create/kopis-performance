@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory
+from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -86,11 +86,35 @@ class Performance(db.Model):
     video_url = db.Column(db.String(300))
     image_url = db.Column(db.String(300))
     category = db.Column(db.String(50))  # 카테고리 필드 추가
+    ticket_url = db.Column(db.String(300))  # 티켓 예매 링크
+    likes = db.Column(db.Integer, default=0)  # 좋아요 수
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
 
     user = db.relationship('User', backref='performances')
+
+# 사용자별 좋아요 정보
+class UserLike(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    performance_id = db.Column(db.Integer, db.ForeignKey('performance.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=func.now())
+    
+    # 중복 좋아요 방지
+    __table_args__ = (db.UniqueConstraint('user_id', 'performance_id', name='unique_user_performance_like'),)
+
+# 댓글 모델
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=False)
+    rating = db.Column(db.Integer)  # 별점 (1-5)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    performance_id = db.Column(db.Integer, db.ForeignKey('performance.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=func.now())
+    
+    user = db.relationship('User', backref='comments')
+    performance = db.relationship('Performance', backref='comments')
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -173,9 +197,14 @@ def home():
     try:
         logger.info("Accessing home page")
         
-        # 카테고리 파라미터 받기
+        # 필터 파라미터 받기
         category = request.args.get('category')
-        logger.info(f"Category filter: {category}")
+        search = request.args.get('search', '').strip()
+        date_filter = request.args.get('date_filter', '')
+        location = request.args.get('location', '')
+        price_filter = request.args.get('price_filter', '')
+        
+        logger.info(f"Filters - Category: {category}, Search: {search}, Date: {date_filter}, Location: {location}, Price: {price_filter}")
         
         # 데이터베이스 연결 확인
         try:
@@ -183,12 +212,105 @@ def home():
             db.session.commit()
             logger.info("Database connection successful")
             
-            # 승인된 공연 조회 (카테고리별 필터)
+            # 기본 쿼리 (승인된 공연만)
+            query = Performance.query.filter_by(is_approved=True)
+            
+            # 카테고리 필터
             if category and category != '전체':
-                approved_performances = Performance.query.filter_by(is_approved=True, category=category).order_by(Performance.created_at.desc()).all()
-            else:
-                approved_performances = Performance.query.filter_by(is_approved=True).order_by(Performance.created_at.desc()).all()
-            logger.info(f"Found {len(approved_performances)} approved performances")
+                query = query.filter_by(category=category)
+            
+            # 검색 필터 (제목 또는 팀명)
+            if search:
+                search_term = f"%{search}%"
+                query = query.filter(
+                    db.or_(
+                        Performance.title.ilike(search_term),
+                        Performance.group_name.ilike(search_term)
+                    )
+                )
+            
+            # 날짜 필터
+            if date_filter:
+                from datetime import datetime, timedelta
+                today = datetime.now().date()
+                
+                if date_filter == 'this_week':
+                    # 이번 주 (월요일부터 일요일까지)
+                    days_since_monday = today.weekday()
+                    monday = today - timedelta(days=days_since_monday)
+                    sunday = monday + timedelta(days=6)
+                    query = query.filter(
+                        db.and_(
+                            Performance.date >= monday.strftime('%Y-%m-%d'),
+                            Performance.date <= sunday.strftime('%Y-%m-%d')
+                        )
+                    )
+                elif date_filter == 'this_month':
+                    # 이번 달
+                    first_day = today.replace(day=1)
+                    if today.month == 12:
+                        last_day = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+                    else:
+                        last_day = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+                    query = query.filter(
+                        db.and_(
+                            Performance.date >= first_day.strftime('%Y-%m-%d'),
+                            Performance.date <= last_day.strftime('%Y-%m-%d')
+                        )
+                    )
+                elif date_filter == 'next_month':
+                    # 다음 달
+                    if today.month == 12:
+                        first_day = today.replace(year=today.year + 1, month=1, day=1)
+                        last_day = today.replace(year=today.year + 1, month=2, day=1) - timedelta(days=1)
+                    else:
+                        first_day = today.replace(month=today.month + 1, day=1)
+                        if today.month == 11:
+                            last_day = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+                        else:
+                            last_day = today.replace(month=today.month + 2, day=1) - timedelta(days=1)
+                    query = query.filter(
+                        db.and_(
+                            Performance.date >= first_day.strftime('%Y-%m-%d'),
+                            Performance.date <= last_day.strftime('%Y-%m-%d')
+                        )
+                    )
+            
+            # 지역 필터
+            if location:
+                query = query.filter(Performance.location.ilike(f"%{location}%"))
+            
+            # 가격 필터
+            if price_filter:
+                if price_filter == 'free':
+                    query = query.filter(
+                        db.or_(
+                            Performance.price.ilike('%무료%'),
+                            Performance.price.ilike('%free%'),
+                            Performance.price == '무료'
+                        )
+                    )
+                elif price_filter == 'paid':
+                    query = query.filter(
+                        db.and_(
+                            ~Performance.price.ilike('%무료%'),
+                            ~Performance.price.ilike('%free%'),
+                            Performance.price != '무료'
+                        )
+                    )
+                elif price_filter == 'discount':
+                    query = query.filter(
+                        db.or_(
+                            Performance.price.ilike('%할인%'),
+                            Performance.price.ilike('%discount%'),
+                            Performance.price.ilike('%학생%'),
+                            Performance.price.ilike('%student%')
+                        )
+                    )
+            
+            # 최신순 정렬
+            approved_performances = query.order_by(Performance.created_at.desc()).all()
+            logger.info(f"Found {len(approved_performances)} filtered performances")
             
             # 이미지 URL 디버깅
             for performance in approved_performances:
@@ -199,7 +321,13 @@ def home():
             
             # 템플릿 렌더링 시도
             try:
-                return render_template("index.html", performances=approved_performances, selected_category=category)
+                return render_template("index.html", 
+                                     performances=approved_performances, 
+                                     selected_category=category,
+                                     search=search,
+                                     date_filter=date_filter,
+                                     location=location,
+                                     price_filter=price_filter)
             except Exception as template_error:
                 logger.error(f"Template error: {template_error}")
                 # 템플릿 렌더링 실패 시 기본 HTML 반환
@@ -587,6 +715,7 @@ def submit_performance():
             video_url=request.form.get('video_url'),
             image_url=image_url,
             category=request.form['category'],  # 카테고리 저장
+            ticket_url=request.form.get('ticket_url'),  # 티켓 예매 링크 저장
             user_id=current_user.id
         )
         db.session.add(performance)
@@ -606,6 +735,45 @@ def performance_detail(performance_id):
         return redirect(url_for('home'))
     
     return render_template("performance_detail.html", performance=performance)
+
+@app.route('/like/<int:performance_id>', methods=['POST'])
+@login_required
+def toggle_like(performance_id):
+    """공연 좋아요 토글"""
+    try:
+        performance = Performance.query.get(performance_id)
+        if not performance:
+            return jsonify({'success': False, 'error': '공연을 찾을 수 없습니다.'})
+        
+        # 이미 좋아요를 눌렀는지 확인
+        existing_like = UserLike.query.filter_by(
+            user_id=current_user.id, 
+            performance_id=performance_id
+        ).first()
+        
+        if existing_like:
+            # 좋아요 취소
+            db.session.delete(existing_like)
+            performance.likes -= 1
+            liked = False
+        else:
+            # 좋아요 추가
+            new_like = UserLike(user_id=current_user.id, performance_id=performance_id)
+            db.session.add(new_like)
+            performance.likes += 1
+            liked = True
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'likes': performance.likes, 
+            'liked': liked
+        })
+        
+    except Exception as e:
+        logger.error(f"Like toggle error: {e}")
+        return jsonify({'success': False, 'error': '오류가 발생했습니다.'})
 
 if __name__ == '__main__':
     app.run(debug=True) 
