@@ -1,10 +1,33 @@
 import os
+import sys
+import logging
 from main import app, create_tables
 
+# 로깅 설정
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 if __name__ == "__main__":
-    # 데이터베이스 테이블 생성
-    create_tables()
+    try:
+        # 데이터베이스 테이블 생성 시도
+        logger.info("Starting application initialization...")
+        create_tables()
+        logger.info("Database initialization completed successfully!")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        logger.warning("Server will start without database initialization. Some features may not work.")
+        # 데이터베이스 초기화 실패해도 서버는 시작
+        pass
     
+    # 서버 시작
     port = int(os.getenv("PORT", 8000))
-    print(f"Starting server on port {port}")
-    app.run(host="0.0.0.0", port=port, debug=False) 
+    logger.info(f"Starting server on port {port}")
+    
+    try:
+        app.run(host="0.0.0.0", port=port, debug=False)
+    except Exception as e:
+        logger.error(f"Server failed to start: {e}")
+        sys.exit(1) 

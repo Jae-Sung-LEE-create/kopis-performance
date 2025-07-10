@@ -27,16 +27,17 @@ app.secret_key = 'your-secret-key-here'
 database_url = os.getenv('DATABASE_URL')
 if database_url and database_url.startswith('postgres://'):
     database_url = database_url.replace('postgres://', 'postgresql://', 1)
-    # PostgreSQL 설정
+    # PostgreSQL 설정 - 더 안정적인 연결 설정
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_pre_ping': True,
         'pool_recycle': 300,
-        'pool_timeout': 5,
-        'max_overflow': 0,
-        'pool_size': 3,
+        'pool_timeout': 10,
+        'max_overflow': 5,
+        'pool_size': 5,
         'connect_args': {
-            'connect_timeout': 5,
-            'application_name': 'kopis-performance'
+            'connect_timeout': 10,
+            'application_name': 'kopis-performance',
+            'options': '-c statement_timeout=30000'  # 30초 타임아웃
         }
     }
     logger.info(f"Using PostgreSQL: {database_url}")
@@ -104,36 +105,58 @@ def nl2br_filter(text):
 
 def create_tables():
     """데이터베이스 테이블 생성"""
-    try:
-        with app.app_context():
-            logger.info("Creating database tables...")
-            db.create_all()
-            logger.info("Database tables created successfully!")
-            
-            # 관리자 계정 자동 생성
-            try:
-                admin = User.query.filter_by(username='admin').first()
-                if not admin:
-                    logger.info("Creating admin user...")
-                    admin_user = User(
-                        name='관리자',
-                        username='admin',
-                        email='admin@admin.com',
-                        phone='010-0000-0000',
-                        password_hash=generate_password_hash('admin123'),
-                        is_admin=True
-                    )
-                    db.session.add(admin_user)
-                    db.session.commit()
-                    logger.info("Admin user created successfully!")
-                else:
-                    logger.info("Admin user already exists!")
-            except Exception as user_error:
-                logger.error(f"Error creating admin user: {user_error}")
+    max_retries = 3
+    retry_delay = 2
+    
+    for attempt in range(max_retries):
+        try:
+            with app.app_context():
+                logger.info(f"Creating database tables... (attempt {attempt + 1}/{max_retries})")
                 
-    except Exception as e:
-        logger.error(f"Error creating tables: {e}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
+                # 데이터베이스 연결 테스트
+                db.session.execute(text('SELECT 1'))
+                db.session.commit()
+                logger.info("Database connection test successful")
+                
+                # 테이블 생성
+                db.create_all()
+                logger.info("Database tables created successfully!")
+                
+                # 관리자 계정 자동 생성
+                try:
+                    admin = User.query.filter_by(username='admin').first()
+                    if not admin:
+                        logger.info("Creating admin user...")
+                        admin_user = User(
+                            name='관리자',
+                            username='admin',
+                            email='admin@admin.com',
+                            phone='010-0000-0000',
+                            password_hash=generate_password_hash('admin123'),
+                            is_admin=True
+                        )
+                        db.session.add(admin_user)
+                        db.session.commit()
+                        logger.info("Admin user created successfully!")
+                    else:
+                        logger.info("Admin user already exists!")
+                except Exception as user_error:
+                    logger.error(f"Error creating admin user: {user_error}")
+                
+                return  # 성공하면 함수 종료
+                
+        except Exception as e:
+            logger.error(f"Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                logger.info(f"Retrying in {retry_delay} seconds...")
+                import time
+                time.sleep(retry_delay)
+                retry_delay *= 2  # 지수 백오프
+            else:
+                logger.error(f"Failed to create tables after {max_retries} attempts")
+                logger.error(f"Final error: {e}")
+                logger.error(f"Traceback: {traceback.format_exc()}")
+                raise
 
 # Cloudinary 설정
 cloudinary.config(
@@ -151,8 +174,13 @@ def home():
         
         # 데이터베이스 연결 확인
         try:
+            # 연결 테스트
             db.session.execute(text('SELECT 1'))
-            approved_performances = Performance.query.filter_by(is_approved=True).all()
+            db.session.commit()
+            logger.info("Database connection successful")
+            
+            # 승인된 공연 조회
+            approved_performances = Performance.query.filter_by(is_approved=True).order_by(Performance.created_at.desc()).all()
             logger.info(f"Found {len(approved_performances)} approved performances")
             
             # 이미지 URL 디버깅
@@ -168,67 +196,133 @@ def home():
             except Exception as template_error:
                 logger.error(f"Template error: {template_error}")
                 # 템플릿 렌더링 실패 시 기본 HTML 반환
-                html_content = f"""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>공연 정보</title>
-                    <meta charset="utf-8">
-                    <style>
-                        body {{ font-family: Arial, sans-serif; margin: 40px; }}
-                        .performance {{ border: 1px solid #ddd; padding: 15px; margin: 10px 0; border-radius: 5px; }}
-                        .title {{ font-size: 18px; font-weight: bold; color: #333; }}
-                        .info {{ color: #666; margin: 5px 0; }}
-                    </style>
-                </head>
-                <body>
-                    <h1>공연 정보</h1>
-                    <p>총 {len(approved_performances)}개의 공연이 있습니다.</p>
-                """
-                
-                for performance in approved_performances:
-                    html_content += f"""
-                    <div class="performance">
-                        <div class="title">{performance.title}</div>
-                        <div class="info">그룹: {performance.group_name}</div>
-                        <div class="info">장소: {performance.location}</div>
-                        <div class="info">날짜: {performance.date}</div>
-                        <div class="info">시간: {performance.time}</div>
-                        <div class="info">가격: {performance.price}</div>
-                        <div class="info">이미지: {performance.image_url or '없음'}</div>
-                    </div>
-                    """
-                
-                html_content += """
-                </body>
-                </html>
-                """
-                return html_content
+                return create_fallback_html(approved_performances)
                 
         except Exception as db_error:
             logger.error(f"Database error: {db_error}")
-            return """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>공연 정보</title>
-                <meta charset="utf-8">
-                <style>
-                    body { font-family: Arial, sans-serif; margin: 40px; text-align: center; }
-                    .message { color: #666; }
-                </style>
-            </head>
-            <body>
-                <h1>공연 정보</h1>
-                <p class="message">현재 공연 정보를 불러올 수 없습니다.</p>
-                <p class="message">잠시 후 다시 시도해주세요.</p>
-            </body>
-            </html>
-            """
+            logger.error(f"Database traceback: {traceback.format_exc()}")
+            # 데이터베이스 오류 시 기본 페이지 반환
+            return create_error_page("데이터베이스 연결 오류", "잠시 후 다시 시도해주세요.")
             
     except Exception as e:
-        logger.error(f"Home page error: {e}")
-        return "서비스 점검 중입니다.", 503
+        logger.error(f"Unexpected error in home route: {e}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        return create_error_page("서버 오류", "잠시 후 다시 시도해주세요.")
+
+def create_fallback_html(performances):
+    """템플릿 렌더링 실패 시 기본 HTML 생성"""
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>KOPIS 공연 홍보 플랫폼</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
+            .performance-card {{ border: 1px solid #ddd; border-radius: 10px; padding: 20px; margin: 15px 0; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }}
+            .performance-title {{ font-size: 20px; font-weight: bold; color: #333; margin-bottom: 10px; }}
+            .performance-info {{ color: #666; margin: 5px 0; }}
+            .performance-image {{ max-width: 200px; max-height: 150px; border-radius: 5px; }}
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="/">
+                    <i class="fas fa-music me-2"></i>KOPIS 공연 홍보 플랫폼
+                </a>
+            </div>
+        </nav>
+        
+        <div class="container my-5">
+            <div class="row">
+                <div class="col-12">
+                    <h1 class="text-center mb-4">
+                        <i class="fas fa-music me-2"></i>공연 정보
+                    </h1>
+                    <p class="text-center text-muted mb-4">총 {len(performances)}개의 공연이 있습니다.</p>
+                </div>
+            </div>
+    """
+    
+    for performance in performances:
+        html_content += f"""
+            <div class="performance-card">
+                <div class="row">
+                    <div class="col-md-3">
+        """
+        if performance.image_url:
+            html_content += f'<img src="{performance.image_url}" alt="{performance.title}" class="performance-image img-fluid">'
+        else:
+            html_content += '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 150px;"><i class="fas fa-music fa-3x text-muted"></i></div>'
+        
+        html_content += f"""
+                    </div>
+                    <div class="col-md-9">
+                        <div class="performance-title">{performance.title}</div>
+                        <div class="performance-info"><i class="fas fa-users me-2"></i>그룹: {performance.group_name}</div>
+                        <div class="performance-info"><i class="fas fa-map-marker-alt me-2"></i>장소: {performance.location}</div>
+                        <div class="performance-info"><i class="fas fa-calendar me-2"></i>날짜: {performance.date}</div>
+                        <div class="performance-info"><i class="fas fa-clock me-2"></i>시간: {performance.time}</div>
+                        <div class="performance-info"><i class="fas fa-ticket-alt me-2"></i>가격: {performance.price}</div>
+                        <div class="performance-info"><i class="fas fa-align-left me-2"></i>설명: {performance.description[:100]}{'...' if len(performance.description) > 100 else ''}</div>
+                    </div>
+                </div>
+            </div>
+        """
+    
+    html_content += """
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+    """
+    return html_content
+
+def create_error_page(title, message):
+    """에러 페이지 생성"""
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>KOPIS 공연 홍보 플랫폼 - 오류</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }}
+        </style>
+    </head>
+    <body>
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="/">
+                    <i class="fas fa-music me-2"></i>KOPIS 공연 홍보 플랫폼
+                </a>
+            </div>
+        </nav>
+        
+        <div class="container my-5">
+            <div class="row justify-content-center">
+                <div class="col-md-6 text-center">
+                    <i class="fas fa-exclamation-triangle fa-4x text-warning mb-4"></i>
+                    <h2>{title}</h2>
+                    <p class="text-muted">{message}</p>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        <i class="fas fa-redo me-2"></i>새로고침
+                    </button>
+                </div>
+            </div>
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
+    </html>
+    """
+    return html_content
 
 @app.route('/test')
 def test_page():
@@ -237,12 +331,58 @@ def test_page():
 
 @app.route('/health')
 def health_check():
-    """헬스체크"""
+    """서버 상태 확인"""
     try:
-        db.session.execute(text('SELECT 1'))
-        return {'status': 'healthy', 'database': 'connected'}, 200
+        # 데이터베이스 연결 테스트
+        db_status = "healthy"
+        db_error = None
+        try:
+            db.session.execute(text('SELECT 1'))
+            db.session.commit()
+            logger.info("Health check: Database connection successful")
+        except Exception as e:
+            db_status = "unhealthy"
+            db_error = str(e)
+            logger.error(f"Health check: Database connection failed - {e}")
+        
+        # 공연 데이터 확인
+        performance_count = 0
+        try:
+            performance_count = Performance.query.count()
+            logger.info(f"Health check: Found {performance_count} performances")
+        except Exception as e:
+            logger.error(f"Health check: Performance query failed - {e}")
+        
+        # 환경 변수 확인
+        env_vars = {
+            'DATABASE_URL': 'set' if os.getenv('DATABASE_URL') else 'not set',
+            'CLOUDINARY_CLOUD_NAME': 'set' if os.getenv('CLOUDINARY_CLOUD_NAME') else 'not set',
+            'CLOUDINARY_API_KEY': 'set' if os.getenv('CLOUDINARY_API_KEY') else 'not set',
+            'CLOUDINARY_API_SECRET': 'set' if os.getenv('CLOUDINARY_API_SECRET') else 'not set'
+        }
+        
+        health_data = {
+            'status': 'healthy' if db_status == 'healthy' else 'unhealthy',
+            'timestamp': datetime.now().isoformat(),
+            'database': {
+                'status': db_status,
+                'error': db_error,
+                'performance_count': performance_count
+            },
+            'environment': env_vars,
+            'version': '1.0.0'
+        }
+        
+        status_code = 200 if db_status == 'healthy' else 503
+        return health_data, status_code
+        
     except Exception as e:
-        return {'status': 'unhealthy', 'database': 'disconnected', 'error': str(e)}, 500
+        logger.error(f"Health check error: {e}")
+        return {
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': datetime.now().isoformat()
+        }, 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
