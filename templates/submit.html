@@ -137,9 +137,10 @@
                                 console.log('지도 검색 버튼 클릭됨');
                                 let addr = document.getElementById('address').value;
                                 if (!addr) {
-                                    alert('주소를 입력하세요!');
+                                    alert('주소나 장소명을 입력하세요!');
                                     return;
                                 }
+                                // 1차: addressSearch (도로명/지번 주소)
                                 geocoder.addressSearch(addr, function(result, status) {
                                     if (status === kakao.maps.services.Status.OK) {
                                         let coords = new kakao.maps.LatLng(result[0].y, result[0].x);
@@ -149,7 +150,21 @@
                                         infowindow.open(map, marker);
                                         alert('지도가 해당 위치로 이동했습니다!');
                                     } else {
-                                        alert('주소를 찾을 수 없습니다. 도로명 주소를 입력해보세요.');
+                                        // 2차: keywordSearch (장소명, 기관명 등)
+                                        let ps = new kakao.maps.services.Places();
+                                        ps.keywordSearch(addr, function(data, status2) {
+                                            if (status2 === kakao.maps.services.Status.OK && data.length > 0) {
+                                                let coords = new kakao.maps.LatLng(data[0].y, data[0].x);
+                                                map.setCenter(coords);
+                                                marker.setPosition(coords);
+                                                infowindow.setContent('<div style="font-size:13px;">' + data[0].place_name + '</div>');
+                                                infowindow.open(map, marker);
+                                                document.getElementById('address').value = data[0].road_address_name || data[0].address_name || data[0].place_name;
+                                                alert('지도가 해당 장소로 이동했습니다!');
+                                            } else {
+                                                alert('주소 또는 장소명을 찾을 수 없습니다. 도로명 주소나 정확한 장소명을 입력해보세요.');
+                                            }
+                                        });
                                     }
                                 });
                             };
