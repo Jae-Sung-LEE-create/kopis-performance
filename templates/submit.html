@@ -100,10 +100,14 @@
                             <small class="form-text text-muted">정확한 주소를 입력하거나 지도에서 위치를 조정하세요.</small>
                             <div id="map" style="width:100%;height:350px;" class="map-container mt-3"></div>
                         </div>
-                        <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=79ded8e1559559f4771806999c7c04ab&libraries=services"></script>
+                        <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=79ded8e1559559f4771806999c7c04ab&libraries=services" onerror="alert('카카오맵 API 로드에 실패했습니다. 새로고침 해보세요.')"></script>
                         <script>
                         let map, marker, geocoder, infowindow;
                         function initMap() {
+                            if (!window.kakao || !window.kakao.maps) {
+                                alert('카카오맵 API가 정상적으로 로드되지 않았습니다. 새로고침 해보세요.');
+                                return;
+                            }
                             geocoder = new kakao.maps.services.Geocoder();
                             infowindow = new kakao.maps.InfoWindow({zindex:1});
                             map = new kakao.maps.Map(document.getElementById('map'), {
@@ -130,6 +134,7 @@
                         document.addEventListener('DOMContentLoaded', function() {
                             initMap();
                             document.getElementById('searchMapBtn').onclick = function() {
+                                console.log('지도 검색 버튼 클릭됨');
                                 let addr = document.getElementById('address').value;
                                 if (!addr) {
                                     alert('주소를 입력하세요!');
@@ -142,6 +147,7 @@
                                         marker.setPosition(coords);
                                         infowindow.setContent('<div style="font-size:13px;">' + addr + '</div>');
                                         infowindow.open(map, marker);
+                                        alert('지도가 해당 위치로 이동했습니다!');
                                     } else {
                                         alert('주소를 찾을 수 없습니다. 도로명 주소를 입력해보세요.');
                                     }
