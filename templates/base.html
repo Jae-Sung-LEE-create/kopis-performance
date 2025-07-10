@@ -234,7 +234,27 @@
             <a class="navbar-brand" href="/">
                 <i class="fas fa-music me-2"></i>KOPIS 공연 홍보 플랫폼
             </a>
-            <div class="d-flex align-items-center ms-auto">
+            <div class="ms-auto d-flex align-items-center">
+                {% if current_user.is_authenticated %}
+                    <a href="/my_performances" class="btn btn-outline-light ms-2">
+                        <i class="fas fa-list"></i> 내 공연
+                    </a>
+                    {% if current_user.is_admin %}
+                        <a href="/admin" class="btn btn-warning ms-2">
+                            <i class="fas fa-cog"></i> 관리자 패널
+                        </a>
+                    {% endif %}
+                    <a href="/logout" class="btn btn-outline-light ms-2">
+                        <i class="fas fa-sign-out-alt"></i> 로그아웃
+                    </a>
+                {% else %}
+                    <a href="/login" class="btn btn-outline-light ms-2">
+                        <i class="fas fa-sign-in-alt"></i> 로그인
+                    </a>
+                    <a href="/register" class="btn btn-light ms-2">
+                        <i class="fas fa-user-plus"></i> 회원가입
+                    </a>
+                {% endif %}
                 <!-- 다크모드 토글 버튼 -->
                 <button id="darkModeToggle" class="btn btn-outline-light ms-2" title="다크 모드 토글">
                     <i class="fas fa-moon"></i>
