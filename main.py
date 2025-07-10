@@ -79,6 +79,7 @@ class Performance(db.Model):
     group_name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     location = db.Column(db.String(100))
+    address = db.Column(db.String(200))  # 상세 주소 (지도용)
     price = db.Column(db.String(50))
     date = db.Column(db.String(20))
     time = db.Column(db.String(20))
@@ -708,6 +709,7 @@ def submit_performance():
             group_name=request.form['group_name'],
             description=request.form['description'],
             location=request.form['location'],
+            address=request.form.get('address'),  # 상세 주소 저장
             price=request.form['price'],
             date=request.form['date'],
             time=f"{request.form['start_time']}~{request.form['end_time']}",
