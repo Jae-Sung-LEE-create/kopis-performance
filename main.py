@@ -85,6 +85,7 @@ class Performance(db.Model):
     contact_email = db.Column(db.String(120))
     video_url = db.Column(db.String(300))
     image_url = db.Column(db.String(300))
+    category = db.Column(db.String(50))  # 카테고리 필드 추가
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
@@ -172,15 +173,21 @@ def home():
     try:
         logger.info("Accessing home page")
         
+        # 카테고리 파라미터 받기
+        category = request.args.get('category')
+        logger.info(f"Category filter: {category}")
+        
         # 데이터베이스 연결 확인
         try:
-            # 연결 테스트
             db.session.execute(text('SELECT 1'))
             db.session.commit()
             logger.info("Database connection successful")
             
-            # 승인된 공연 조회
-            approved_performances = Performance.query.filter_by(is_approved=True).order_by(Performance.created_at.desc()).all()
+            # 승인된 공연 조회 (카테고리별 필터)
+            if category and category != '전체':
+                approved_performances = Performance.query.filter_by(is_approved=True, category=category).order_by(Performance.created_at.desc()).all()
+            else:
+                approved_performances = Performance.query.filter_by(is_approved=True).order_by(Performance.created_at.desc()).all()
             logger.info(f"Found {len(approved_performances)} approved performances")
             
             # 이미지 URL 디버깅
@@ -192,7 +199,7 @@ def home():
             
             # 템플릿 렌더링 시도
             try:
-                return render_template("index.html", performances=approved_performances)
+                return render_template("index.html", performances=approved_performances, selected_category=category)
             except Exception as template_error:
                 logger.error(f"Template error: {template_error}")
                 # 템플릿 렌더링 실패 시 기본 HTML 반환
@@ -579,6 +586,7 @@ def submit_performance():
             contact_email=request.form['contact_email'],
             video_url=request.form.get('video_url'),
             image_url=image_url,
+            category=request.form['category'],  # 카테고리 저장
             user_id=current_user.id
         )
         db.session.add(performance)

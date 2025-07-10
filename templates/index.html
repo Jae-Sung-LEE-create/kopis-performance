@@ -40,6 +40,22 @@
 </div>
 
 <div class="container my-5">
+    <!-- 카테고리 버튼 UI -->
+    <div class="row mb-3">
+        <div class="col-12 text-center">
+            {% set categories = [
+                '전체', '연극', '뮤지컬', '서양음악(클래식)', '한국음악(국악)', '대중음악', '무용(서양/한국무용)', '대중무용', '서커스/마술', '복합'
+            ] %}
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                {% for cat in categories %}
+                    <a href="/?category={{ cat }}" class="btn btn-outline-primary btn-category {% if selected_category==cat or (not selected_category and cat=='전체') %}active{% endif %}">
+                        {{ cat }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <!-- 최신 공연 섹션 -->
     <div class="row mb-4">
         <div class="col-12">
             <h2 class="text-center mb-4">
