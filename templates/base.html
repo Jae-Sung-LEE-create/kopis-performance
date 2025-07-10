@@ -39,13 +39,13 @@
             letter-spacing: 0.05em;
         }
         .performance-card {
-            transition: transform 0.3s ease;
+            transition: transform 0.25s cubic-bezier(.4,2,.6,1), box-shadow 0.25s;
             border: none;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .performance-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-7px) scale(1.03);
+            box-shadow: 0 8px 32px rgba(90,111,216,0.18);
         }
         .navbar-brand {
             font-weight: bold;
@@ -95,7 +95,7 @@
             font-weight: 600;
             padding: 0.7rem 1.7rem;
             border-radius: 2rem;
-            transition: all 0.15s;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
         }
         .btn-category.active, .btn-category:hover {
             background: #5a6fd8;
@@ -184,6 +184,23 @@
         }
         .dark-mode .form-text {
             color: #b0b0b0 !important;
+        }
+        /* 애니메이션 및 트랜지션 */
+        .card, .modal-content, .navbar, .dropdown-menu {
+            transition: background 0.3s, color 0.3s, box-shadow 0.3s, border-color 0.3s;
+        }
+        .btn, .form-control, .form-select {
+            transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+        .main-title, .main-subtitle, .main-desc {
+            transition: color 0.3s, text-shadow 0.3s;
+        }
+        .modal.fade .modal-dialog {
+            transition: transform 0.3s cubic-bezier(.4,2,.6,1);
+            transform: translateY(40px) scale(0.98);
+        }
+        .modal.show .modal-dialog {
+            transform: translateY(0) scale(1);
         }
     </style>
     
