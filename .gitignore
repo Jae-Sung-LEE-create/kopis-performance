@@ -1,5 +1,7 @@
-# 데이터 파일
-data/
+# SQLite database
+*.db
+*.sqlite
+*.sqlite3
 
 # Python
 __pycache__/
@@ -7,26 +9,11 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# Virtual Environment
-venv/
 env/
+venv/
 ENV/
+env.bak/
+venv.bak/
 
 # IDE
 .vscode/
@@ -39,38 +26,4 @@ ENV/
 Thumbs.db
 
 # Logs
-*.log
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Environments
-.env
-.venv
-env.bak/
-venv.bak/
-
-# Database
-*.db
-*.sqlite3
-
-# OS
-.DS_Store
-Thumbs.db 
+*.log 

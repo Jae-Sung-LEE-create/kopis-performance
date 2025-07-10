@@ -1,140 +1,157 @@
-# kopis-performance
+# KOPIS 공연 홍보 플랫폼
 
-(자동 배포 테스트용 커밋)
-(psycopg2-binary를 psycopg2로 변경하여 Python 3.13 호환성 문제 해결)
-(psycopg2-binary 2.9.9로 업그레이드하여 Python 3.13 호환성 개선)
-(PostgreSQL 대신 SQLite 사용하여 Python 3.13 호환성 문제 해결)
-(PostgreSQL로 다시 전환하여 데이터 영속성 확보)
-(SQLite로 전환하고 샘플 데이터 자동 생성 기능 추가)
-(PostgreSQL 재시도 및 Python 3.11 고정으로 데이터 영속성 확보)
-(이미지 업로드 디버깅 및 관리자 삭제 기능 추가)
+대학생 댄스동아리와 스트릿댄스 크루들의 공연을 홍보하는 웹 플랫폼입니다.
 
-대중무용의 접근성을 높이고 대학생 댄스동아리, 스트릿댄스 크루들의 공연을 홍보하는 웹 플랫폼입니다.
+## 🚀 배포 URL
 
-## 🎯 프로젝트 목적
+- **프로덕션**: https://kopis-performance.onrender.com
+- **헬스 체크**: https://kopis-performance.onrender.com/health
 
-- 대중무용의 티켓예매수와 공연건수 부족 문제 해결
-- 대학생 댄스동아리와 스트릿댄스 크루들의 공연 홍보 지원
-- 공연예술통합전산망(KOPIS) 데이터 활용한 공연시장 발전 기여
+## 🛠️ 개발 환경 설정
 
-## ✨ 주요 기능
+### 1. 저장소 클론
+```bash
+git clone https://github.com/Jae-Sung-LEE-create/kopis-performance.git
+cd kopis-performance
+```
 
-### 🎭 공연 신청 및 관리
-- 온라인 공연 신청 폼
-- 홍보 동영상 및 이미지 업로드 지원
-- 관리자 승인 시스템
+### 2. 가상환경 생성 및 활성화
+```bash
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# macOS/Linux
+source venv/bin/activate
+```
 
-### 📱 사용자 인터페이스
-- 반응형 웹 디자인
-- 공연 목록 및 상세 페이지
-- 검색 및 필터링 기능
-
-### 🔧 관리자 기능
-- 공연 신청 승인/거절
-- 공연 정보 관리
-- 통계 대시보드
-
-## 🛠 기술 스택
-
-- **Backend**: Flask (Python)
-- **Database**: Pickle 파일 기반 (개발용) / SQLite (배포용)
-- **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
-- **Template Engine**: Jinja2
-- **Authentication**: Flask-Login
-
-## 🚀 설치 및 실행
-
-### 1. 의존성 설치
+### 3. 의존성 설치
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 애플리케이션 실행
+### 4. 환경 변수 설정
+`.env` 파일을 생성하고 다음 내용을 추가:
+```env
+DATABASE_URL=sqlite:///app.db
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+### 5. 서버 실행
 ```bash
-python main.py
+python start.py
 ```
 
-### 3. 웹 브라우저에서 접속
+서버가 `http://127.0.0.1:8000`에서 실행됩니다.
+
+## 📊 데이터 관리
+
+### 개발용 샘플 데이터 생성
+```bash
+python init_dev_data.py
 ```
-http://localhost:8000
+
+**테스트 계정:**
+- `admin` / `admin123` (관리자)
+- `dancer1` / `test123`
+- `crew2` / `test123`
+- `street3` / `test123`
+
+### 데이터베이스 백업/복원
+```bash
+python backup_db.py
 ```
 
-### 🔐 관리자 계정
+**기능:**
+- 데이터베이스 백업
+- 백업 파일 복원
+- 백업 파일 목록 확인
 
-애플리케이션 실행 시 자동으로 관리자 계정이 생성됩니다:
-- **아이디**: `admin`
-- **비밀번호**: `admin123`
+## 🔧 주요 기능
 
-관리자로 로그인하면 네비게이션 바에 "관리자" 링크가 나타나며, 공연 승인/거절 기능을 사용할 수 있습니다.
+### 사용자 기능
+- 회원가입/로그인
+- 공연 신청 및 관리
+- 내 공연 현황 확인
 
-## 🌐 배포 방법
+### 관리자 기능
+- 공연 승인/거절
+- 공연 삭제
+- 전체 공연 관리
 
-### Railway 배포 (추천)
-1. [Railway](https://railway.app) 계정 생성
-2. GitHub 저장소 연결
-3. 자동 배포 완료
+### 공연 정보
+- 공연명, 팀명, 설명
+- 장소, 날짜, 시간
+- 가격, 연락처
+- 이미지 업로드 (Cloudinary)
+- 홍보 동영상 링크
 
-### Vercel 배포
-1. [Vercel](https://vercel.com) 계정 생성
-2. 프로젝트 import
-3. 배포 설정 완료
+## 🗄️ 데이터베이스
+
+### 개발 환경
+- **SQLite**: `app.db` 파일
+- 데이터는 로컬에 저장
+- 개발 중 데이터 보존을 위해 백업 권장
+
+### 프로덕션 환경
+- **PostgreSQL**: Render 제공
+- 환경 변수 `DATABASE_URL`로 설정
 
 ## 📁 프로젝트 구조
 
 ```
-├── main.py                 # Flask 메인 애플리케이션
-├── requirements.txt        # Python 의존성
-├── Procfile              # 배포 설정
-├── railway.json          # Railway 설정
-├── render.yaml           # Render 설정
-├── data/                 # 데이터 저장소 (pickle 파일들)
-├── templates/             # HTML 템플릿
-│   ├── base.html         # 기본 레이아웃
-│   ├── index.html        # 홈페이지
-│   ├── login.html        # 로그인 페이지
-│   ├── register.html     # 회원가입 페이지
-│   ├── submit.html       # 공연 신청 폼
-│   ├── admin.html        # 관리자 패널
-│   ├── my_performances.html  # 내 공연 신청 현황
-│   └── performance_detail.html  # 공연 상세 페이지
-├── static/               # 정적 파일 (CSS, JS, 이미지)
-└── README.md            # 프로젝트 설명서
+kopis-performance/
+├── main.py              # 메인 애플리케이션
+├── start.py             # 서버 시작 스크립트
+├── init_dev_data.py     # 샘플 데이터 생성
+├── backup_db.py         # 데이터베이스 백업/복원
+├── requirements.txt     # Python 의존성
+├── render.yaml          # Render 배포 설정
+├── templates/           # HTML 템플릿
+├── static/              # 정적 파일
+└── data/                # 데이터 파일
 ```
 
-## 🎪 사용 방법
+## 🚨 주의사항
 
-### 공연 신청하기
-1. `/submit` 페이지 접속
-2. 공연 정보 입력 (제목, 팀명, 설명, 장소, 가격, 날짜, 시간, 연락처)
-3. 홍보 동영상 URL 및 이미지 URL 입력 (선택사항)
-4. 신청서 제출
+### 개발 환경에서 데이터 보존
+1. **`.gitignore`**에 `*.db`가 포함되어 있어 SQLite 파일은 Git에 추적되지 않습니다.
+2. 개발 중 중요한 데이터가 있다면 `python backup_db.py`로 백업하세요.
+3. 서버 재시작 시 데이터가 초기화될 수 있습니다.
 
-### 관리자 기능
-1. 관리자 계정으로 로그인 (`admin` / `admin123`)
-2. 네비게이션 바의 "관리자" 링크 클릭
-3. 승인 대기 중인 공연 확인
-4. "상세" 버튼으로 공연 정보 확인
-5. "승인" 또는 "거절" 버튼으로 처리
-6. 승인된 공연은 홈페이지에 자동 표시
+### 환경 변수
+- **로컬 개발**: `.env` 파일 사용
+- **프로덕션**: Render 환경 변수 설정
 
-### 공연 정보 확인
-1. 홈페이지에서 공연 목록 확인
-2. 공연 카드 클릭하여 상세 정보 확인
-3. 예매 문의를 위한 연락처 정보 확인
+## 🔍 문제 해결
 
-## 🔮 향후 개발 계획
+### 웹사이트 로딩 문제
+1. `/health` 엔드포인트로 서버 상태 확인
+2. 로그 확인: `python start.py` 실행 시 출력되는 로그
+3. 데이터베이스 연결 확인
 
-- [ ] 이메일 자동 발송 시스템
-- [ ] 지도 API 연동 (공연장 위치 표시)
-- [ ] 소셜 미디어 연동
-- [ ] 실시간 알림 시스템
-- [ ] 모바일 앱 개발
-- [ ] 결제 시스템 연동
+### 데이터베이스 문제
+1. `python backup_db.py`로 백업
+2. `python init_dev_data.py`로 샘플 데이터 재생성
+3. `app.db` 파일 삭제 후 서버 재시작
 
-## 📞 문의
+## 📝 업데이트 로그
 
-프로젝트 관련 문의사항이 있으시면 언제든 연락주세요.
+### 2024-07-10
+- 데이터베이스 연결 안정성 개선
+- 에러 핸들링 강화
+- 개발용 데이터 관리 도구 추가
+- 헬스 체크 엔드포인트 개선
 
----
+## 🤝 기여하기
 
-**KOPIS 공연 홍보 플랫폼** - 대중무용의 새로운 시작 🎭 
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 
