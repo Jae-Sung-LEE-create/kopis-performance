@@ -110,59 +110,118 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
+        :root {
+            --bg: #fff;
+            --text: #222;
+            --card-bg: #f8f9fa;
+            --primary: #5a6fd8;
+            --secondary: #6c757d;
+            --border: #e0e0e0;
+            --shadow: 0 2px 8px rgba(0,0,0,0.08);
+            --transition: background 0.3s, color 0.3s;
+        }
+        body {
+            background: var(--bg);
+            color: var(--text);
+            transition: var(--transition);
+        }
+        .card, .navbar, .modal-content, .dropdown-menu {
+            background: var(--card-bg) !important;
+            color: var(--text) !important;
+            transition: var(--transition);
+        }
+        .btn-primary, .bg-primary {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+        }
+        .btn-secondary, .bg-secondary {
+            background: var(--secondary) !important;
+            border-color: var(--secondary) !important;
+        }
+        .border, .form-control, .form-select {
+            border-color: var(--border) !important;
+        }
+        .shadow, .card, .modal-content {
+            box-shadow: var(--shadow) !important;
+        }
+        .dark-mode {
+            --bg: #181a1b;
+            --text: #e0e0e0;
+            --card-bg: #23272b;
+            --primary: #7b9fff;
+            --secondary: #444950;
+            --border: #333;
+            --shadow: 0 2px 12px rgba(0,0,0,0.25);
+        }
+        .dark-mode .btn, .dark-mode .form-control, .dark-mode .form-select {
+            background: var(--card-bg) !important;
+            color: var(--text) !important;
+            border-color: var(--border) !important;
+        }
+        .dark-mode .navbar, .dark-mode .dropdown-menu {
+            background: var(--card-bg) !important;
+        }
+        .dark-mode .btn-outline-light {
+            color: #fff !important;
+            border-color: #fff !important;
+        }
+        .dark-mode .btn-outline-primary {
+            color: var(--primary) !important;
+            border-color: var(--primary) !important;
+        }
+        .dark-mode .btn-primary {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+        }
+        .dark-mode .bg-primary {
+            background: var(--primary) !important;
+        }
+        .dark-mode .bg-light {
+            background: #23272b !important;
+        }
+        .dark-mode .text-muted {
+            color: #b0b0b0 !important;
+        }
+        .dark-mode .form-text {
+            color: #b0b0b0 !important;
+        }
     </style>
     
     <!-- 카카오맵 API (무료 키 사용) -->
     <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=79ded8e1559559f4771806999c7c04ab&libraries=services"></script>
+    <script>
+    // 다크모드 토글 및 로컬스토리지 저장
+    function setDarkMode(on) {
+        if (on) {
+            document.body.classList.add('dark-mode');
+            localStorage.setItem('darkMode', 'on');
+        } else {
+            document.body.classList.remove('dark-mode');
+            localStorage.setItem('darkMode', 'off');
+        }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        // 초기 상태
+        if (localStorage.getItem('darkMode') === 'on') {
+            setDarkMode(true);
+        }
+        document.getElementById('darkModeToggle').onclick = function() {
+            setDarkMode(!document.body.classList.contains('dark-mode'));
+        };
+    });
+    </script>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="/">
-                <i class="fas fa-music me-2"></i>KOPIS 공연 홍보
+                <i class="fas fa-music me-2"></i>KOPIS 공연 홍보 플랫폼
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/">홈</a>
-                    </li>
-                    {% if current_user.is_authenticated %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/submit">공연 신청</a>
-                        </li>
-                        {% if current_user.is_admin %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/admin">
-                                <i class="fas fa-cog me-1"></i>관리자
-                            </a>
-                        </li>
-                        {% endif %}
-                        <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user me-1"></i>{{ current_user.name }}
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="/my-performances">
-                                    <i class="fas fa-list-alt me-2"></i>신청현황
-                                </a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li><a class="dropdown-item" href="/logout">
-                                    <i class="fas fa-sign-out-alt me-2"></i>로그아웃
-                                </a></li>
-                            </ul>
-                        </li>
-                    {% else %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="/login">로그인</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/register">회원가입</a>
-                        </li>
-                    {% endif %}
-                </ul>
+            <div class="d-flex align-items-center ms-auto">
+                <!-- 다크모드 토글 버튼 -->
+                <button id="darkModeToggle" class="btn btn-outline-light ms-2" title="다크 모드 토글">
+                    <i class="fas fa-moon"></i>
+                </button>
             </div>
         </div>
     </nav>
