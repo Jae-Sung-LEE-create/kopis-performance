@@ -71,14 +71,23 @@
                 <div class="col-md-3">
                     <select name="location" class="form-select" onchange="applyFilter('location', this.value)">
                         <option value="">전체 지역</option>
-                        <option value="서울" {% if location == '서울' %}selected{% endif %}>서울</option>
-                        <option value="부산" {% if location == '부산' %}selected{% endif %}>부산</option>
-                        <option value="대구" {% if location == '대구' %}selected{% endif %}>대구</option>
-                        <option value="인천" {% if location == '인천' %}selected{% endif %}>인천</option>
-                        <option value="광주" {% if location == '광주' %}selected{% endif %}>광주</option>
-                        <option value="대전" {% if location == '대전' %}selected{% endif %}>대전</option>
-                        <option value="울산" {% if location == '울산' %}selected{% endif %}>울산</option>
-                        <option value="세종" {% if location == '세종' %}selected{% endif %}>세종</option>
+                        <option value="서울특별시" {% if location == '서울특별시' %}selected{% endif %}>서울특별시</option>
+                        <option value="경기도" {% if location == '경기도' %}selected{% endif %}>경기도</option>
+                        <option value="강원도" {% if location == '강원도' %}selected{% endif %}>강원도</option>
+                        <option value="인천광역시" {% if location == '인천광역시' %}selected{% endif %}>인천광역시</option>
+                        <option value="충청남도" {% if location == '충청남도' %}selected{% endif %}>충청남도</option>
+                        <option value="충청북도" {% if location == '충청북도' %}selected{% endif %}>충청북도</option>
+                        <option value="세종특별자치시" {% if location == '세종특별자치시' %}selected{% endif %}>세종특별자치시</option>
+                        <option value="대전광역시" {% if location == '대전광역시' %}selected{% endif %}>대전광역시</option>
+                        <option value="경상북도" {% if location == '경상북도' %}selected{% endif %}>경상북도</option>
+                        <option value="대구광역시" {% if location == '대구광역시' %}selected{% endif %}>대구광역시</option>
+                        <option value="전라북도" {% if location == '전라북도' %}selected{% endif %}>전라북도</option>
+                        <option value="경상남도" {% if location == '경상남도' %}selected{% endif %}>경상남도</option>
+                        <option value="울산광역시" {% if location == '울산광역시' %}selected{% endif %}>울산광역시</option>
+                        <option value="부산광역시" {% if location == '부산광역시' %}selected{% endif %}>부산광역시</option>
+                        <option value="광주광역시" {% if location == '광주광역시' %}selected{% endif %}>광주광역시</option>
+                        <option value="전라남도" {% if location == '전라남도' %}selected{% endif %}>전라남도</option>
+                        <option value="제주도" {% if location == '제주도' %}selected{% endif %}>제주도</option>
                     </select>
                 </div>
                 

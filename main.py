@@ -129,6 +129,41 @@ def nl2br_filter(text):
         return text.replace('\n', '<br>')
     return text
 
+def detect_region_from_address(address):
+    """주소에서 지역을 자동으로 감지하는 함수"""
+    if not address:
+        return None
+    
+    address_lower = address.lower()
+    
+    # 지역 매핑
+    region_mapping = {
+        '서울특별시': ['서울특별시', '서울시', '서울'],
+        '경기도': ['경기도', '경기'],
+        '강원도': ['강원도', '강원'],
+        '인천광역시': ['인천광역시', '인천시', '인천'],
+        '충청남도': ['충청남도', '충남'],
+        '충청북도': ['충청북도', '충북'],
+        '세종특별자치시': ['세종특별자치시', '세종시', '세종'],
+        '대전광역시': ['대전광역시', '대전시', '대전'],
+        '경상북도': ['경상북도', '경북'],
+        '대구광역시': ['대구광역시', '대구시', '대구'],
+        '전라북도': ['전라북도', '전북'],
+        '경상남도': ['경상남도', '경남'],
+        '울산광역시': ['울산광역시', '울산시', '울산'],
+        '부산광역시': ['부산광역시', '부산시', '부산'],
+        '광주광역시': ['광주광역시', '광주시', '광주'],
+        '전라남도': ['전라남도', '전남'],
+        '제주도': ['제주도', '제주특별자치도', '제주시', '제주']
+    }
+    
+    for region, keywords in region_mapping.items():
+        for keyword in keywords:
+            if keyword in address_lower:
+                return region
+    
+    return None
+
 def create_tables():
     """데이터베이스 테이블 생성"""
     max_retries = 3
@@ -279,7 +314,7 @@ def home():
             
             # 지역 필터
             if location:
-                query = query.filter(Performance.location.ilike(f"%{location}%"))
+                query = query.filter(Performance.location == location)
             
             # 가격 필터
             if price_filter:
@@ -704,12 +739,19 @@ def submit_performance():
                 logger.error(f"Cloudinary upload error: {e}")
                 flash('이미지 업로드 중 오류가 발생했습니다.', 'error')
                 return redirect(url_for('submit_performance'))
+        # 주소에서 지역 자동 감지
+        address = request.form.get('address')
+        detected_region = detect_region_from_address(address)
+        
+        # 지역 설정 (주소에서 감지된 지역이 있으면 사용, 없으면 수동 입력 사용)
+        location = detected_region if detected_region else request.form['location']
+        
         performance = Performance(
             title=request.form['title'],
             group_name=request.form['group_name'],
             description=request.form['description'],
-            location=request.form['location'],
-            address=request.form.get('address'),  # 상세 주소 저장
+            location=location,  # 자동 감지된 지역 또는 수동 입력
+            address=address,  # 상세 주소 저장
             price=request.form['price'],
             date=request.form['date'],
             time=f"{request.form['start_time']}~{request.form['end_time']}",
