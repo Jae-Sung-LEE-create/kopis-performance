@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, jsonify
+from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, jsonify, session, g
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -12,6 +12,8 @@ import traceback
 import cloudinary
 import cloudinary.uploader
 
+from flask_babel import Babel
+
 load_dotenv()
 
 # 로깅 설정
@@ -22,6 +24,28 @@ app = Flask(__name__,
            template_folder='templates',
            static_folder='static')
 app.secret_key = 'your-secret-key-here'
+
+# 다국어 지원 설정
+LANGUAGES = ['ko', 'en', 'ja', 'zh']
+BABEL_DEFAULT_LOCALE = 'ko'
+
+@app.before_request
+def set_language():
+    lang = session.get('lang', 'ko')
+    if request.method == 'POST' and 'lang' in request.form:
+        lang = request.form['lang']
+        if lang not in LANGUAGES:
+            lang = 'ko'
+        session['lang'] = lang
+    g.lang = lang
+
+@app.route('/set_language', methods=['POST'])
+def set_language_route():
+    lang = request.form.get('lang', 'ko')
+    if lang not in LANGUAGES:
+        lang = 'ko'
+    session['lang'] = lang
+    return redirect(request.referrer or url_for('home'))
 
 # 데이터베이스 설정
 database_url = os.getenv('DATABASE_URL')

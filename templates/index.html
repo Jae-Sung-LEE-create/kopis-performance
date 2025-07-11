@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}홈 - KOPIS 공연 홍보 플랫폼{% endblock %}
+{% set lang = g.lang if g.lang else 'ko' %}
+
+{% block title %}
+    {% if lang == 'en' %}Home - KOPIS Performing Arts Platform{% elif lang == 'ja' %}ホーム - KOPIS公演プラットフォーム{% elif lang == 'zh' %}首页 - KOPIS演出宣传平台{% else %}홈 - KOPIS 공연 홍보 플랫폼{% endif %}
+{% endblock %}
 
 {% block content %}
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -19,20 +23,27 @@
 
 <div class="hero-section">
     <div class="container text-center">
-        <div class="main-title mb-2">공고</div>
+        <div class="main-title mb-2">
+            {% if lang == 'en' %}Notice{% elif lang == 'ja' %}お知らせ{% elif lang == 'zh' %}公告{% else %}공고{% endif %}
+        </div>
         <div class="main-subtitle mb-3">(공)연 + (고)go</div>
-        <div class="main-desc mb-4">누구나 간편하게 본인의 무대를 홍보하세요.</div>
+        <div class="main-desc mb-4">
+            {% if lang == 'en' %}Promote your stage easily for everyone.{% elif lang == 'ja' %}誰でも簡単に自分の舞台を宣伝できます。{% elif lang == 'zh' %}任何人都可以轻松宣传自己的舞台。{% else %}누구나 간편하게 본인의 무대를 홍보하세요.{% endif %}
+        </div>
         {% if current_user.is_authenticated %}
             <a href="/submit" class="btn btn-light btn-lg main-btn">
-                <i class="fas fa-plus me-2"></i>공연 신청하기
+                <i class="fas fa-plus me-2"></i>
+                {% if lang == 'en' %}Submit Performance{% elif lang == 'ja' %}公演申請{% elif lang == 'zh' %}申请演出{% else %}공연 신청하기{% endif %}
             </a>
         {% else %}
             <div class="d-flex gap-3 justify-content-center">
                 <a href="/login" class="btn btn-light btn-lg main-btn">
-                    <i class="fas fa-sign-in-alt me-2"></i>로그인
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    {% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
                 </a>
                 <a href="/register" class="btn btn-outline-light btn-lg main-btn">
-                    <i class="fas fa-user-plus me-2"></i>회원가입
+                    <i class="fas fa-user-plus me-2"></i>
+                    {% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
                 </a>
             </div>
         {% endif %}
@@ -159,9 +170,9 @@
             <h2 class="text-center mb-4">
                 <i class="fas fa-star me-2"></i>
                 {% if selected_main_category == '대회' %}
-                    최신 대회
+                    {% if lang == 'en' %}Latest Competition{% elif lang == 'ja' %}最新の大会{% elif lang == 'zh' %}最新大赛{% else %}최신 대회{% endif %}
                 {% else %}
-                    최신 공연
+                    {% if lang == 'en' %}Latest Performance{% elif lang == 'ja' %}最新の公演{% elif lang == 'zh' %}最新演出{% else %}최신 공연{% endif %}
                 {% endif %}
             </h2>
         </div>
@@ -227,34 +238,36 @@
         <i class="fas fa-music fa-4x text-muted mb-3"></i>
         <h4 class="text-muted">
             {% if selected_main_category == '대회' %}
-                아직 등록된 대회가 없습니다
+                {% if lang == 'en' %}No competitions registered yet{% elif lang == 'ja' %}まだ登録された大会がありません{% elif lang == 'zh' %}尚未注册任何大赛{% else %}아직 등록된 대회가 없습니다{% endif %}
             {% else %}
-                아직 등록된 공연이 없습니다
+                {% if lang == 'en' %}No performances registered yet{% elif lang == 'ja' %}まだ登録された公演がありません{% elif lang == 'zh' %}尚未注册任何演出{% else %}아직 등록된 공연이 없습니다{% endif %}
             {% endif %}
         </h4>
         <p class="text-muted">
             {% if selected_main_category == '대회' %}
-                첫 번째 대회를 신청해보세요!
+                {% if lang == 'en' %}Be the first to submit a competition!{% elif lang == 'ja' %}最初の大会を申請してください！{% elif lang == 'zh' %}快来申请第一个大赛吧！{% else %}첫 번째 대회를 신청해보세요!{% endif %}
             {% else %}
-                첫 번째 공연을 신청해보세요!
+                {% if lang == 'en' %}Be the first to submit a performance!{% elif lang == 'ja' %}最初の公演を申請してください！{% elif lang == 'zh' %}快来申请第一个演出吧！{% else %}첫 번째 공연을 신청해보세요!{% endif %}
             {% endif %}
         </p>
         {% if current_user.is_authenticated %}
             <a href="/submit" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>
                 {% if selected_main_category == '대회' %}
-                    대회 신청하기
+                    {% if lang == 'en' %}Submit Competition{% elif lang == 'ja' %}大会申請{% elif lang == 'zh' %}申请大赛{% else %}대회 신청하기{% endif %}
                 {% else %}
-                    공연 신청하기
+                    {% if lang == 'en' %}Submit Performance{% elif lang == 'ja' %}公演申請{% elif lang == 'zh' %}申请演出{% else %}공연 신청하기{% endif %}
                 {% endif %}
             </a>
         {% else %}
             <div class="d-flex gap-2 justify-content-center">
                 <a href="/login" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt me-2"></i>로그인
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    {% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
                 </a>
                 <a href="/register" class="btn btn-outline-primary">
-                    <i class="fas fa-user-plus me-2"></i>회원가입
+                    <i class="fas fa-user-plus me-2"></i>
+                    {% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
                 </a>
             </div>
         {% endif %}
