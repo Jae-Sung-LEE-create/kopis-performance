@@ -125,42 +125,42 @@
     <!-- 메인 카테고리 버튼 UI -->
     <div class="row mb-3">
         <div class="col-12 text-center">
-            {% set main_categories = [
-                ('전체', '{% if lang == 'en' %}All{% elif lang == 'ja' %}全体{% elif lang == 'zh' %}全部{% else %}전체{% endif %}'),
-                ('공연', '{% if lang == 'en' %}Performance{% elif lang == 'ja' %}公演{% elif lang == 'zh' %}演出{% else %}공연{% endif %}'),
-                ('대회', '{% if lang == 'en' %}Competition{% elif lang == 'ja' %}大会{% elif lang == 'zh' %}大赛{% else %}대회{% endif %}')
-            ] %}
+            <!-- 메인 카테고리 버튼 직접 분기 -->
             <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
-                {% for cat_id, cat_name in main_categories %}
-                    <a href="/?main_category={{ cat_id }}" class="btn btn-outline-primary btn-lg btn-main-category {% if selected_main_category==cat_id or (not selected_main_category and cat_id=='전체') %}active{% endif %}">
-                        <i class="fas fa-{{ 'music' if cat_id=='공연' else 'trophy' if cat_id=='대회' else 'list' }} me-2"></i>{{ cat_name }}
-                    </a>
-                {% endfor %}
+                <a href="/?main_category=전체" class="btn btn-outline-primary btn-lg btn-main-category {% if selected_main_category=='전체' or not selected_main_category %}active{% endif %}">
+                    <i class="fas fa-list me-2"></i>{% if lang == 'en' %}All{% elif lang == 'ja' %}全体{% elif lang == 'zh' %}全部{% else %}전체{% endif %}
+                </a>
+                <a href="/?main_category=공연" class="btn btn-outline-primary btn-lg btn-main-category {% if selected_main_category=='공연' %}active{% endif %}">
+                    <i class="fas fa-music me-2"></i>{% if lang == 'en' %}Performance{% elif lang == 'ja' %}公演{% elif lang == 'zh' %}演出{% else %}공연{% endif %}
+                </a>
+                <a href="/?main_category=대회" class="btn btn-outline-primary btn-lg btn-main-category {% if selected_main_category=='대회' %}active{% endif %}">
+                    <i class="fas fa-trophy me-2"></i>{% if lang == 'en' %}Competition{% elif lang == 'ja' %}大会{% elif lang == 'zh' %}大赛{% else %}대회{% endif %}
+                </a>
             </div>
-            
-            <!-- 세부 카테고리 버튼 UI -->
+            <!-- 세부 카테고리 버튼 직접 분기 -->
             {% if selected_main_category == '공연' or not selected_main_category %}
-                {% set performance_categories = [
-                    '전체', '연극', '뮤지컬', '서양음악(클래식)', '한국음악(국악)', '대중음악', '무용(서양/한국무용)', '대중무용', '서커스/마술', '복합'
-                ] %}
-                <div class="d-flex flex-wrap justify-content-center gap-2">
-                    {% for cat in performance_categories %}
-                        <a href="/?main_category=공연&category={{ cat }}" class="btn btn-outline-success btn-category {% if selected_category==cat or (not selected_category and cat=='전체') %}active{% endif %}">
-                            {{ cat }}
-                        </a>
-                    {% endfor %}
-                </div>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a href="/?main_category=공연&category=전체" class="btn btn-outline-success btn-category {% if selected_category=='전체' or not selected_category %}active{% endif %}">{% if lang == 'en' %}All{% elif lang == 'ja' %}全体{% elif lang == 'zh' %}全部{% else %}전체{% endif %}</a>
+                <a href="/?main_category=공연&category=연극" class="btn btn-outline-success btn-category {% if selected_category=='연극' %}active{% endif %}">{% if lang == 'en' %}Play{% elif lang == 'ja' %}演劇{% elif lang == 'zh' %}话剧{% else %}연극{% endif %}</a>
+                <a href="/?main_category=공연&category=뮤지컬" class="btn btn-outline-success btn-category {% if selected_category=='뮤지컬' %}active{% endif %}">{% if lang == 'en' %}Musical{% elif lang == 'ja' %}ミュージカル{% elif lang == 'zh' %}音乐剧{% else %}뮤지컬{% endif %}</a>
+                <a href="/?main_category=공연&category=서양음악(클래식)" class="btn btn-outline-success btn-category {% if selected_category=='서양음악(클래식)' %}active{% endif %}">{% if lang == 'en' %}Western Music (Classical){% elif lang == 'ja' %}西洋音楽（クラシック）{% elif lang == 'zh' %}西洋音乐（古典）{% else %}서양음악(클래식){% endif %}</a>
+                <a href="/?main_category=공연&category=한국음악(국악)" class="btn btn-outline-success btn-category {% if selected_category=='한국음악(국악)' %}active{% endif %}">{% if lang == 'en' %}Korean Music (Gugak){% elif lang == 'ja' %}韓国音楽（国楽）{% elif lang == 'zh' %}韩国音乐（国乐）{% else %}한국음악(국악){% endif %}</a>
+                <a href="/?main_category=공연&category=대중음악" class="btn btn-outline-success btn-category {% if selected_category=='대중음악' %}active{% endif %}">{% if lang == 'en' %}Pop Music{% elif lang == 'ja' %}大衆音楽{% elif lang == 'zh' %}流行音乐{% else %}대중음악{% endif %}</a>
+                <a href="/?main_category=공연&category=무용(서양/한국무용)" class="btn btn-outline-success btn-category {% if selected_category=='무용(서양/한국무용)' %}active{% endif %}">{% if lang == 'en' %}Dance (Western/Korean){% elif lang == 'ja' %}舞踊（西洋/韓国）{% elif lang == 'zh' %}舞蹈（西方/韩国）{% else %}무용(서양/한국무용){% endif %}</a>
+                <a href="/?main_category=공연&category=대중무용" class="btn btn-outline-success btn-category {% if selected_category=='대중무용' %}active{% endif %}">{% if lang == 'en' %}Popular Dance{% elif lang == 'ja' %}大衆舞踊{% elif lang == 'zh' %}大众舞蹈{% else %}대중무용{% endif %}</a>
+                <a href="/?main_category=공연&category=서커스/마술" class="btn btn-outline-success btn-category {% if selected_category=='서커스/마술' %}active{% endif %}">{% if lang == 'en' %}Circus/Magic{% elif lang == 'ja' %}サーカス/マジック{% elif lang == 'zh' %}马戏/魔术{% else %}서커스/마술{% endif %}</a>
+                <a href="/?main_category=공연&category=복합" class="btn btn-outline-success btn-category {% if selected_category=='복합' %}active{% endif %}">{% if lang == 'en' %}Mixed{% elif lang == 'ja' %}複合{% elif lang == 'zh' %}综合{% else %}복합{% endif %}</a>
+            </div>
             {% elif selected_main_category == '대회' %}
-                {% set competition_categories = [
-                    '전체', '댄스대회', '노래대회', '연기대회', '음악대회', '무용대회', '종합예술대회'
-                ] %}
-                <div class="d-flex flex-wrap justify-content-center gap-2">
-                    {% for cat in competition_categories %}
-                        <a href="/?main_category=대회&category={{ cat }}" class="btn btn-outline-warning btn-category {% if selected_category==cat or (not selected_category and cat=='전체') %}active{% endif %}">
-                            {{ cat }}
-                        </a>
-                    {% endfor %}
-                </div>
+            <div class="d-flex flex-wrap justify-content-center gap-2">
+                <a href="/?main_category=대회&category=전체" class="btn btn-outline-warning btn-category {% if selected_category=='전체' or not selected_category %}active{% endif %}">{% if lang == 'en' %}All{% elif lang == 'ja' %}全体{% elif lang == 'zh' %}全部{% else %}전체{% endif %}</a>
+                <a href="/?main_category=대회&category=댄스대회" class="btn btn-outline-warning btn-category {% if selected_category=='댄스대회' %}active{% endif %}">{% if lang == 'en' %}Dance Competition{% elif lang == 'ja' %}ダンス大会{% elif lang == 'zh' %}舞蹈大赛{% else %}댄스대회{% endif %}</a>
+                <a href="/?main_category=대회&category=노래대회" class="btn btn-outline-warning btn-category {% if selected_category=='노래대회' %}active{% endif %}">{% if lang == 'en' %}Singing Competition{% elif lang == 'ja' %}歌大会{% elif lang == 'zh' %}歌唱大赛{% else %}노래대회{% endif %}</a>
+                <a href="/?main_category=대회&category=연기대회" class="btn btn-outline-warning btn-category {% if selected_category=='연기대회' %}active{% endif %}">{% if lang == 'en' %}Acting Competition{% elif lang == 'ja' %}演技大会{% elif lang == 'zh' %}表演大赛{% else %}연기대회{% endif %}</a>
+                <a href="/?main_category=대회&category=음악대회" class="btn btn-outline-warning btn-category {% if selected_category=='음악대회' %}active{% endif %}">{% if lang == 'en' %}Music Competition{% elif lang == 'ja' %}音楽大会{% elif lang == 'zh' %}音乐大赛{% else %}음악대회{% endif %}</a>
+                <a href="/?main_category=대회&category=무용대회" class="btn btn-outline-warning btn-category {% if selected_category=='무용대회' %}active{% endif %}">{% if lang == 'en' %}Dance Competition{% elif lang == 'ja' %}舞踊大会{% elif lang == 'zh' %}舞蹈大赛{% else %}무용대회{% endif %}</a>
+                <a href="/?main_category=대회&category=종합예술대회" class="btn btn-outline-warning btn-category {% if selected_category=='종합예술대회' %}active{% endif %}">{% if lang == 'en' %}Comprehensive Arts Competition{% elif lang == 'ja' %}総合芸術大会{% elif lang == 'zh' %}综合艺术大赛{% else %}종합예술대회{% endif %}</a>
+            </div>
             {% endif %}
         </div>
     </div>
