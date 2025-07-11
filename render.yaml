@@ -2,13 +2,10 @@ services:
   - type: web
     name: kopis-performance
     env: python
-    pythonVersion: "3.11.7"
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python start.py
-    buildFilter:
-      paths:
-        - requirements.txt
-        - main.py
-        - start.py
-        - templates/**
-        - static/** 
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.16 

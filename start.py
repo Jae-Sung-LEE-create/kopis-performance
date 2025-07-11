@@ -22,12 +22,13 @@ if __name__ == "__main__":
         # 데이터베이스 초기화 실패해도 서버는 시작
         pass
     
-    # 서버 시작
-    port = int(os.getenv("PORT", 8000))
+    # 서버 시작 - 렌더 환경변수 PORT 사용
+    port = int(os.getenv("PORT", 10000))
     logger.info(f"Starting server on port {port}")
     
     try:
-        app.run(host="0.0.0.0", port=port, debug=False)
+        # 렌더 배포를 위한 설정
+        app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
     except Exception as e:
         logger.error(f"Server failed to start: {e}")
         sys.exit(1) 

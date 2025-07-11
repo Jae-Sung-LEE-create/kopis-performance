@@ -392,6 +392,11 @@ def home():
         logger.error(f"Unexpected error in home route: {e}")
         return create_error_page("서버 오류", "잠시 후 다시 시도해주세요.")
 
+@app.route('/home')
+def home_redirect():
+    """홈페이지 리다이렉트 - 렌더 배포용"""
+    return redirect(url_for('home'))
+
 def create_fallback_html(performances):
     """템플릿 렌더링 실패 시 기본 HTML 생성"""
     html_content = f"""
@@ -514,58 +519,24 @@ def test_page():
 
 @app.route('/health')
 def health_check():
-    """서버 상태 확인"""
+    """헬스 체크 엔드포인트 - 렌더 배포용"""
     try:
-        # 데이터베이스 연결 테스트
-        db_status = "healthy"
-        db_error = None
-        try:
-            db.session.execute(text('SELECT 1'))
-            db.session.commit()
-            logger.info("Health check: Database connection successful")
-        except Exception as e:
-            db_status = "unhealthy"
-            db_error = str(e)
-            logger.error(f"Health check: Database connection failed - {e}")
-        
-        # 공연 데이터 확인
-        performance_count = 0
-        try:
-            performance_count = Performance.query.count()
-            logger.info(f"Health check: Found {performance_count} performances")
-        except Exception as e:
-            logger.error(f"Health check: Performance query failed - {e}")
-        
-        # 환경 변수 확인
-        env_vars = {
-            'DATABASE_URL': 'set' if os.getenv('DATABASE_URL') else 'not set',
-            'CLOUDINARY_CLOUD_NAME': 'set' if os.getenv('CLOUDINARY_CLOUD_NAME') else 'not set',
-            'CLOUDINARY_API_KEY': 'set' if os.getenv('CLOUDINARY_API_KEY') else 'not set',
-            'CLOUDINARY_API_SECRET': 'set' if os.getenv('CLOUDINARY_API_SECRET') else 'not set'
-        }
-        
-        health_data = {
-            'status': 'healthy' if db_status == 'healthy' else 'unhealthy',
-            'timestamp': datetime.now().isoformat(),
-            'database': {
-                'status': db_status,
-                'error': db_error,
-                'performance_count': performance_count
-            },
-            'environment': env_vars,
-            'version': '1.0.0'
-        }
-        
-        status_code = 200 if db_status == 'healthy' else 503
-        return health_data, status_code
-        
+        # 간단한 데이터베이스 연결 테스트
+        db.session.execute(text('SELECT 1'))
+        db.session.commit()
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'timestamp': datetime.now().isoformat()
+        }), 200
     except Exception as e:
-        logger.error(f"Health check error: {e}")
-        return {
+        logger.error(f"Health check failed: {e}")
+        return jsonify({
             'status': 'unhealthy',
+            'database': 'disconnected',
             'error': str(e),
             'timestamp': datetime.now().isoformat()
-        }, 500
+        }), 500
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
