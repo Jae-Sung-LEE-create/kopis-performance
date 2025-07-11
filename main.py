@@ -11,10 +11,16 @@ import uuid
 import traceback
 import cloudinary
 import cloudinary.uploader
+import requests
 
 from flask_babel import Babel
 
 load_dotenv()
+
+# 카카오 OAuth 설정
+KAKAO_CLIENT_ID = os.getenv('KAKAO_CLIENT_ID', 'your_kakao_rest_api_key')
+KAKAO_CLIENT_SECRET = os.getenv('KAKAO_CLIENT_SECRET', 'your_kakao_client_secret')
+KAKAO_REDIRECT_URI = os.getenv('KAKAO_REDIRECT_URI', 'http://localhost:10000/auth/kakao/callback')
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -850,6 +856,119 @@ def toggle_like(performance_id):
     except Exception as e:
         logger.error(f"Like toggle error: {e}")
         return jsonify({'success': False, 'error': '오류가 발생했습니다.'})
+
+# 카카오 OAuth 라우트들
+@app.route('/login/kakao')
+def kakao_login():
+    """카카오 로그인 시작"""
+    try:
+        # 카카오 OAuth 인증 URL 생성
+        auth_url = f"https://kauth.kakao.com/oauth/authorize?client_id={KAKAO_CLIENT_ID}&redirect_uri={KAKAO_REDIRECT_URI}&response_type=code"
+        logger.info(f"Redirecting to Kakao OAuth: {auth_url}")
+        return redirect(auth_url)
+    except Exception as e:
+        logger.error(f"Kakao login error: {e}")
+        flash('카카오 로그인 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('login'))
+
+@app.route('/register/kakao')
+def kakao_register():
+    """카카오 회원가입 시작 (로그인과 동일한 플로우)"""
+    return redirect(url_for('kakao_login'))
+
+@app.route('/auth/kakao/callback')
+def kakao_callback():
+    """카카오 OAuth 콜백 처리"""
+    try:
+        # 인증 코드 받기
+        code = request.args.get('code')
+        if not code:
+            flash('카카오 인증에 실패했습니다.', 'error')
+            return redirect(url_for('login'))
+        
+        logger.info(f"Received Kakao authorization code: {code}")
+        
+        # 액세스 토큰 요청
+        token_url = "https://kauth.kakao.com/oauth/token"
+        token_data = {
+            'grant_type': 'authorization_code',
+            'client_id': KAKAO_CLIENT_ID,
+            'client_secret': KAKAO_CLIENT_SECRET,
+            'code': code,
+            'redirect_uri': KAKAO_REDIRECT_URI
+        }
+        
+        token_response = requests.post(token_url, data=token_data)
+        token_response.raise_for_status()
+        token_info = token_response.json()
+        
+        access_token = token_info.get('access_token')
+        if not access_token:
+            flash('카카오 액세스 토큰을 받지 못했습니다.', 'error')
+            return redirect(url_for('login'))
+        
+        logger.info("Successfully obtained Kakao access token")
+        
+        # 사용자 정보 요청
+        user_info_url = "https://kapi.kakao.com/v2/user/me"
+        headers = {'Authorization': f'Bearer {access_token}'}
+        user_response = requests.get(user_info_url, headers=headers)
+        user_response.raise_for_status()
+        user_info = user_response.json()
+        
+        logger.info(f"Kakao user info: {user_info}")
+        
+        # 카카오 사용자 ID
+        kakao_id = str(user_info['id'])
+        
+        # 사용자 정보 추출
+        kakao_account = user_info.get('kakao_account', {})
+        profile = kakao_account.get('profile', {})
+        
+        # 이름 (닉네임 우선, 없으면 카카오 ID 사용)
+        name = profile.get('nickname') or f"카카오사용자{kakao_id[-4:]}"
+        
+        # 이메일 (선택적 동의)
+        email = kakao_account.get('email') or f"kakao_{kakao_id}@kakao.com"
+        
+        # 전화번호 (선택적 동의)
+        phone = kakao_account.get('phone_number') or None
+        
+        # 기존 사용자 확인 (카카오 ID로)
+        existing_user = User.query.filter_by(username=f"kakao_{kakao_id}").first()
+        
+        if existing_user:
+            # 기존 사용자 로그인
+            login_user(existing_user)
+            flash('카카오로 로그인되었습니다!', 'success')
+            logger.info(f"Existing Kakao user logged in: {existing_user.username}")
+        else:
+            # 새 사용자 생성
+            new_user = User(
+                name=name,
+                username=f"kakao_{kakao_id}",
+                email=email,
+                phone=phone,
+                password_hash=generate_password_hash(f"kakao_{kakao_id}_{uuid.uuid4()}")  # 랜덤 비밀번호
+            )
+            
+            db.session.add(new_user)
+            db.session.commit()
+            
+            login_user(new_user)
+            flash('카카오로 회원가입 및 로그인되었습니다!', 'success')
+            logger.info(f"New Kakao user created and logged in: {new_user.username}")
+        
+        return redirect(url_for('home'))
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Kakao API request error: {e}")
+        flash('카카오 서버와의 통신 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('login'))
+    except Exception as e:
+        logger.error(f"Kakao callback error: {e}")
+        flash('카카오 로그인 처리 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('login'))
 
 if __name__ == '__main__':
     app.run(debug=True) 

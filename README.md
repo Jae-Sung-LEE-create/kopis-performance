@@ -36,9 +36,29 @@ DATABASE_URL=sqlite:///app.db
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# 카카오 OAuth 설정
+KAKAO_CLIENT_ID=your_kakao_rest_api_key_here
+KAKAO_CLIENT_SECRET=your_kakao_client_secret_here
+KAKAO_REDIRECT_URI=http://localhost:10000/auth/kakao/callback
 ```
 
-### 5. 서버 실행
+### 5. 카카오 OAuth 설정
+1. [Kakao Developers](https://developers.kakao.com)에서 앱 생성
+2. **앱 > 일반**에서 REST API 키와 Client Secret 확인
+3. **앱 > 플랫폼**에서 플랫폼 등록 (Web 플랫폼)
+4. **앱 > 플랫폼 > Web**에서 사이트 도메인 등록:
+   - 개발: `http://localhost:10000`
+   - 프로덕션: `https://kopis-performance.onrender.com`
+5. **앱 > 카카오 로그인 > 동의항목**에서 필요한 항목 설정:
+   - 닉네임 (필수)
+   - 이메일 (선택)
+   - 전화번호 (선택)
+6. **앱 > 카카오 로그인 > Redirect URI** 설정:
+   - `http://localhost:10000/auth/kakao/callback` (개발)
+   - `https://kopis-performance.onrender.com/auth/kakao/callback` (프로덕션)
+
+### 6. 서버 실행
 ```bash
 python start.py
 ```
@@ -86,6 +106,20 @@ python backup_db.py
 - 가격, 연락처
 - 이미지 업로드 (Cloudinary)
 - 홍보 동영상 링크
+
+## 🔐 소셜 로그인
+
+### 카카오 로그인
+- 카카오 계정으로 간편 로그인/회원가입
+- 다국어 지원 (한국어/영어/일본어/중국어)
+- 자동 사용자 정보 동기화 (닉네임, 이메일, 전화번호)
+- 기존 사용자 자동 로그인 처리
+
+**지원 언어:**
+- 한국어: "카카오로 로그인" / "카카오로 회원가입"
+- 영어: "Login with Kakao" / "Sign up with Kakao"
+- 일본어: "Kakaoでログイン" / "Kakaoで新規登録"
+- 중국어: "用Kakao登录" / "用Kakao注册"
 
 ## 🗄️ 데이터베이스
 
