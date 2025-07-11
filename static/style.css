@@ -1,0 +1,138 @@
+/* ===== 전체 배경 및 폰트 ===== */
+body {
+    background: linear-gradient(135deg, #f8fbff 0%, #e3f0ff 100%);
+    font-family: 'Noto Sans KR', 'Segoe UI', Arial, sans-serif;
+    color: #222;
+}
+
+.container {
+    max-width: 1200px;
+}
+
+/* ===== 메인 카테고리 버튼 ===== */
+.btn-main-category {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    background: linear-gradient(90deg, #4f8cff 0%, #6edbff 100%);
+    color: #fff;
+    border: none;
+    font-weight: bold;
+    font-size: 1.2rem;
+    border-radius: 12px;
+    padding: 0.7rem 2.2rem;
+    margin: 0 0.3rem 0.7rem 0.3rem;
+    transition: transform 0.15s, background 0.2s;
+}
+.btn-main-category.active, .btn-main-category:hover {
+    transform: scale(1.08);
+    background: linear-gradient(90deg, #2b6cb0 0%, #38b2ac 100%);
+    color: #fff;
+}
+
+/* ===== 세부 카테고리 버튼 ===== */
+.btn-category {
+    border-radius: 24px;
+    border: 2px solid #ffe066;
+    background: #fffbe6;
+    color: #e6a700;
+    font-weight: 500;
+    font-size: 1.05rem;
+    margin: 0 0.2rem 0.7rem 0.2rem;
+    padding: 0.5rem 1.5rem;
+    transition: background 0.2s, color 0.2s, border 0.2s, transform 0.15s;
+}
+.btn-category.active, .btn-category:hover {
+    background: #ffe066;
+    color: #fff;
+    border: 2px solid #ffd700;
+    transform: scale(1.07);
+}
+
+/* ===== 타이틀/섹션 ===== */
+.main-title, h2.text-center {
+    font-size: 2.3rem;
+    font-weight: bold;
+    color: #4f8cff;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 8px rgba(79,140,255,0.08);
+}
+
+h4.text-muted, h4.text-muted span {
+    color: #7a869a !important;
+    font-weight: 500;
+}
+
+/* ===== 카드 ===== */
+.performance-card {
+    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    border: none;
+    transition: transform 0.15s, box-shadow 0.15s;
+    background: #fff;
+}
+.performance-card:hover {
+    transform: translateY(-6px) scale(1.03);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+}
+
+.card-title {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: #2b6cb0;
+}
+
+.badge.bg-primary {
+    background: linear-gradient(90deg, #4f8cff 0%, #6edbff 100%);
+    color: #fff;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 8px;
+}
+.badge.bg-secondary {
+    background: #e3f0ff;
+    color: #4f8cff;
+    font-weight: 500;
+    font-size: 0.98rem;
+    border-radius: 8px;
+}
+
+/* ===== 안내 문구/빈 상태 ===== */
+.text-center.py-5 i.fas.fa-music {
+    color: #b3c6e0 !important;
+    font-size: 4.5rem !important;
+}
+.text-center.py-5 h4.text-muted {
+    font-size: 1.4rem;
+    color: #7a869a !important;
+    margin-bottom: 0.7rem;
+}
+.text-center.py-5 p.text-muted {
+    font-size: 1.1rem;
+    color: #a0aec0 !important;
+}
+
+/* ===== 버튼 ===== */
+.btn-primary, .btn-success, .btn-warning {
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1.08rem;
+    box-shadow: 0 2px 8px rgba(79,140,255,0.08);
+    transition: background 0.2s, color 0.2s, transform 0.13s;
+}
+.btn-primary:hover, .btn-success:hover, .btn-warning:hover {
+    transform: scale(1.04);
+    filter: brightness(1.08);
+}
+
+/* ===== 반응형 ===== */
+@media (max-width: 768px) {
+    .btn-main-category, .btn-category {
+        font-size: 1rem;
+        padding: 0.5rem 1.2rem;
+    }
+    .main-title, h2.text-center {
+        font-size: 1.4rem;
+    }
+    .performance-card {
+        border-radius: 10px;
+    }
+} 
