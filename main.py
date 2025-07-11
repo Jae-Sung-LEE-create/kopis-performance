@@ -17,6 +17,10 @@ from flask_babel import Babel
 
 load_dotenv()
 
+# 로깅 설정 (먼저 설정)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # 카카오 OAuth 설정
 KAKAO_CLIENT_ID = os.getenv('KAKAO_CLIENT_ID')
 KAKAO_CLIENT_SECRET = os.getenv('KAKAO_CLIENT_SECRET')
@@ -30,10 +34,6 @@ if not KAKAO_CLIENT_ID or KAKAO_CLIENT_ID == 'your_kakao_rest_api_key':
 if not KAKAO_CLIENT_SECRET or KAKAO_CLIENT_SECRET == 'your_kakao_client_secret':
     logger.warning("KAKAO_CLIENT_SECRET not set or using placeholder value")
     KAKAO_CLIENT_SECRET = None
-
-# 로깅 설정
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 app = Flask(__name__, 
            template_folder='templates',
