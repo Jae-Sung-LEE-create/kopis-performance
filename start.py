@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
     try:
-        # 데이터베이스 테이블 생성 시도
+        # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
         logger.info("Starting application initialization...")
         create_tables()
         logger.info("Database initialization completed successfully!")
@@ -27,8 +27,14 @@ if __name__ == "__main__":
     logger.info(f"Starting server on port {port}")
     
     try:
-        # 렌더 배포를 위한 설정
-        app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
+        # 렌더 배포를 위한 설정 (타임아웃 최소화)
+        app.run(
+            host="0.0.0.0", 
+            port=port, 
+            debug=False, 
+            threaded=True,
+            use_reloader=False  # 렌더에서는 리로더 비활성화
+        )
     except Exception as e:
         logger.error(f"Server failed to start: {e}")
         sys.exit(1) 
