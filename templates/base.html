@@ -229,18 +229,20 @@
     </script>
 </head>
 <body>
+    {% set lang = g.lang if g.lang else 'ko' %}
     <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold" href="/">
-                <i class="fas fa-music me-2"></i>KOPIS 공연 홍보 플랫폼
+                <i class="fas fa-music me-2"></i>
+                {% if lang == 'en' %}KOPIS Performing Arts Platform{% elif lang == 'ja' %}KOPIS公演プラットフォーム{% elif lang == 'zh' %}KOPIS演出宣传平台{% else %}KOPIS 공연 홍보 플랫폼{% endif %}
             </a>
             <div class="d-flex align-items-center ms-auto">
                 <form method="post" action="/set_language" class="me-2">
                     <select name="lang" id="language-select" class="form-select form-select-sm" onchange="this.form.submit()" style="width:120px;">
-                        <option value="ko" {% if g.lang == 'ko' %}selected{% endif %}>한국어</option>
-                        <option value="en" {% if g.lang == 'en' %}selected{% endif %}>English</option>
-                        <option value="ja" {% if g.lang == 'ja' %}selected{% endif %}>日本語</option>
-                        <option value="zh" {% if g.lang == 'zh' %}selected{% endif %}>中文</option>
+                        <option value="ko" {% if lang == 'ko' %}selected{% endif %}>한국어</option>
+                        <option value="en" {% if lang == 'en' %}selected{% endif %}>English</option>
+                        <option value="ja" {% if lang == 'ja' %}selected{% endif %}>日本語</option>
+                        <option value="zh" {% if lang == 'zh' %}selected{% endif %}>中文</option>
                     </select>
                 </form>
             </div>
@@ -248,30 +250,47 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                {% if current_user.is_authenticated %}
-                    <a href="/my-performances" class="btn btn-outline-light ms-2">
-                        <i class="fas fa-list"></i> 내 공연
-                    </a>
-                    {% if current_user.is_admin %}
-                        <a href="/admin" class="btn btn-warning ms-2">
-                            <i class="fas fa-cog"></i> 관리자 패널
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">
+                            <i class="fas fa-home me-1"></i>
+                            {% if lang == 'en' %}Home{% elif lang == 'ja' %}ホーム{% elif lang == 'zh' %}首页{% else %}홈{% endif %}
                         </a>
+                    </li>
+                    {% if current_user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/submit">
+                            <i class="fas fa-plus me-1"></i>
+                            {% if lang == 'en' %}Submit{% elif lang == 'ja' %}申請{% elif lang == 'zh' %}申请{% else %}신청하기{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/my-performances">
+                            <i class="fas fa-list me-1"></i>
+                            {% if lang == 'en' %}My List{% elif lang == 'ja' %}マイリスト{% elif lang == 'zh' %}我的列表{% else %}내 공연/대회{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            {% if lang == 'en' %}Logout{% elif lang == 'ja' %}ログアウト{% elif lang == 'zh' %}登出{% else %}로그아웃{% endif %}
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">
+                            <i class="fas fa-sign-in-alt me-1"></i>
+                            {% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register">
+                            <i class="fas fa-user-plus me-1"></i>
+                            {% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
+                        </a>
+                    </li>
                     {% endif %}
-                    <a href="/logout" class="btn btn-outline-light ms-2">
-                        <i class="fas fa-sign-out-alt"></i> 로그아웃
-                    </a>
-                {% else %}
-                    <a href="/login" class="btn btn-outline-light ms-2">
-                        <i class="fas fa-sign-in-alt"></i> 로그인
-                    </a>
-                    <a href="/register" class="btn btn-light ms-2">
-                        <i class="fas fa-user-plus"></i> 회원가입
-                    </a>
-                {% endif %}
-                <!-- 다크모드 토글 버튼 -->
-                <button id="darkModeToggle" class="btn btn-outline-light ms-2" title="다크 모드 토글">
-                    <i class="fas fa-moon"></i>
-                </button>
+                </ul>
             </div>
         </div>
     </nav>
