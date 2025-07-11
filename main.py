@@ -60,14 +60,14 @@ if database_url and database_url.startswith('postgres://'):
     # PostgreSQL 설정 - 더 안정적인 연결 설정
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'pool_timeout': 10,
-        'max_overflow': 5,
-        'pool_size': 5,
+        'pool_recycle': 600,  # 300에서 600으로 증가
+        'pool_timeout': 20,   # 10에서 20으로 증가
+        'max_overflow': 10,   # 5에서 10으로 증가
+        'pool_size': 10,      # 5에서 10으로 증가
         'connect_args': {
-            'connect_timeout': 10,
+            'connect_timeout': 20,  # 10에서 20으로 증가
             'application_name': 'kopis-performance',
-            'options': '-c statement_timeout=30000'  # 30초 타임아웃
+            'options': '-c statement_timeout=60000'  # 30초에서 60초로 증가
         }
     }
     logger.info(f"Using PostgreSQL: {database_url}")
@@ -197,20 +197,15 @@ def detect_region_from_address(address):
 
 def create_tables():
     """데이터베이스 테이블 생성"""
-    max_retries = 3
-    retry_delay = 2
+    max_retries = 2  # 3에서 2로 줄임
+    retry_delay = 1  # 2에서 1로 줄임
     
     for attempt in range(max_retries):
         try:
             with app.app_context():
                 logger.info(f"Creating database tables... (attempt {attempt + 1}/{max_retries})")
                 
-                # 데이터베이스 연결 테스트
-                db.session.execute(text('SELECT 1'))
-                db.session.commit()
-                logger.info("Database connection test successful")
-                
-                # 테이블 생성
+                # 테이블 생성 (간소화된 연결 테스트)
                 db.create_all()
                 logger.info("Database tables created successfully!")
                 
@@ -246,8 +241,6 @@ def create_tables():
                 retry_delay *= 2  # 지수 백오프
             else:
                 logger.error(f"Failed to create tables after {max_retries} attempts")
-                logger.error(f"Final error: {e}")
-                logger.error(f"Traceback: {traceback.format_exc()}")
                 raise
 
 # Cloudinary 설정
@@ -274,12 +267,8 @@ def home():
         
         logger.info(f"Filters - Main Category: {main_category}, Category: {category}, Search: {search}, Date: {date_filter}, Location: {location}, Price: {price_filter}")
         
-        # 데이터베이스 연결 확인
+        # 데이터베이스 연결 확인 (간소화)
         try:
-            db.session.execute(text('SELECT 1'))
-            db.session.commit()
-            logger.info("Database connection successful")
-            
             # 기본 쿼리 (승인된 공연만)
             query = Performance.query.filter_by(is_approved=True)
             
@@ -384,37 +373,23 @@ def home():
             approved_performances = query.order_by(Performance.created_at.desc()).all()
             logger.info(f"Found {len(approved_performances)} filtered performances")
             
-            # 이미지 URL 디버깅
-            for performance in approved_performances:
-                if performance.image_url:
-                    logger.info(f"Performance '{performance.title}' has image: {performance.image_url}")
-                else:
-                    logger.info(f"Performance '{performance.title}' has no image")
-            
-            # 템플릿 렌더링 시도
-            try:
-                return render_template("index.html", 
-                                     performances=approved_performances, 
-                                     selected_main_category=main_category,
-                                     selected_category=category,
-                                     search=search,
-                                     date_filter=date_filter,
-                                     location=location,
-                                     price_filter=price_filter)
-            except Exception as template_error:
-                logger.error(f"Template error: {template_error}")
-                # 템플릿 렌더링 실패 시 기본 HTML 반환
-                return create_fallback_html(approved_performances)
+            # 템플릿 렌더링
+            return render_template("index.html", 
+                                 performances=approved_performances, 
+                                 selected_main_category=main_category,
+                                 selected_category=category,
+                                 search=search,
+                                 date_filter=date_filter,
+                                 location=location,
+                                 price_filter=price_filter)
                 
         except Exception as db_error:
             logger.error(f"Database error: {db_error}")
-            logger.error(f"Database traceback: {traceback.format_exc()}")
             # 데이터베이스 오류 시 기본 페이지 반환
             return create_error_page("데이터베이스 연결 오류", "잠시 후 다시 시도해주세요.")
             
     except Exception as e:
         logger.error(f"Unexpected error in home route: {e}")
-        logger.error(f"Traceback: {traceback.format_exc()}")
         return create_error_page("서버 오류", "잠시 후 다시 시도해주세요.")
 
 def create_fallback_html(performances):
