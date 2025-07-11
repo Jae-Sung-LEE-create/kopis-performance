@@ -3,11 +3,12 @@
 {% block title %}관리자 패널 - KOPIS 공연 홍보 플랫폼{% endblock %}
 
 {% block content %}
+{% set lang = g.lang if g.lang else 'ko' %}
 <div class="container my-5">
     <div class="row">
         <div class="col-12">
             <h2 class="mb-4">
-                <i class="fas fa-cog me-2"></i>관리자 패널
+                <i class="fas fa-cog me-2"></i>{% if lang == 'en' %}Admin Panel{% elif lang == 'ja' %}管理者パネル{% elif lang == 'zh' %}管理员面板{% else %}관리자 패널{% endif %}
             </h2>
         </div>
     </div>
@@ -18,7 +19,7 @@
             <div class="card">
                 <div class="card-header bg-warning text-dark">
                     <h4 class="mb-0">
-                        <i class="fas fa-clock me-2"></i>승인 대기 중 ({{ pending_performances|length }}건)
+                        <i class="fas fa-clock me-2"></i>{% if lang == 'en' %}Pending Approvals ({{ pending_performances|length }}){% elif lang == 'ja' %}承認待ち ({{ pending_performances|length }}){% elif lang == 'zh' %}待审批 ({{ pending_performances|length }}){% else %}승인 대기 중 ({{ pending_performances|length }}건){% endif %}
                     </h4>
                 </div>
                 <div class="card-body">
@@ -27,15 +28,15 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>이미지</th>
-                                    <th>공연명</th>
-                                    <th>팀명</th>
-                                    <th>신청자</th>
-                                    <th>장소</th>
-                                    <th>날짜</th>
-                                    <th>연락처</th>
-                                    <th>신청일</th>
-                                    <th>작업</th>
+                                    <th>{% if lang == 'en' %}Image{% elif lang == 'ja' %}画像{% elif lang == 'zh' %}图片{% else %}이미지{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Title{% elif lang == 'ja' %}公演名{% elif lang == 'zh' %}演出名{% else %}공연명{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Team{% elif lang == 'ja' %}チーム名{% elif lang == 'zh' %}团队{% else %}팀명{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Applicant{% elif lang == 'ja' %}申請者{% elif lang == 'zh' %}申请人{% else %}신청자{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Venue{% elif lang == 'ja' %}会場{% elif lang == 'zh' %}场馆{% else %}장소{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Date{% elif lang == 'ja' %}日付{% elif lang == 'zh' %}日期{% else %}날짜{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Contact{% elif lang == 'ja' %}連絡先{% elif lang == 'zh' %}联系方式{% else %}연락처{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Applied At{% elif lang == 'ja' %}申請日{% elif lang == 'zh' %}申请日期{% else %}신청일{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Actions{% elif lang == 'ja' %}操作{% elif lang == 'zh' %}操作{% else %}작업{% endif %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -75,17 +76,17 @@
                                         <div class="btn-group" role="group">
                                             <button type="button" class="btn btn-info btn-sm" 
                                                     data-bs-toggle="modal" data-bs-target="#detailModal{{ performance.id }}">
-                                                <i class="fas fa-eye me-1"></i>상세
+                                                <i class="fas fa-eye me-1"></i>{% if lang == 'en' %}Detail{% elif lang == 'ja' %}詳細{% elif lang == 'zh' %}详情{% else %}상세{% endif %}
                                             </button>
                                             <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
                                                 <button type="submit" class="btn btn-success btn-sm">
-                                                    <i class="fas fa-check me-1"></i>승인
+                                                    <i class="fas fa-check me-1"></i>{% if lang == 'en' %}Approve{% elif lang == 'ja' %}承認{% elif lang == 'zh' %}批准{% else %}승인{% endif %}
                                                 </button>
                                             </form>
                                             <form method="POST" action="/admin/reject/{{ performance.id }}" style="display: inline;">
                                                 <button type="submit" class="btn btn-danger btn-sm ms-1" 
-                                                        onclick="return confirm('정말 거절하시겠습니까?')">
-                                                    <i class="fas fa-times me-1"></i>거절
+                                                        onclick="return confirm('{% if lang == 'en' %}Are you sure you want to reject?{% elif lang == 'ja' %}本当に拒否しますか？{% elif lang == 'zh' %}确定要拒绝吗？{% else %}정말 거절하시겠습니까?{% endif %}')">
+                                                    <i class="fas fa-times me-1"></i>{% if lang == 'en' %}Reject{% elif lang == 'ja' %}拒否{% elif lang == 'zh' %}拒绝{% else %}거절{% endif %}
                                                 </button>
                                             </form>
                                         </div>
@@ -98,8 +99,12 @@
                     {% else %}
                     <div class="text-center py-4">
                         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                        <h5 class="text-success">승인 대기 중인 공연이 없습니다</h5>
-                        <p class="text-muted">모든 신청이 처리되었습니다.</p>
+                        <h5 class="text-success">
+                            {% if lang == 'en' %}No pending performances{% elif lang == 'ja' %}承認待ちの公演はありません{% elif lang == 'zh' %}暂无待审批演出{% else %}승인 대기 중인 공연이 없습니다{% endif %}
+                        </h5>
+                        <p class="text-muted">
+                            {% if lang == 'en' %}All applications have been processed.{% elif lang == 'ja' %}すべての申請が処理されました。{% elif lang == 'zh' %}所有申请已处理。{% else %}모든 신청이 처리되었습니다.{% endif %}
+                        </p>
                     </div>
                     {% endif %}
                 </div>
@@ -113,7 +118,7 @@
             <div class="card">
                 <div class="card-header bg-success text-white">
                     <h4 class="mb-0">
-                        <i class="fas fa-check-circle me-2"></i>승인된 공연 ({{ approved_performances|length }}건)
+                        <i class="fas fa-check-circle me-2"></i>{% if lang == 'en' %}Approved Performances ({{ approved_performances|length }}){% elif lang == 'ja' %}承認済み ({{ approved_performances|length }}){% elif lang == 'zh' %}已批准 ({{ approved_performances|length }}){% else %}승인된 공연 ({{ approved_performances|length }}건){% endif %}
                     </h4>
                 </div>
                 <div class="card-body">
@@ -122,15 +127,15 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>이미지</th>
-                                    <th>공연명</th>
-                                    <th>팀명</th>
-                                    <th>장소</th>
-                                    <th>날짜</th>
-                                    <th>가격</th>
-                                    <th>승인일</th>
-                                    <th>보기</th>
-                                    <th>삭제</th>
+                                    <th>{% if lang == 'en' %}Image{% elif lang == 'ja' %}画像{% elif lang == 'zh' %}图片{% else %}이미지{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Title{% elif lang == 'ja' %}公演名{% elif lang == 'zh' %}演出名{% else %}공연명{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Team{% elif lang == 'ja' %}チーム名{% elif lang == 'zh' %}团队{% else %}팀명{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Venue{% elif lang == 'ja' %}会場{% elif lang == 'zh' %}场馆{% else %}장소{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Date{% elif lang == 'ja' %}日付{% elif lang == 'zh' %}日期{% else %}날짜{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Price{% elif lang == 'ja' %}価格{% elif lang == 'zh' %}票价{% else %}가격{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Approved At{% elif lang == 'ja' %}承認日{% elif lang == 'zh' %}批准日期{% else %}승인일{% endif %}</th>
+                                    <th>{% if lang == 'en' %}View{% elif lang == 'ja' %}表示{% elif lang == 'zh' %}查看{% else %}보기{% endif %}</th>
+                                    <th>{% if lang == 'en' %}Delete{% elif lang == 'ja' %}削除{% elif lang == 'zh' %}删除{% else %}삭제{% endif %}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -159,13 +164,13 @@
                                     <td>{{ performance.created_at.strftime('%Y-%m-%d') }}</td>
                                     <td>
                                         <a href="/performance/{{ performance.id }}" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-eye me-1"></i>보기
+                                            <i class="fas fa-eye me-1"></i>{% if lang == 'en' %}View{% elif lang == 'ja' %}表示{% elif lang == 'zh' %}查看{% else %}보기{% endif %}
                                         </a>
                                     </td>
                                     <td>
                                         <form method="POST" action="/admin/delete/{{ performance.id }}" style="display:inline;">
-                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('정말 삭제하시겠습니까?')">
-                                                <i class="fas fa-trash me-1"></i>삭제
+                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('{% if lang == 'en' %}Are you sure you want to delete?{% elif lang == 'ja' %}本当に削除しますか？{% elif lang == 'zh' %}确定要删除吗？{% else %}정말 삭제하시겠습니까?{% endif %}')">
+                                                <i class="fas fa-trash me-1"></i>{% if lang == 'en' %}Delete{% elif lang == 'ja' %}削除{% elif lang == 'zh' %}删除{% else %}삭제{% endif %}
                                             </button>
                                         </form>
                                     </td>
@@ -177,8 +182,12 @@
                     {% else %}
                     <div class="text-center py-4">
                         <i class="fas fa-music fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">아직 승인된 공연이 없습니다</h5>
-                        <p class="text-muted">첫 번째 공연을 승인해보세요!</p>
+                        <h5 class="text-muted">
+                            {% if lang == 'en' %}No approved performances yet{% elif lang == 'ja' %}まだ承認済みの公演がありません{% elif lang == 'zh' %}暂无已批准演出{% else %}아직 승인된 공연이 없습니다{% endif %}
+                        </h5>
+                        <p class="text-muted">
+                            {% if lang == 'en' %}Be the first to approve a performance!{% elif lang == 'ja' %}最初の公演を承認してください！{% elif lang == 'zh' %}快来批准第一个演出吧！{% else %}첫 번째 공연을 승인해보세요!{% endif %}
+                        </p>
                     </div>
                     {% endif %}
                 </div>
@@ -192,7 +201,9 @@
             <div class="card text-center">
                 <div class="card-body">
                     <i class="fas fa-clock fa-2x text-warning mb-2"></i>
-                    <h5 class="card-title">대기 중</h5>
+                    <h5 class="card-title">
+                        {% if lang == 'en' %}Pending{% elif lang == 'ja' %}審査中{% elif lang == 'zh' %}审核中{% else %}대기 중{% endif %}
+                    </h5>
                     <h3 class="text-warning">{{ pending_performances|length }}</h3>
                 </div>
             </div>
@@ -201,7 +212,9 @@
             <div class="card text-center">
                 <div class="card-body">
                     <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
-                    <h5 class="card-title">승인됨</h5>
+                    <h5 class="card-title">
+                        {% if lang == 'en' %}Approved{% elif lang == 'ja' %}承認済み{% elif lang == 'zh' %}已批准{% else %}승인됨{% endif %}
+                    </h5>
                     <h3 class="text-success">{{ approved_performances|length }}</h3>
                 </div>
             </div>
@@ -210,7 +223,9 @@
             <div class="card text-center">
                 <div class="card-body">
                     <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
-                    <h5 class="card-title">총 신청</h5>
+                    <h5 class="card-title">
+                        {% if lang == 'en' %}Total Applications{% elif lang == 'ja' %}総申請数{% elif lang == 'zh' %}总申请数{% else %}총 신청{% endif %}
+                    </h5>
                     <h3 class="text-primary">{{ pending_performances|length + approved_performances|length }}</h3>
                 </div>
             </div>
@@ -275,30 +290,30 @@ document.addEventListener('keydown', function(e) {
                         {% endif %}
                     </div>
                     <div class="col-md-8">
-                        <h6><i class="fas fa-users me-2"></i>팀/크루명</h6>
+                        <h6><i class="fas fa-users me-2"></i>{% if lang == 'en' %}Team/Crew Name{% elif lang == 'ja' %}チーム名/クルー名{% elif lang == 'zh' %}团队/团队名{% else %}팀명/크루명{% endif %}</h6>
                         <p>{{ performance.group_name }}</p>
                         
-                        <h6><i class="fas fa-align-left me-2"></i>공연 소개</h6>
+                        <h6><i class="fas fa-align-left me-2"></i>{% if lang == 'en' %}Performance Introduction{% elif lang == 'ja' %}公演紹介{% elif lang == 'zh' %}演出介绍{% else %}공연 소개{% endif %}</h6>
                         <p>{{ performance.description|nl2br|safe }}</p>
                         
-                        <h6><i class="fas fa-map-marker-alt me-2"></i>공연 장소</h6>
+                        <h6><i class="fas fa-map-marker-alt me-2"></i>{% if lang == 'en' %}Performance Venue{% elif lang == 'ja' %}公演会場{% elif lang == 'zh' %}演出场馆{% else %}공연 장소{% endif %}</h6>
                         <p>{{ performance.location }}</p>
                         
-                        <h6><i class="fas fa-calendar me-2"></i>공연 일시</h6>
+                        <h6><i class="fas fa-calendar me-2"></i>{% if lang == 'en' %}Performance Date and Time{% elif lang == 'ja' %}公演日時{% elif lang == 'zh' %}演出日期和时间{% else %}공연 일시{% endif %}</h6>
                         <p>{{ performance.date }} {{ performance.time }}</p>
                         
-                        <h6><i class="fas fa-ticket-alt me-2"></i>티켓 가격</h6>
+                        <h6><i class="fas fa-ticket-alt me-2"></i>{% if lang == 'en' %}Ticket Price{% elif lang == 'ja' %}チケット価格{% elif lang == 'zh' %}票价{% else %}티켓 가격{% endif %}</h6>
                         <p>{{ performance.price }}</p>
                         
-                        <h6><i class="fas fa-envelope me-2"></i>연락처</h6>
+                        <h6><i class="fas fa-envelope me-2"></i>{% if lang == 'en' %}Contact{% elif lang == 'ja' %}連絡先{% elif lang == 'zh' %}联系方式{% else %}연락처{% endif %}</h6>
                         <p>{{ performance.contact_email }}</p>
                         
                         {% if performance.video_url %}
-                        <h6><i class="fas fa-video me-2"></i>홍보 동영상</h6>
+                        <h6><i class="fas fa-video me-2"></i>{% if lang == 'en' %}Promotional Video{% elif lang == 'ja' %}宣伝動画{% elif lang == 'zh' %}宣传视频{% else %}홍보 동영상{% endif %}</h6>
                         <p><a href="{{ performance.video_url }}" target="_blank">{{ performance.video_url }}</a></p>
                         {% endif %}
                         
-                        <h6><i class="fas fa-user me-2"></i>신청자 정보</h6>
+                        <h6><i class="fas fa-user me-2"></i>{% if lang == 'en' %}Applicant Information{% elif lang == 'ja' %}申請者情報{% elif lang == 'zh' %}申请人信息{% else %}신청자 정보{% endif %}</h6>
                         {% for user in users %}
                             {% if user.id == performance.user_id %}
                                 <p><strong>{{ user.name }}</strong> ({{ user.username }})<br>
@@ -311,15 +326,15 @@ document.addEventListener('keydown', function(e) {
             <div class="modal-footer">
                 <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
                     <button type="submit" class="btn btn-success">
-                        <i class="fas fa-check me-1"></i>승인
+                        <i class="fas fa-check me-1"></i>{% if lang == 'en' %}Approve{% elif lang == 'ja' %}承認{% elif lang == 'zh' %}批准{% else %}승인{% endif %}
                     </button>
                 </form>
                 <form method="POST" action="/admin/reject/{{ performance.id }}" style="display: inline;">
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('정말 거절하시겠습니까?')">
-                        <i class="fas fa-times me-1"></i>거절
+                    <button type="submit" class="btn btn-danger" onclick="return confirm('{% if lang == 'en' %}Are you sure you want to reject?{% elif lang == 'ja' %}本当に拒否しますか？{% elif lang == 'zh' %}确定要拒绝吗？{% else %}정말 거절하시겠습니까?{% endif %}')">
+                        <i class="fas fa-times me-1"></i>{% if lang == 'en' %}Reject{% elif lang == 'ja' %}拒否{% elif lang == 'zh' %}拒绝{% else %}거절{% endif %}
                     </button>
                 </form>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% if lang == 'en' %}Close{% elif lang == 'ja' %}閉じる{% elif lang == 'zh' %}关闭{% else %}닫기{% endif %}</button>
             </div>
         </div>
     </div>

@@ -3,13 +3,14 @@
 {% block title %}회원가입 - KOPIS 공연 홍보 플랫폼{% endblock %}
 
 {% block content %}
+{% set lang = g.lang if g.lang else 'ko' %}
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card shadow">
                 <div class="card-header bg-success text-white text-center">
                     <h4 class="mb-0">
-                        <i class="fas fa-user-plus me-2"></i>회원가입
+                        <i class="fas fa-user-plus me-2"></i>{% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
                     </h4>
                 </div>
                 <div class="card-body p-4">
@@ -27,47 +28,47 @@
                     <form method="POST">
                         <div class="mb-3">
                             <label for="name" class="form-label">
-                                <i class="fas fa-user me-1"></i>이름
+                                <i class="fas fa-user me-1"></i>{% if lang == 'en' %}Name{% elif lang == 'ja' %}名前{% elif lang == 'zh' %}姓名{% else %}이름{% endif %}
                             </label>
                             <input type="text" class="form-control" id="name" name="name" required>
-                            <div class="form-text">실제 이름을 입력해주세요.</div>
+                            <div class="form-text">{% if lang == 'en' %}Please enter your real name.{% elif lang == 'ja' %}実際の名前を入力してください。{% elif lang == 'zh' %}请输入真实姓名。{% else %}실제 이름을 입력해주세요.{% endif %}</div>
                         </div>
                         <div class="mb-3">
                             <label for="username" class="form-label">
-                                <i class="fas fa-at me-1"></i>아이디
+                                <i class="fas fa-at me-1"></i>{% if lang == 'en' %}Username{% elif lang == 'ja' %}ユーザーID{% elif lang == 'zh' %}用户名{% else %}아이디{% endif %}
                             </label>
                             <input type="text" class="form-control" id="username" name="username" required>
-                            <div class="form-text">영문, 숫자, 언더스코어만 사용 가능합니다.</div>
+                            <div class="form-text">{% if lang == 'en' %}Only letters, numbers, and underscores are allowed.{% elif lang == 'ja' %}英字、数字、アンダースコアのみ使用可能です。{% elif lang == 'zh' %}仅允许字母、数字和下划线。{% else %}영문, 숫자, 언더스코어만 사용 가능합니다.{% endif %}</div>
                         </div>
                         <div class="mb-3">
                             <label for="email" class="form-label">
-                                <i class="fas fa-envelope me-1"></i>이메일
+                                <i class="fas fa-envelope me-1"></i>{% if lang == 'en' %}Email{% elif lang == 'ja' %}メール{% elif lang == 'zh' %}邮箱{% else %}이메일{% endif %}
                             </label>
                             <input type="email" class="form-control" id="email" name="email" required>
                         </div>
                         <div class="mb-3">
                             <label for="phone" class="form-label">
-                                <i class="fas fa-phone me-1"></i>휴대폰 번호
+                                <i class="fas fa-phone me-1"></i>{% if lang == 'en' %}Phone Number{% elif lang == 'ja' %}電話番号{% elif lang == 'zh' %}手机号{% else %}휴대폰 번호{% endif %}
                             </label>
                             <input type="tel" class="form-control" id="phone" name="phone" placeholder="010-0000-0000">
-                            <div class="form-text">선택사항입니다. (예: 010-1234-5678)</div>
+                            <div class="form-text">{% if lang == 'en' %}Optional. (e.g., 010-1234-5678){% elif lang == 'ja' %}任意項目です。（例: 010-1234-5678）{% elif lang == 'zh' %}选填。例如：010-1234-5678{% else %}선택사항입니다. (예: 010-1234-5678){% endif %}</div>
                         </div>
                         <div class="mb-3">
                             <label for="password" class="form-label">
-                                <i class="fas fa-lock me-1"></i>비밀번호
+                                <i class="fas fa-lock me-1"></i>{% if lang == 'en' %}Password{% elif lang == 'ja' %}パスワード{% elif lang == 'zh' %}密码{% else %}비밀번호{% endif %}
                             </label>
                             <input type="password" class="form-control" id="password" name="password" required>
-                            <div class="form-text">최소 6자 이상 입력해주세요.</div>
+                            <div class="form-text">{% if lang == 'en' %}Enter at least 6 characters.{% elif lang == 'ja' %}6文字以上入力してください。{% elif lang == 'zh' %}请输入至少6位字符。{% else %}최소 6자 이상 입력해주세요.{% endif %}</div>
                         </div>
                         <div class="mb-3">
                             <label for="confirm_password" class="form-label">
-                                <i class="fas fa-lock me-1"></i>비밀번호 확인
+                                <i class="fas fa-lock me-1"></i>{% if lang == 'en' %}Confirm Password{% elif lang == 'ja' %}パスワード確認{% elif lang == 'zh' %}确认密码{% else %}비밀번호 확인{% endif %}
                             </label>
                             <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-success btn-lg">
-                                <i class="fas fa-user-plus me-2"></i>회원가입
+                                <i class="fas fa-user-plus me-2"></i>{% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
                             </button>
                         </div>
                     </form>
@@ -75,9 +76,9 @@
                     <hr class="my-4">
                     
                     <div class="text-center">
-                        <p class="mb-0">이미 계정이 있으신가요?</p>
+                        <p class="mb-0">{% if lang == 'en' %}Already have an account?{% elif lang == 'ja' %}すでにアカウントをお持ちですか？{% elif lang == 'zh' %}已有账号？{% else %}이미 계정이 있으신가요?{% endif %}</p>
                         <a href="{{ url_for('login') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-sign-in-alt me-2"></i>로그인
+                            <i class="fas fa-sign-in-alt me-2"></i>{% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
                         </a>
                     </div>
                 </div>

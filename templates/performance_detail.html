@@ -49,7 +49,7 @@
                     </div>
 
                     <h5 class="mb-3">
-                        <i class="fas fa-info-circle me-2"></i>공연 소개
+                        <i class="fas fa-info-circle me-2"></i>{% if lang == 'en' %}Description{% elif lang == 'ja' %}紹介{% elif lang == 'zh' %}介绍{% else %}공연 소개{% endif %}
                     </h5>
                     <p class="card-text">{{ performance.description }}</p>
                 </div>
@@ -60,7 +60,7 @@
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-video me-2"></i>홍보 동영상
+                        <i class="fas fa-video me-2"></i>{% if lang == 'en' %}Promo Video{% elif lang == 'ja' %}プロモーション動画{% elif lang == 'zh' %}宣传视频{% else %}홍보 동영상{% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
@@ -93,14 +93,14 @@
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-map me-2"></i>공연장 위치
+                        <i class="fas fa-map me-2"></i>{% if lang == 'en' %}Venue Location{% elif lang == 'ja' %}会場位置{% elif lang == 'zh' %}场馆位置{% else %}공연장 위치{% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
                     <div id="map" style="width:100%;height:400px;"></div>
                     <div class="mt-3">
-                        <p class="mb-1"><strong>주소:</strong> {{ performance.address }}</p>
-                        <p class="mb-0"><strong>장소:</strong> {{ performance.location }}</p>
+                        <p class="mb-1"><strong>{% if lang == 'en' %}Address:{% elif lang == 'ja' %}住所:{% elif lang == 'zh' %}地址：{% else %}주소:{% endif %}</strong> {{ performance.address }}</p>
+                        <p class="mb-0"><strong>{% if lang == 'en' %}Venue:{% elif lang == 'ja' %}会場:{% elif lang == 'zh' %}场馆：{% else %}장소:{% endif %}</strong> {{ performance.location }}</p>
                     </div>
                 </div>
             </div>
@@ -113,17 +113,17 @@
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-ticket-alt me-2"></i>예매 정보
+                        <i class="fas fa-ticket-alt me-2"></i>{% if lang == 'en' %}Contact for Booking{% elif lang == 'ja' %}予約問い合わせ{% elif lang == 'zh' %}预订咨询{% else %}예매 정보{% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
                         <a href="mailto:{{ performance.contact_email }}?subject={{ performance.title }} 공연 문의" 
                            class="btn btn-primary">
-                            <i class="fas fa-envelope me-2"></i>예매 문의하기
+                            <i class="fas fa-envelope me-2"></i>{% if lang == 'en' %}Contact by Email{% elif lang == 'ja' %}メールで問い合わせ{% elif lang == 'zh' %}邮件咨询{% else %}예매 문의하기{% endif %}
                         </a>
                         <a href="tel:{{ performance.contact_email }}" class="btn btn-outline-primary">
-                            <i class="fas fa-phone me-2"></i>전화 문의
+                            <i class="fas fa-phone me-2"></i>{% if lang == 'en' %}Contact by Phone{% elif lang == 'ja' %}電話で問い合わせ{% elif lang == 'zh' %}电话咨询{% else %}전화 문의{% endif %}
                         </a>
                     </div>
                 </div>
@@ -133,34 +133,34 @@
             <div class="card mb-4">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-list me-2"></i>공연 요약
+                        <i class="fas fa-list me-2"></i>{% if lang == 'en' %}Performance Summary{% elif lang == 'ja' %}公演概要{% elif lang == 'zh' %}演出概要{% else %}공연 요약{% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
                     <ul class="list-unstyled">
                         <li class="mb-2">
                             <i class="fas fa-music text-primary me-2"></i>
-                            <strong>공연명:</strong> {{ performance.title }}
+                            <strong>{% if lang == 'en' %}Title:{% elif lang == 'ja' %}公演名:{% elif lang == 'zh' %}演出名：{% else %}공연명:{% endif %}</strong> {{ performance.title }}
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-users text-primary me-2"></i>
-                            <strong>팀명:</strong> {{ performance.group_name }}
+                            <strong>{% if lang == 'en' %}Team:{% elif lang == 'ja' %}チーム名:{% elif lang == 'zh' %}团队：{% else %}팀명:{% endif %}</strong> {{ performance.group_name }}
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-calendar text-primary me-2"></i>
-                            <strong>날짜:</strong> {{ performance.date }}
+                            <strong>{% if lang == 'en' %}Date:{% elif lang == 'ja' %}日付:{% elif lang == 'zh' %}日期：{% else %}날짜:{% endif %}</strong> {{ performance.date }}
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-clock text-primary me-2"></i>
-                            <strong>시간:</strong> {{ performance.time }}
+                            <strong>{% if lang == 'en' %}Time:{% elif lang == 'ja' %}時間:{% elif lang == 'zh' %}时间：{% else %}시간:{% endif %}</strong> {{ performance.time }}
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                            <strong>장소:</strong> {{ performance.location }}
+                            <strong>{% if lang == 'en' %}Venue:{% elif lang == 'ja' %}会場:{% elif lang == 'zh' %}场馆：{% else %}장소:{% endif %}</strong> {{ performance.location }}
                         </li>
                         <li class="mb-2">
                             <i class="fas fa-ticket-alt text-primary me-2"></i>
-                            <strong>가격:</strong> {{ performance.price }}
+                            <strong>{% if lang == 'en' %}Price:{% elif lang == 'ja' %}価格:{% elif lang == 'zh' %}票价：{% else %}가격:{% endif %}</strong> {{ performance.price }}
                         </li>
                     </ul>
                 </div>
@@ -170,12 +170,12 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i class="fas fa-star me-2"></i>다른 공연도 보기
+                        <i class="fas fa-star me-2"></i>{% if lang == 'en' %}See Other Performances{% elif lang == 'ja' %}他の公演を見る{% elif lang == 'zh' %}查看更多演出{% else %}다른 공연도 보기{% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
                     <a href="/" class="btn btn-outline-primary w-100">
-                        <i class="fas fa-home me-2"></i>전체 공연 목록
+                        <i class="fas fa-home me-2"></i>{% if lang == 'en' %}All Performances{% elif lang == 'ja' %}全公演一覧{% elif lang == 'zh' %}全部演出列表{% else %}전체 공연 목록{% endif %}
                     </a>
                 </div>
             </div>

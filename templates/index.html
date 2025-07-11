@@ -58,7 +58,7 @@
             <div class="mb-3">
                 <form method="GET" action="/" class="d-flex gap-2">
                     <input type="text" name="search" class="form-control form-control-lg" 
-                           placeholder="공연 제목 또는 팀명을 검색하세요..." 
+                           placeholder="{% if lang == 'en' %}Search by performance title or team name...{% elif lang == 'ja' %}公演タイトルまたはチーム名で検索...{% elif lang == 'zh' %}请输入演出标题或团队名称...{% else %}공연 제목 또는 팀명을 검색하세요...{% endif %}"
                            value="{{ search }}">
                     <button type="submit" class="btn btn-primary btn-lg">
                         <i class="fas fa-search"></i>
@@ -71,51 +71,51 @@
                 <!-- 날짜별 필터 -->
                 <div class="col-md-3">
                     <select name="date_filter" class="form-select" onchange="applyFilter('date_filter', this.value)">
-                        <option value="">전체 기간</option>
-                        <option value="this_week" {% if date_filter == 'this_week' %}selected{% endif %}>이번 주</option>
-                        <option value="this_month" {% if date_filter == 'this_month' %}selected{% endif %}>이번 달</option>
-                        <option value="next_month" {% if date_filter == 'next_month' %}selected{% endif %}>다음 달</option>
+                        <option value="">{% if lang == 'en' %}All Periods{% elif lang == 'ja' %}全期間{% elif lang == 'zh' %}全部时间{% else %}전체 기간{% endif %}</option>
+                        <option value="this_week" {% if date_filter == 'this_week' %}selected{% endif %}>{% if lang == 'en' %}This Week{% elif lang == 'ja' %}今週{% elif lang == 'zh' %}本周{% else %}이번 주{% endif %}</option>
+                        <option value="this_month" {% if date_filter == 'this_month' %}selected{% endif %}>{% if lang == 'en' %}This Month{% elif lang == 'ja' %}今月{% elif lang == 'zh' %}本月{% else %}이번 달{% endif %}</option>
+                        <option value="next_month" {% if date_filter == 'next_month' %}selected{% endif %}>{% if lang == 'en' %}Next Month{% elif lang == 'ja' %}来月{% elif lang == 'zh' %}下月{% else %}다음 달{% endif %}</option>
                     </select>
                 </div>
                 
                 <!-- 지역별 필터 -->
                 <div class="col-md-3">
                     <select name="location" class="form-select" onchange="applyFilter('location', this.value)">
-                        <option value="">전체 지역</option>
-                        <option value="서울특별시" {% if location == '서울특별시' %}selected{% endif %}>서울특별시</option>
-                        <option value="경기도" {% if location == '경기도' %}selected{% endif %}>경기도</option>
-                        <option value="강원도" {% if location == '강원도' %}selected{% endif %}>강원도</option>
-                        <option value="인천광역시" {% if location == '인천광역시' %}selected{% endif %}>인천광역시</option>
-                        <option value="충청남도" {% if location == '충청남도' %}selected{% endif %}>충청남도</option>
-                        <option value="충청북도" {% if location == '충청북도' %}selected{% endif %}>충청북도</option>
-                        <option value="세종특별자치시" {% if location == '세종특별자치시' %}selected{% endif %}>세종특별자치시</option>
-                        <option value="대전광역시" {% if location == '대전광역시' %}selected{% endif %}>대전광역시</option>
-                        <option value="경상북도" {% if location == '경상북도' %}selected{% endif %}>경상북도</option>
-                        <option value="대구광역시" {% if location == '대구광역시' %}selected{% endif %}>대구광역시</option>
-                        <option value="전라북도" {% if location == '전라북도' %}selected{% endif %}>전라북도</option>
-                        <option value="경상남도" {% if location == '경상남도' %}selected{% endif %}>경상남도</option>
-                        <option value="울산광역시" {% if location == '울산광역시' %}selected{% endif %}>울산광역시</option>
-                        <option value="부산광역시" {% if location == '부산광역시' %}selected{% endif %}>부산광역시</option>
-                        <option value="광주광역시" {% if location == '광주광역시' %}selected{% endif %}>광주광역시</option>
-                        <option value="전라남도" {% if location == '전라남도' %}selected{% endif %}>전라남도</option>
-                        <option value="제주도" {% if location == '제주도' %}selected{% endif %}>제주도</option>
+                        <option value="">{% if lang == 'en' %}All Regions{% elif lang == 'ja' %}全地域{% elif lang == 'zh' %}全部地区{% else %}전체 지역{% endif %}</option>
+                        <option value="서울특별시" {% if location == '서울특별시' %}selected{% endif %}>{% if lang == 'en' %}Seoul{% elif lang == 'ja' %}ソウル特別市{% elif lang == 'zh' %}首尔特别市{% else %}서울특별시{% endif %}</option>
+                        <option value="경기도" {% if location == '경기도' %}selected{% endif %}>{% if lang == 'en' %}Gyeonggi-do{% elif lang == 'ja' %}京畿道{% elif lang == 'zh' %}京畿道{% else %}경기도{% endif %}</option>
+                        <option value="강원도" {% if location == '강원도' %}selected{% endif %}>{% if lang == 'en' %}Gangwon-do{% elif lang == 'ja' %}江原道{% elif lang == 'zh' %}江原道{% else %}강원도{% endif %}</option>
+                        <option value="인천광역시" {% if location == '인천광역시' %}selected{% endif %}>{% if lang == 'en' %}Incheon{% elif lang == 'ja' %}仁川広域市{% elif lang == 'zh' %}仁川广域市{% else %}인천광역시{% endif %}</option>
+                        <option value="충청남도" {% if location == '충청남도' %}selected{% endif %}>{% if lang == 'en' %}Chungcheongnam-do{% elif lang == 'ja' %}忠清南道{% elif lang == 'zh' %}忠清南道{% else %}충청남도{% endif %}</option>
+                        <option value="충청북도" {% if location == '충청북도' %}selected{% endif %}>{% if lang == 'en' %}Chungcheongbuk-do{% elif lang == 'ja' %}忠清北道{% elif lang == 'zh' %}忠清北道{% else %}충청북도{% endif %}</option>
+                        <option value="세종특별자치시" {% if location == '세종특별자치시' %}selected{% endif %}>{% if lang == 'en' %}Sejong{% elif lang == 'ja' %}世宗特別自治市{% elif lang == 'zh' %}世宗特别自治市{% else %}세종특별자치시{% endif %}</option>
+                        <option value="대전광역시" {% if location == '대전광역시' %}selected{% endif %}>{% if lang == 'en' %}Daejeon{% elif lang == 'ja' %}大田広域市{% elif lang == 'zh' %}大田广域市{% else %}대전광역시{% endif %}</option>
+                        <option value="경상북도" {% if location == '경상북도' %}selected{% endif %}>{% if lang == 'en' %}Gyeongsangbuk-do{% elif lang == 'ja' %}慶尚北道{% elif lang == 'zh' %}庆尚北道{% else %}경상북도{% endif %}</option>
+                        <option value="대구광역시" {% if location == '대구광역시' %}selected{% endif %}>{% if lang == 'en' %}Daegu{% elif lang == 'ja' %}大邱広域市{% elif lang == 'zh' %}大邱广域市{% else %}대구광역시{% endif %}</option>
+                        <option value="전라북도" {% if location == '전라북도' %}selected{% endif %}>{% if lang == 'en' %}Jeollabuk-do{% elif lang == 'ja' %}全羅北道{% elif lang == 'zh' %}全罗北道{% else %}전라북도{% endif %}</option>
+                        <option value="경상남도" {% if location == '경상남도' %}selected{% endif %}>{% if lang == 'en' %}Gyeongsangnam-do{% elif lang == 'ja' %}慶尚南道{% elif lang == 'zh' %}庆尚南道{% else %}경상남도{% endif %}</option>
+                        <option value="울산광역시" {% if location == '울산광역시' %}selected{% endif %}>{% if lang == 'en' %}Ulsan{% elif lang == 'ja' %}蔚山広域市{% elif lang == 'zh' %}蔚山广域市{% else %}울산광역시{% endif %}</option>
+                        <option value="부산광역시" {% if location == '부산광역시' %}selected{% endif %}>{% if lang == 'en' %}Busan{% elif lang == 'ja' %}釜山広域市{% elif lang == 'zh' %}釜山广域市{% else %}부산광역시{% endif %}</option>
+                        <option value="광주광역시" {% if location == '광주광역시' %}selected{% endif %}>{% if lang == 'en' %}Gwangju{% elif lang == 'ja' %}光州広域市{% elif lang == 'zh' %}光州广域市{% else %}광주광역시{% endif %}</option>
+                        <option value="전라남도" {% if location == '전라남도' %}selected{% endif %}>{% if lang == 'en' %}Jeollanam-do{% elif lang == 'ja' %}全羅南道{% elif lang == 'zh' %}全罗南道{% else %}전라남도{% endif %}</option>
+                        <option value="제주도" {% if location == '제주도' %}selected{% endif %}>{% if lang == 'en' %}Jeju-do{% elif lang == 'ja' %}済州道{% elif lang == 'zh' %}济州道{% else %}제주도{% endif %}</option>
                     </select>
                 </div>
                 
                 <!-- 가격별 필터 -->
                 <div class="col-md-3">
                     <select name="price_filter" class="form-select" onchange="applyFilter('price_filter', this.value)">
-                        <option value="">전체 가격</option>
-                        <option value="free" {% if price_filter == 'free' %}selected{% endif %}>무료</option>
-                        <option value="paid" {% if price_filter == 'paid' %}selected{% endif %}>유료</option>
-                        <option value="discount" {% if price_filter == 'discount' %}selected{% endif %}>할인</option>
+                        <option value="">{% if lang == 'en' %}All Prices{% elif lang == 'ja' %}全価格{% elif lang == 'zh' %}全部价格{% else %}전체 가격{% endif %}</option>
+                        <option value="free" {% if price_filter == 'free' %}selected{% endif %}>{% if lang == 'en' %}Free{% elif lang == 'ja' %}無料{% elif lang == 'zh' %}免费{% else %}무료{% endif %}</option>
+                        <option value="paid" {% if price_filter == 'paid' %}selected{% endif %}>{% if lang == 'en' %}Paid{% elif lang == 'ja' %}有料{% elif lang == 'zh' %}收费{% else %}유료{% endif %}</option>
+                        <option value="discount" {% if price_filter == 'discount' %}selected{% endif %}>{% if lang == 'en' %}Discount{% elif lang == 'ja' %}割引{% elif lang == 'zh' %}优惠{% else %}할인{% endif %}</option>
                     </select>
                 </div>
                 
                 <!-- 필터 초기화 -->
                 <div class="col-md-3">
                     <a href="/" class="btn btn-outline-secondary w-100">
-                        <i class="fas fa-undo me-2"></i>필터 초기화
+                        <i class="fas fa-undo me-2"></i>{% if lang == 'en' %}Reset Filters{% elif lang == 'ja' %}フィルター初期化{% elif lang == 'zh' %}重置筛选{% else %}필터 초기화{% endif %}
                     </a>
                 </div>
             </div>
@@ -126,9 +126,9 @@
     <div class="row mb-3">
         <div class="col-12 text-center">
             {% set main_categories = [
-                ('전체', '전체'),
-                ('공연', '공연'),
-                ('대회', '대회')
+                ('전체', '{% if lang == 'en' %}All{% elif lang == 'ja' %}全体{% elif lang == 'zh' %}全部{% else %}전체{% endif %}'),
+                ('공연', '{% if lang == 'en' %}Performance{% elif lang == 'ja' %}公演{% elif lang == 'zh' %}演出{% else %}공연{% endif %}'),
+                ('대회', '{% if lang == 'en' %}Competition{% elif lang == 'ja' %}大会{% elif lang == 'zh' %}大赛{% else %}대회{% endif %}')
             ] %}
             <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
                 {% for cat_id, cat_name in main_categories %}

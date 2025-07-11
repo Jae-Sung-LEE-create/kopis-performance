@@ -299,7 +299,7 @@
 
     <footer class="bg-dark text-white text-center py-4 mt-5">
         <div class="container">
-            <p>&copy; 2024 KOPIS 공연 홍보 플랫폼. 대중무용의 새로운 시작.</p>
+            <p>&copy; 2024 {% if lang == 'en' %}KOPIS Performing Arts Platform. A new beginning for all performing arts.{% elif lang == 'ja' %}KOPIS公演プラットフォーム。すべての舞台芸術の新しい始まり。{% elif lang == 'zh' %}KOPIS演出宣传平台。多元表演艺术的新起点。{% else %}KOPIS 공연 홍보 플랫폼. 대중무용의 새로운 시작.{% endif %}</p>
         </div>
     </footer>
 

@@ -3,13 +3,14 @@
 {% block title %}로그인 - KOPIS 공연 홍보 플랫폼{% endblock %}
 
 {% block content %}
+{% set lang = g.lang if g.lang else 'ko' %}
 <div class="container my-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card shadow">
                 <div class="card-header bg-primary text-white text-center">
                     <h4 class="mb-0">
-                        <i class="fas fa-sign-in-alt me-2"></i>로그인
+                        <i class="fas fa-sign-in-alt me-2"></i>{% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
                     </h4>
                 </div>
                 <div class="card-body p-4">
@@ -27,19 +28,19 @@
                     <form method="POST">
                         <div class="mb-3">
                             <label for="username" class="form-label">
-                                <i class="fas fa-at me-1"></i>아이디
+                                <i class="fas fa-at me-1"></i>{% if lang == 'en' %}Username{% elif lang == 'ja' %}ユーザーID{% elif lang == 'zh' %}用户名{% else %}아이디{% endif %}
                             </label>
                             <input type="text" class="form-control" id="username" name="username" required>
                         </div>
                         <div class="mb-3">
                             <label for="password" class="form-label">
-                                <i class="fas fa-lock me-1"></i>비밀번호
+                                <i class="fas fa-lock me-1"></i>{% if lang == 'en' %}Password{% elif lang == 'ja' %}パスワード{% elif lang == 'zh' %}密码{% else %}비밀번호{% endif %}
                             </label>
                             <input type="password" class="form-control" id="password" name="password" required>
                         </div>
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-sign-in-alt me-2"></i>로그인
+                                <i class="fas fa-sign-in-alt me-2"></i>{% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
                             </button>
                         </div>
                     </form>
@@ -47,9 +48,9 @@
                     <hr class="my-4">
                     
                     <div class="text-center">
-                        <p class="mb-0">계정이 없으신가요?</p>
+                        <p class="mb-0">{% if lang == 'en' %}Don't have an account?{% elif lang == 'ja' %}アカウントをお持ちでないですか？{% elif lang == 'zh' %}还没有账号？{% else %}계정이 없으신가요?{% endif %}</p>
                         <a href="{{ url_for('register') }}" class="btn btn-outline-primary">
-                            <i class="fas fa-user-plus me-2"></i>회원가입
+                            <i class="fas fa-user-plus me-2"></i>{% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
                         </a>
                     </div>
                 </div>
