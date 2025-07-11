@@ -41,22 +41,25 @@
                             </div>
                         </div>
 
-                        <!-- 카테고리 선택 추가 -->
+                        <!-- 메인 카테고리 선택 -->
+                        <div class="mb-3">
+                            <label for="main_category" class="form-label">
+                                <i class="fas fa-list me-1"></i>메인 카테고리 *
+                            </label>
+                            <select class="form-select" id="main_category" name="main_category" required onchange="updateSubCategories()">
+                                <option value="">메인 카테고리를 선택하세요</option>
+                                <option value="공연">공연</option>
+                                <option value="대회">대회</option>
+                            </select>
+                        </div>
+
+                        <!-- 세부 카테고리 선택 -->
                         <div class="mb-3">
                             <label for="category" class="form-label">
-                                <i class="fas fa-list me-1"></i>카테고리 *
+                                <i class="fas fa-tags me-1"></i>세부 카테고리 *
                             </label>
                             <select class="form-select" id="category" name="category" required>
-                                <option value="">카테고리를 선택하세요</option>
-                                <option value="연극">연극</option>
-                                <option value="뮤지컬">뮤지컬</option>
-                                <option value="서양음악(클래식)">서양음악(클래식)</option>
-                                <option value="한국음악(국악)">한국음악(국악)</option>
-                                <option value="대중음악">대중음악</option>
-                                <option value="무용(서양/한국무용)">무용(서양/한국무용)</option>
-                                <option value="대중무용">대중무용</option>
-                                <option value="서커스/마술">서커스/마술</option>
-                                <option value="복합">복합</option>
+                                <option value="">먼저 메인 카테고리를 선택하세요</option>
                             </select>
                         </div>
 
@@ -121,6 +124,38 @@
                         </div>
                         <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=79ded8e1559559f4771806999c7c04ab&libraries=services" onerror="alert('카카오맵 API 로드에 실패했습니다. 새로고침 해보세요.')"></script>
                         <script>
+                        // 세부 카테고리 업데이트 함수
+                        function updateSubCategories() {
+                            const mainCategory = document.getElementById('main_category').value;
+                            const categorySelect = document.getElementById('category');
+                            
+                            // 기존 옵션 제거
+                            categorySelect.innerHTML = '<option value="">세부 카테고리를 선택하세요</option>';
+                            
+                            if (mainCategory === '공연') {
+                                const performanceCategories = [
+                                    '연극', '뮤지컬', '서양음악(클래식)', '한국음악(국악)', 
+                                    '대중음악', '무용(서양/한국무용)', '대중무용', '서커스/마술', '복합'
+                                ];
+                                performanceCategories.forEach(cat => {
+                                    const option = document.createElement('option');
+                                    option.value = cat;
+                                    option.textContent = cat;
+                                    categorySelect.appendChild(option);
+                                });
+                            } else if (mainCategory === '대회') {
+                                const competitionCategories = [
+                                    '댄스대회', '노래대회', '연기대회', '음악대회', '무용대회', '종합예술대회'
+                                ];
+                                competitionCategories.forEach(cat => {
+                                    const option = document.createElement('option');
+                                    option.value = cat;
+                                    option.textContent = cat;
+                                    categorySelect.appendChild(option);
+                                });
+                            }
+                        }
+                        
                         let map, marker, geocoder, infowindow;
                         
                         // 지역 자동 감지 함수

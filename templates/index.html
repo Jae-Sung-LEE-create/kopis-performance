@@ -111,19 +111,46 @@
         </div>
     </div>
     
-    <!-- 카테고리 버튼 UI -->
+    <!-- 메인 카테고리 버튼 UI -->
     <div class="row mb-3">
         <div class="col-12 text-center">
-            {% set categories = [
-                '전체', '연극', '뮤지컬', '서양음악(클래식)', '한국음악(국악)', '대중음악', '무용(서양/한국무용)', '대중무용', '서커스/마술', '복합'
+            {% set main_categories = [
+                ('전체', '전체'),
+                ('공연', '공연'),
+                ('대회', '대회')
             ] %}
-            <div class="d-flex flex-wrap justify-content-center gap-2">
-                {% for cat in categories %}
-                    <a href="/?category={{ cat }}" class="btn btn-outline-primary btn-category {% if selected_category==cat or (not selected_category and cat=='전체') %}active{% endif %}">
-                        {{ cat }}
+            <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+                {% for cat_id, cat_name in main_categories %}
+                    <a href="/?main_category={{ cat_id }}" class="btn btn-outline-primary btn-lg btn-main-category {% if selected_main_category==cat_id or (not selected_main_category and cat_id=='전체') %}active{% endif %}">
+                        <i class="fas fa-{{ 'music' if cat_id=='공연' else 'trophy' if cat_id=='대회' else 'list' }} me-2"></i>{{ cat_name }}
                     </a>
                 {% endfor %}
             </div>
+            
+            <!-- 세부 카테고리 버튼 UI -->
+            {% if selected_main_category == '공연' or not selected_main_category %}
+                {% set performance_categories = [
+                    '전체', '연극', '뮤지컬', '서양음악(클래식)', '한국음악(국악)', '대중음악', '무용(서양/한국무용)', '대중무용', '서커스/마술', '복합'
+                ] %}
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    {% for cat in performance_categories %}
+                        <a href="/?main_category=공연&category={{ cat }}" class="btn btn-outline-success btn-category {% if selected_category==cat or (not selected_category and cat=='전체') %}active{% endif %}">
+                            {{ cat }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% elif selected_main_category == '대회' %}
+                {% set competition_categories = [
+                    '전체', '댄스대회', '노래대회', '연기대회', '음악대회', '무용대회', '종합예술대회'
+                ] %}
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    {% for cat in competition_categories %}
+                        <a href="/?main_category=대회&category={{ cat }}" class="btn btn-outline-warning btn-category {% if selected_category==cat or (not selected_category and cat=='전체') %}active{% endif %}">
+                            {{ cat }}
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
     </div>
     <!-- 최신 공연 섹션 -->
@@ -154,7 +181,10 @@
                 {% endif %}
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-2">
-                        <span class="badge bg-secondary">{{ performance.category }}</span>
+                        <div>
+                            <span class="badge bg-primary me-1">{{ performance.main_category }}</span>
+                            <span class="badge bg-secondary">{{ performance.category }}</span>
+                        </div>
                         <button class="btn btn-sm btn-outline-danger like-btn" data-performance-id="{{ performance.id }}">
                             <i class="fas fa-heart"></i> <span class="like-count">{{ performance.likes }}</span>
                         </button>

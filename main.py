@@ -86,7 +86,8 @@ class Performance(db.Model):
     contact_email = db.Column(db.String(120))
     video_url = db.Column(db.String(300))
     image_url = db.Column(db.String(300))
-    category = db.Column(db.String(50))  # 카테고리 필드 추가
+    main_category = db.Column(db.String(20))  # 메인 카테고리 (공연/대회)
+    category = db.Column(db.String(50))  # 세부 카테고리
     ticket_url = db.Column(db.String(300))  # 티켓 예매 링크
     likes = db.Column(db.Integer, default=0)  # 좋아요 수
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
@@ -234,13 +235,14 @@ def home():
         logger.info("Accessing home page")
         
         # 필터 파라미터 받기
+        main_category = request.args.get('main_category')
         category = request.args.get('category')
         search = request.args.get('search', '').strip()
         date_filter = request.args.get('date_filter', '')
         location = request.args.get('location', '')
         price_filter = request.args.get('price_filter', '')
         
-        logger.info(f"Filters - Category: {category}, Search: {search}, Date: {date_filter}, Location: {location}, Price: {price_filter}")
+        logger.info(f"Filters - Main Category: {main_category}, Category: {category}, Search: {search}, Date: {date_filter}, Location: {location}, Price: {price_filter}")
         
         # 데이터베이스 연결 확인
         try:
@@ -251,7 +253,11 @@ def home():
             # 기본 쿼리 (승인된 공연만)
             query = Performance.query.filter_by(is_approved=True)
             
-            # 카테고리 필터
+            # 메인 카테고리 필터
+            if main_category and main_category != '전체':
+                query = query.filter_by(main_category=main_category)
+            
+            # 세부 카테고리 필터
             if category and category != '전체':
                 query = query.filter_by(category=category)
             
@@ -359,6 +365,7 @@ def home():
             try:
                 return render_template("index.html", 
                                      performances=approved_performances, 
+                                     selected_main_category=main_category,
                                      selected_category=category,
                                      search=search,
                                      date_filter=date_filter,
@@ -758,7 +765,8 @@ def submit_performance():
             contact_email=request.form['contact_email'],
             video_url=request.form.get('video_url'),
             image_url=image_url,
-            category=request.form['category'],  # 카테고리 저장
+            main_category=request.form['main_category'],  # 메인 카테고리 저장
+            category=request.form['category'],  # 세부 카테고리 저장
             ticket_url=request.form.get('ticket_url'),  # 티켓 예매 링크 저장
             user_id=current_user.id
         )
