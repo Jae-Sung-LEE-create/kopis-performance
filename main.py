@@ -18,9 +18,18 @@ from flask_babel import Babel
 load_dotenv()
 
 # 카카오 OAuth 설정
-KAKAO_CLIENT_ID = os.getenv('KAKAO_CLIENT_ID', 'your_kakao_rest_api_key')
-KAKAO_CLIENT_SECRET = os.getenv('KAKAO_CLIENT_SECRET', 'your_kakao_client_secret')
+KAKAO_CLIENT_ID = os.getenv('KAKAO_CLIENT_ID')
+KAKAO_CLIENT_SECRET = os.getenv('KAKAO_CLIENT_SECRET')
 KAKAO_REDIRECT_URI = os.getenv('KAKAO_REDIRECT_URI', 'http://localhost:10000/auth/kakao/callback')
+
+# 카카오 OAuth 설정 검증
+if not KAKAO_CLIENT_ID or KAKAO_CLIENT_ID == 'your_kakao_rest_api_key':
+    logger.warning("KAKAO_CLIENT_ID not set or using placeholder value")
+    KAKAO_CLIENT_ID = None
+
+if not KAKAO_CLIENT_SECRET or KAKAO_CLIENT_SECRET == 'your_kakao_client_secret':
+    logger.warning("KAKAO_CLIENT_SECRET not set or using placeholder value")
+    KAKAO_CLIENT_SECRET = None
 
 # 로깅 설정
 logging.basicConfig(level=logging.INFO)
@@ -808,6 +817,12 @@ def toggle_like(performance_id):
 def kakao_login():
     """카카오 로그인 시작"""
     try:
+        # 카카오 API 키 확인
+        if not KAKAO_CLIENT_ID or not KAKAO_CLIENT_SECRET:
+            logger.error("Kakao API keys not configured")
+            flash('카카오 로그인이 현재 설정되지 않았습니다. 관리자에게 문의하세요.', 'error')
+            return redirect(url_for('login'))
+        
         # 카카오 OAuth 인증 URL 생성
         auth_url = f"https://kauth.kakao.com/oauth/authorize?client_id={KAKAO_CLIENT_ID}&redirect_uri={KAKAO_REDIRECT_URI}&response_type=code"
         logger.info(f"Redirecting to Kakao OAuth: {auth_url}")
@@ -826,6 +841,12 @@ def kakao_register():
 def kakao_callback():
     """카카오 OAuth 콜백 처리"""
     try:
+        # 카카오 API 키 확인
+        if not KAKAO_CLIENT_ID or not KAKAO_CLIENT_SECRET:
+            logger.error("Kakao API keys not configured in callback")
+            flash('카카오 로그인이 현재 설정되지 않았습니다. 관리자에게 문의하세요.', 'error')
+            return redirect(url_for('login'))
+        
         # 인증 코드 받기
         code = request.args.get('code')
         if not code:
