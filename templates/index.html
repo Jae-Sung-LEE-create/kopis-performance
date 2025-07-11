@@ -153,11 +153,16 @@
             {% endif %}
         </div>
     </div>
-    <!-- 최신 공연 섹션 -->
+    <!-- 최신 공연/대회 섹션 -->
     <div class="row mb-4">
         <div class="col-12">
             <h2 class="text-center mb-4">
-                <i class="fas fa-star me-2"></i>최신 공연
+                <i class="fas fa-star me-2"></i>
+                {% if selected_main_category == '대회' %}
+                    최신 대회
+                {% else %}
+                    최신 공연
+                {% endif %}
             </h2>
         </div>
     </div>
@@ -220,11 +225,28 @@
     {% else %}
     <div class="text-center py-5">
         <i class="fas fa-music fa-4x text-muted mb-3"></i>
-        <h4 class="text-muted">아직 등록된 공연이 없습니다</h4>
-        <p class="text-muted">첫 번째 공연을 신청해보세요!</p>
+        <h4 class="text-muted">
+            {% if selected_main_category == '대회' %}
+                아직 등록된 대회가 없습니다
+            {% else %}
+                아직 등록된 공연이 없습니다
+            {% endif %}
+        </h4>
+        <p class="text-muted">
+            {% if selected_main_category == '대회' %}
+                첫 번째 대회를 신청해보세요!
+            {% else %}
+                첫 번째 공연을 신청해보세요!
+            {% endif %}
+        </p>
         {% if current_user.is_authenticated %}
             <a href="/submit" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>공연 신청하기
+                <i class="fas fa-plus me-2"></i>
+                {% if selected_main_category == '대회' %}
+                    대회 신청하기
+                {% else %}
+                    공연 신청하기
+                {% endif %}
             </a>
         {% else %}
             <div class="d-flex gap-2 justify-content-center">
