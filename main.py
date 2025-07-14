@@ -135,7 +135,6 @@ class Performance(db.Model):
     is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
     purchase_methods = db.Column(db.String(100), default='["현장구매"]')  # 구매방법 (JSON 문자열)
-    region = db.Column(db.String(50))  # 시/도 지역명
 
     user = db.relationship('User', backref='performances')
 
@@ -980,8 +979,7 @@ def create_sample_data_if_needed():
                     ticket_url=perf_data['ticket_url'],
                     user_id=admin_user.id,
                     is_approved=True,
-                    purchase_methods=perf_data['purchase_methods'],
-                    region=perf_data['region']
+                    purchase_methods=perf_data['purchase_methods']
                 )
                 db.session.add(performance)
         db.session.commit()
@@ -1082,8 +1080,8 @@ def home():
                     )
             
             # 지역 필터
-            if location and location != '전체':
-                query = query.filter(Performance.region == location)
+            if location:
+                query = query.filter(Performance.location == location)
             
             # 가격 필터
             if price_filter:
@@ -1564,7 +1562,9 @@ def submit_performance():
         # 주소에서 지역 자동 감지
         address = request.form.get('address')
         detected_region = detect_region_from_address(address)
-        region = detected_region if detected_region else request.form.get('location')
+        
+        # 지역 설정 (주소에서 감지된 지역이 있으면 사용, 없으면 수동 입력 사용)
+        location = detected_region if detected_region else request.form['location']
         
         # 구매방법 처리
         purchase_methods = request.form.getlist('purchase_methods')
@@ -1575,7 +1575,7 @@ def submit_performance():
             title=request.form['title'],
             group_name=request.form['group_name'],
             description=request.form['description'],
-            location=region,  # 자동 감지된 지역 또는 수동 입력
+            location=location,  # 자동 감지된 지역 또는 수동 입력
             address=address,  # 상세 주소 저장
             price=request.form['price'],
             date=request.form['date'],
@@ -1587,8 +1587,7 @@ def submit_performance():
             category=request.form['category'],  # 세부 카테고리 저장
             ticket_url=request.form.get('ticket_url'),  # 티켓 예매 링크 저장
             user_id=current_user.id,
-            purchase_methods=purchase_methods_json,
-            region=request.form['region']
+            purchase_methods=purchase_methods_json
         )
         db.session.add(performance)
         db.session.commit()
@@ -1877,7 +1876,7 @@ def export_excel():
         writer.writerow([
             'ID', '제목', '팀명', '설명', '장소', '주소', '가격', '날짜', '시간',
             '연락처', '비디오URL', '이미지URL', '메인카테고리', '카테고리', 
-            '티켓URL', '좋아요수', '승인상태', '신청자', '신청자이메일', '등록일', '지역'
+            '티켓URL', '좋아요수', '승인상태', '신청자', '신청자이메일', '등록일'
         ])
         
         # 데이터 작성
@@ -1903,8 +1902,7 @@ def export_excel():
                 '승인됨' if perf.is_approved else '대기중',
                 user.name if user else '알 수 없음',
                 user.email if user else '알 수 없음',
-                perf.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                perf.region or ''
+                perf.created_at.strftime('%Y-%m-%d %H:%M:%S')
             ])
         
         output.seek(0)
@@ -1960,7 +1958,7 @@ def export_csv():
         writer.writerow([
             'ID', '제목', '팀명', '설명', '장소', '주소', '가격', '날짜', '시간',
             '연락처', '비디오URL', '이미지URL', '메인카테고리', '카테고리', 
-            '티켓URL', '좋아요수', '승인상태', '신청자', '신청자이메일', '등록일', '지역'
+            '티켓URL', '좋아요수', '승인상태', '신청자', '신청자이메일', '등록일'
         ])
         
         # 데이터 작성
@@ -1986,8 +1984,7 @@ def export_csv():
                 '승인됨' if perf.is_approved else '대기중',
                 user.name if user else '알 수 없음',
                 user.email if user else '알 수 없음',
-                perf.created_at.strftime('%Y-%m-%d %H:%M:%S'),
-                perf.region or ''
+                perf.created_at.strftime('%Y-%m-%d %H:%M:%S')
             ])
         
         output.seek(0)
