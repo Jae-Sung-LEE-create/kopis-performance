@@ -1423,35 +1423,45 @@ def admin_panel():
                          category_chart_data=category_chart_data)
 
 def get_monthly_chart_data():
-    """월별 공연 등록 차트 데이터"""
+    """월별 공연 등록 차트 데이터 (공연일 기준)"""
     from datetime import datetime, timedelta
     import calendar
+    from sqlalchemy import and_
+    
+    # 필터 파라미터 받기 (관리자 패널에서 전달)
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
     
     # 최근 12개월 데이터
     months = []
     data = []
     
     for i in range(11, -1, -1):
-        date = datetime.now() - timedelta(days=30*i)
-        year = date.year
-        month = date.month
-        
+        date_obj = datetime.now() - timedelta(days=30*i)
+        year = date_obj.year
+        month = date_obj.month
         # 해당 월의 시작일과 종료일
-        start_date = datetime(year, month, 1)
+        month_start = datetime(year, month, 1)
         if month == 12:
-            end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+            month_end = datetime(year + 1, 1, 1) - timedelta(days=1)
         else:
-            end_date = datetime(year, month + 1, 1) - timedelta(days=1)
-        
-        # 해당 월의 공연 수
-        count = Performance.query.filter(
-            Performance.created_at >= start_date,
-            Performance.created_at <= end_date
-        ).count()
-        
+            month_end = datetime(year, month + 1, 1) - timedelta(days=1)
+        # 문자열로 변환
+        month_start_str = month_start.strftime('%Y-%m-%d')
+        month_end_str = month_end.strftime('%Y-%m-%d')
+        # 공연일 기준 집계
+        query = Performance.query.filter(
+            Performance.date >= month_start_str,
+            Performance.date <= month_end_str
+        )
+        # 필터가 있으면 추가 적용
+        if start_date:
+            query = query.filter(Performance.date >= start_date)
+        if end_date:
+            query = query.filter(Performance.date <= end_date)
+        count = query.count()
         months.append(f"{year}-{month:02d}")
         data.append(count)
-    
     return {
         'labels': months,
         'data': data
