@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, jsonify, session, g
+from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, jsonify, session, g, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -1406,6 +1406,10 @@ def admin_panel():
     filtered_rejected_count = 0  # 거절된 공연은 DB에서 삭제되므로 0
     filtered_total_count = filtered_pending_count + filtered_approved_count + filtered_rejected_count
     
+    # 차트 데이터 생성
+    monthly_chart_data = get_monthly_chart_data()
+    category_chart_data = get_category_chart_data()
+    
     return render_template("admin.html", 
                          pending_performances=pending_performances,
                          approved_performances=approved_performances,
@@ -1413,7 +1417,59 @@ def admin_panel():
                          filtered_pending_count=filtered_pending_count,
                          filtered_approved_count=filtered_approved_count,
                          filtered_rejected_count=filtered_rejected_count,
-                         filtered_total_count=filtered_total_count)
+                         filtered_total_count=filtered_total_count,
+                         monthly_chart_data=monthly_chart_data,
+                         category_chart_data=category_chart_data)
+
+def get_monthly_chart_data():
+    """월별 공연 등록 차트 데이터"""
+    from datetime import datetime, timedelta
+    import calendar
+    
+    # 최근 12개월 데이터
+    months = []
+    data = []
+    
+    for i in range(11, -1, -1):
+        date = datetime.now() - timedelta(days=30*i)
+        year = date.year
+        month = date.month
+        
+        # 해당 월의 시작일과 종료일
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+        else:
+            end_date = datetime(year, month + 1, 1) - timedelta(days=1)
+        
+        # 해당 월의 공연 수
+        count = Performance.query.filter(
+            Performance.created_at >= start_date,
+            Performance.created_at <= end_date
+        ).count()
+        
+        months.append(f"{year}-{month:02d}")
+        data.append(count)
+    
+    return {
+        'labels': months,
+        'data': data
+    }
+
+def get_category_chart_data():
+    """카테고리별 공연 차트 데이터"""
+    categories = ['연극', '뮤지컬', '서양음악(클래식)', '한국음악(국악)', 
+                 '대중음악', '무용(서양/한국무용)', '대중무용', '서커스/마술', '복합']
+    
+    data = []
+    for category in categories:
+        count = Performance.query.filter_by(category=category).count()
+        data.append(count)
+    
+    return {
+        'labels': categories,
+        'data': data
+    }
 
 @app.route('/admin/approve/<int:performance_id>', methods=['POST'])
 def approve_performance(performance_id):
@@ -1713,6 +1769,230 @@ def kakao_callback():
         logger.error(f"Kakao callback error: {e}")
         flash('카카오 로그인 처리 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('login'))
+
+@app.route('/admin/bulk-approve', methods=['POST'])
+def bulk_approve_performances():
+    """공연 일괄 승인"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({'success': False, 'error': '관리자 권한이 필요합니다.'})
+    
+    try:
+        data = request.get_json()
+        performance_ids = data.get('performance_ids', [])
+        
+        if not performance_ids:
+            return jsonify({'success': False, 'error': '선택된 공연이 없습니다.'})
+        
+        # 선택된 공연들을 승인
+        performances = Performance.query.filter(Performance.id.in_(performance_ids)).all()
+        for performance in performances:
+            performance.is_approved = True
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{len(performances)}개의 공연이 승인되었습니다.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Bulk approve error: {e}")
+        return jsonify({'success': False, 'error': '오류가 발생했습니다.'})
+
+@app.route('/admin/bulk-reject', methods=['POST'])
+def bulk_reject_performances():
+    """공연 일괄 거절"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        return jsonify({'success': False, 'error': '관리자 권한이 필요합니다.'})
+    
+    try:
+        data = request.get_json()
+        performance_ids = data.get('performance_ids', [])
+        
+        if not performance_ids:
+            return jsonify({'success': False, 'error': '선택된 공연이 없습니다.'})
+        
+        # 선택된 공연들을 삭제 (거절)
+        performances = Performance.query.filter(Performance.id.in_(performance_ids)).all()
+        for performance in performances:
+            # 이미지 파일도 삭제
+            if performance.image_url:
+                try:
+                    image_path = performance.image_url.split('/')[-1]
+                    if image_path:
+                        public_id = image_path.rsplit('.', 1)[0]
+                        cloudinary.uploader.destroy(public_id)
+                except Exception as e:
+                    logger.error(f"Error deleting image from Cloudinary: {e}")
+            
+            db.session.delete(performance)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'{len(performances)}개의 공연이 거절되었습니다.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Bulk reject error: {e}")
+        return jsonify({'success': False, 'error': '오류가 발생했습니다.'})
+
+@app.route('/admin/export/excel')
+def export_excel():
+    """공연 데이터 Excel 내보내기"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('login'))
+    
+    try:
+        import pandas as pd
+        from io import BytesIO
+        from datetime import datetime
+        
+        # 필터 파라미터 받기
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        category_filter = request.args.get('category_filter')
+        
+        # 쿼리 구성
+        query = Performance.query
+        
+        if start_date:
+            query = query.filter(Performance.created_at >= start_date)
+        if end_date:
+            query = query.filter(Performance.created_at <= end_date + ' 23:59:59')
+        if category_filter:
+            query = query.filter_by(category=category_filter)
+        
+        performances = query.all()
+        
+        # 데이터프레임 생성
+        data = []
+        for perf in performances:
+            user = User.query.get(perf.user_id)
+            data.append({
+                'ID': perf.id,
+                '제목': perf.title,
+                '팀명': perf.group_name,
+                '설명': perf.description,
+                '장소': perf.location,
+                '주소': perf.address,
+                '가격': perf.price,
+                '날짜': perf.date,
+                '시간': perf.time,
+                '연락처': perf.contact_email,
+                '비디오URL': perf.video_url,
+                '이미지URL': perf.image_url,
+                '메인카테고리': perf.main_category,
+                '카테고리': perf.category,
+                '티켓URL': perf.ticket_url,
+                '좋아요수': perf.likes,
+                '승인상태': '승인됨' if perf.is_approved else '대기중',
+                '신청자': user.name if user else '알 수 없음',
+                '신청자이메일': user.email if user else '알 수 없음',
+                '등록일': perf.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        df = pd.DataFrame(data)
+        
+        # Excel 파일 생성
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, sheet_name='공연데이터', index=False)
+        
+        output.seek(0)
+        
+        filename = f"공연데이터_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        logger.error(f"Excel export error: {e}")
+        flash('Excel 내보내기 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/admin/export/csv')
+def export_csv():
+    """공연 데이터 CSV 내보내기"""
+    if not current_user.is_authenticated or not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('login'))
+    
+    try:
+        import pandas as pd
+        from io import StringIO
+        from datetime import datetime
+        
+        # 필터 파라미터 받기
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        category_filter = request.args.get('category_filter')
+        
+        # 쿼리 구성
+        query = Performance.query
+        
+        if start_date:
+            query = query.filter(Performance.created_at >= start_date)
+        if end_date:
+            query = query.filter(Performance.created_at <= end_date + ' 23:59:59')
+        if category_filter:
+            query = query.filter_by(category=category_filter)
+        
+        performances = query.all()
+        
+        # 데이터프레임 생성
+        data = []
+        for perf in performances:
+            user = User.query.get(perf.user_id)
+            data.append({
+                'ID': perf.id,
+                '제목': perf.title,
+                '팀명': perf.group_name,
+                '설명': perf.description,
+                '장소': perf.location,
+                '주소': perf.address,
+                '가격': perf.price,
+                '날짜': perf.date,
+                '시간': perf.time,
+                '연락처': perf.contact_email,
+                '비디오URL': perf.video_url,
+                '이미지URL': perf.image_url,
+                '메인카테고리': perf.main_category,
+                '카테고리': perf.category,
+                '티켓URL': perf.ticket_url,
+                '좋아요수': perf.likes,
+                '승인상태': '승인됨' if perf.is_approved else '대기중',
+                '신청자': user.name if user else '알 수 없음',
+                '신청자이메일': user.email if user else '알 수 없음',
+                '등록일': perf.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            })
+        
+        df = pd.DataFrame(data)
+        
+        # CSV 파일 생성
+        output = StringIO()
+        df.to_csv(output, index=False, encoding='utf-8-sig')
+        output.seek(0)
+        
+        filename = f"공연데이터_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        
+        return send_file(
+            BytesIO(output.getvalue().encode('utf-8-sig')),
+            mimetype='text/csv',
+            as_attachment=True,
+            download_name=filename
+        )
+        
+    except Exception as e:
+        logger.error(f"CSV export error: {e}")
+        flash('CSV 내보내기 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
 
 if __name__ == "__main__":
     try:

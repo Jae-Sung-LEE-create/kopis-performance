@@ -125,9 +125,21 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header bg-warning text-dark">
-                    <h4 class="mb-0">
-                        <i class="fas fa-clock me-2"></i>{% if lang == 'en' %}Pending Approvals ({{ pending_performances|length }}){% elif lang == 'ja' %}承認待ち ({{ pending_performances|length }}){% elif lang == 'zh' %}待审批 ({{ pending_performances|length }}){% else %}승인 대기 중 ({{ pending_performances|length }}건){% endif %}
-                    </h4>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">
+                            <i class="fas fa-clock me-2"></i>{% if lang == 'en' %}Pending Approvals ({{ pending_performances|length }}){% elif lang == 'ja' %}承認待ち ({{ pending_performances|length }}){% elif lang == 'zh' %}待审批 ({{ pending_performances|length }}){% else %}승인 대기 중 ({{ pending_performances|length }}건){% endif %}
+                        </h4>
+                        {% if pending_performances %}
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-success btn-sm" onclick="bulkApprove()">
+                                <i class="fas fa-check me-1"></i>{% if lang == 'en' %}Bulk Approve{% elif lang == 'ja' %}一括承認{% elif lang == 'zh' %}批量批准{% else %}일괄 승인{% endif %}
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="bulkReject()">
+                                <i class="fas fa-times me-1"></i>{% if lang == 'en' %}Bulk Reject{% elif lang == 'ja' %}一括拒否{% elif lang == 'zh' %}批量拒绝{% else %}일괄 거절{% endif %}
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
                 <div class="card-body">
                     {% if pending_performances %}
@@ -135,6 +147,9 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
+                                    <th>
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                    </th>
                                     <th>{% if lang == 'en' %}Image{% elif lang == 'ja' %}画像{% elif lang == 'zh' %}图片{% else %}이미지{% endif %}</th>
                                     <th>{% if lang == 'en' %}Title{% elif lang == 'ja' %}公演名{% elif lang == 'zh' %}演出名{% else %}공연명{% endif %}</th>
                                     <th>{% if lang == 'en' %}Team{% elif lang == 'ja' %}チーム名{% elif lang == 'zh' %}团队{% else %}팀명{% endif %}</th>
@@ -149,6 +164,9 @@
                             <tbody>
                                 {% for performance in pending_performances %}
                                 <tr>
+                                    <td>
+                                        <input type="checkbox" class="performance-checkbox" value="{{ performance.id }}">
+                                    </td>
                                     <td>
                                         {% if performance.image_url %}
                                             <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
@@ -338,6 +356,66 @@
             </div>
         </div>
     </div>
+
+    <!-- 대시보드 차트 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-area me-2"></i>{% if lang == 'en' %}Performance Analytics{% elif lang == 'ja' %}公演分析{% elif lang == 'zh' %}演出分析{% else %}공연 분석{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="text-center mb-3">{% if lang == 'en' %}Monthly Performance Registration{% elif lang == 'ja' %}月別公演登録{% elif lang == 'zh' %}月度演出注册{% else %}월별 공연 등록{% endif %}</h5>
+                            <canvas id="monthlyChart" width="400" height="200"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <h5 class="text-center mb-3">{% if lang == 'en' %}Performance by Category{% elif lang == 'ja' %}カテゴリー別公演{% elif lang == 'zh' %}类别演出{% else %}카테고리별 공연{% endif %}</h5>
+                            <canvas id="categoryChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 데이터 내보내기 -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-download me-2"></i>{% if lang == 'en' %}Export Data{% elif lang == 'ja' %}データエクスポート{% elif lang == 'zh' %}数据导出{% else %}데이터 내보내기{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>{% if lang == 'en' %}Export All Performances{% elif lang == 'ja' %}全公演エクスポート{% elif lang == 'zh' %}导出所有演出{% else %}전체 공연 내보내기{% endif %}</h6>
+                            <a href="/admin/export/excel" class="btn btn-success me-2">
+                                <i class="fas fa-file-excel me-1"></i>Excel
+                            </a>
+                            <a href="/admin/export/csv" class="btn btn-info">
+                                <i class="fas fa-file-csv me-1"></i>CSV
+                            </a>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>{% if lang == 'en' %}Export Filtered Data{% elif lang == 'ja' %}フィルター済みデータエクスポート{% elif lang == 'zh' %}导出筛选数据{% else %}필터링된 데이터 내보내기{% endif %}</h6>
+                            <a href="/admin/export/excel?{{ request.query_string.decode() }}" class="btn btn-success me-2">
+                                <i class="fas fa-file-excel me-1"></i>Excel
+                            </a>
+                            <a href="/admin/export/csv?{{ request.query_string.decode() }}" class="btn btn-info">
+                                <i class="fas fa-file-csv me-1"></i>CSV
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -355,6 +433,7 @@
   <img id="imgZoomTarget" src="" alt="확대 이미지">
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 function openImgZoom(src, event) {
   event.stopPropagation();
@@ -368,6 +447,127 @@ function closeImgZoom(e) {
 }
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') closeImgZoom();
+});
+
+// 일괄 관리 기능
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.performance-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+}
+
+function getSelectedPerformances() {
+    const checkboxes = document.querySelectorAll('.performance-checkbox:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+function bulkApprove() {
+    const selectedIds = getSelectedPerformances();
+    if (selectedIds.length === 0) {
+        alert('선택된 공연이 없습니다.');
+        return;
+    }
+    if (confirm(`${selectedIds.length}개의 공연을 승인하시겠습니까?`)) {
+        fetch('/admin/bulk-approve', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({performance_ids: selectedIds})
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('오류가 발생했습니다: ' + data.error);
+            }
+        });
+    }
+}
+
+function bulkReject() {
+    const selectedIds = getSelectedPerformances();
+    if (selectedIds.length === 0) {
+        alert('선택된 공연이 없습니다.');
+        return;
+    }
+    if (confirm(`${selectedIds.length}개의 공연을 거절하시겠습니까?`)) {
+        fetch('/admin/bulk-reject', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({performance_ids: selectedIds})
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('오류가 발생했습니다: ' + data.error);
+            }
+        });
+    }
+}
+
+// 차트 데이터
+const monthlyData = {{ monthly_chart_data | tojson }};
+const categoryData = {{ category_chart_data | tojson }};
+
+// 월별 차트
+const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+new Chart(monthlyCtx, {
+    type: 'line',
+    data: {
+        labels: monthlyData.labels,
+        datasets: [{
+            label: '공연 등록 수',
+            data: monthlyData.data,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true
+            }
+        }
+    }
+});
+
+// 카테고리별 차트
+const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+new Chart(categoryCtx, {
+    type: 'doughnut',
+    data: {
+        labels: categoryData.labels,
+        datasets: [{
+            data: categoryData.data,
+            backgroundColor: [
+                '#FF6384',
+                '#36A2EB',
+                '#FFCE56',
+                '#4BC0C0',
+                '#9966FF',
+                '#FF9F40',
+                '#FF6384',
+                '#C9CBCF',
+                '#4BC0C0'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom'
+            }
+        }
+    }
 });
 </script>
 
