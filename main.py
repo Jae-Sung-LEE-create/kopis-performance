@@ -133,7 +133,7 @@ class Performance(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
-    purchase_methods = db.Column(db.String(100), default='["현장구매"]')  # 구매방법 (JSON 문자열)
+    # purchase_methods = db.Column(db.String(100), default='["현장구매"]')  # 구매방법 (JSON 문자열) - 임시 주석
 
     user = db.relationship('User', backref='performances')
 
@@ -340,6 +340,105 @@ def create_sample_data_if_needed():
             logger.info('✅ 모든 계정(admin + 샘플) 및 공연 자동 생성 완료!')
         else:
             logger.info('샘플 계정 자동 생성: 이미 사용자 데이터가 있습니다.')
+            
+        # 공연 데이터가 없으면 생성
+        if Performance.query.count() == 0:
+            logger.info('샘플 공연 데이터 생성 중...')
+            admin_user = User.query.filter_by(username='admin').first()
+            if admin_user:
+                # 카테고리별 샘플 공연 데이터
+                sample_performances = [
+                    {
+                        'title': '햄릿',
+                        'group_name': '서울연극단',
+                        'description': '셰익스피어의 대표작을 현대적으로 재해석한 작품입니다.',
+                        'location': '예술의전당',
+                        'address': '서울특별시 서초구 남부순환로 2406',
+                        'price': '50,000원',
+                        'date': '2024-12-15',
+                        'time': '19:30',
+                        'contact_email': 'hamlet@seoultheater.com',
+                        'video_url': 'https://www.youtube.com/watch?v=example1',
+                        'ticket_url': 'https://ticket.interpark.com/example1',
+                        'main_category': '공연',
+                        'category': '연극',
+                        'image_url': 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=800'
+                    },
+                    {
+                        'title': '레 미제라블',
+                        'group_name': '한국뮤지컬컴퍼니',
+                        'description': '빅토르 위고의 소설을 원작으로 한 세계적인 뮤지컬입니다.',
+                        'location': '예술의전당',
+                        'address': '서울특별시 서초구 남부순환로 2406',
+                        'price': '80,000원',
+                        'date': '2024-12-25',
+                        'time': '19:00',
+                        'contact_email': 'lesmis@koreanmusical.com',
+                        'video_url': 'https://www.youtube.com/watch?v=example3',
+                        'ticket_url': 'https://ticket.interpark.com/example3',
+                        'main_category': '공연',
+                        'category': '뮤지컬',
+                        'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800'
+                    },
+                    {
+                        'title': '힙합 배틀',
+                        'group_name': '스트릿크루',
+                        'description': '최고의 힙합 댄서들이 모여 펼치는 배틀 쇼입니다.',
+                        'location': '홍대 클럽',
+                        'address': '서울특별시 마포구 홍익로 1',
+                        'price': '무료',
+                        'date': '2024-12-10',
+                        'time': '21:00',
+                        'contact_email': 'battle@streetcrew.com',
+                        'video_url': 'https://www.youtube.com/watch?v=example5',
+                        'ticket_url': '',
+                        'main_category': '공연',
+                        'category': '스트릿댄스',
+                        'image_url': 'https://images.unsplash.com/photo-1504609773096-104ff2c73ba4?w=800'
+                    },
+                    {
+                        'title': '베토벤 교향곡 9번',
+                        'group_name': '서울교향악단',
+                        'description': '베토벤의 마지막 교향곡을 연주합니다.',
+                        'location': '예술의전당',
+                        'address': '서울특별시 서초구 남부순환로 2406',
+                        'price': '60,000원',
+                        'date': '2024-12-18',
+                        'time': '19:00',
+                        'contact_email': 'beethoven@seoulsymphony.com',
+                        'video_url': 'https://www.youtube.com/watch?v=example7',
+                        'ticket_url': 'https://ticket.interpark.com/example7',
+                        'main_category': '공연',
+                        'category': '클래식',
+                        'image_url': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800'
+                    }
+                ]
+                
+                for perf_data in sample_performances:
+                    performance = Performance(
+                        title=perf_data['title'],
+                        group_name=perf_data['group_name'],
+                        description=perf_data['description'],
+                        location=perf_data['location'],
+                        address=perf_data['address'],
+                        price=perf_data['price'],
+                        date=perf_data['date'],
+                        time=perf_data['time'],
+                        contact_email=perf_data['contact_email'],
+                        video_url=perf_data['video_url'],
+                        image_url=perf_data['image_url'],
+                        main_category=perf_data['main_category'],
+                        category=perf_data['category'],
+                        ticket_url=perf_data['ticket_url'],
+                        user_id=admin_user.id,
+                        is_approved=True
+                    )
+                    db.session.add(performance)
+                
+                db.session.commit()
+                logger.info('✅ 샘플 공연 데이터 생성 완료!')
+            else:
+                logger.warning('admin 사용자를 찾을 수 없어 공연 데이터를 생성하지 않습니다.')
 
 # Cloudinary 설정
 cloudinary.config(
