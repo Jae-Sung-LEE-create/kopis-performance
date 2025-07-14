@@ -312,12 +312,12 @@ def create_sample_data_if_needed():
                 db.session.add(user)
                 created_users.append(user)
             db.session.commit()
-        # 공연 샘플 생성 (기존 데이터 모두 삭제 후 4개 추가)
-        Performance.query.delete()
-        db.session.commit()
         admin_user = User.query.filter_by(username='admin').first()
-        if admin_user:
-            sample_performances = [
+        if not admin_user:
+            return
+        # 카테고리별 샘플 공연 데이터
+        categories = {
+            '연극': [
                 {
                     'title': '햄릿',
                     'group_name': '서울연극단',
@@ -336,6 +336,59 @@ def create_sample_data_if_needed():
                     'purchase_methods': '["현장구매"]'
                 },
                 {
+                    'title': '로미오와 줄리엣',
+                    'group_name': '청춘연극회',
+                    'description': '사랑과 운명의 비극을 아름답게 그린 작품입니다.',
+                    'location': '대학로 소극장',
+                    'address': '서울특별시 종로구 대학로 12길 23',
+                    'price': '30,000원',
+                    'date': '2024-12-20',
+                    'time': '20:00',
+                    'contact_email': 'romeo@youththeater.com',
+                    'video_url': 'https://www.youtube.com/watch?v=example2',
+                    'ticket_url': 'https://ticket.interpark.com/example2',
+                    'main_category': '공연',
+                    'category': '연극',
+                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '오이디푸스',
+                    'group_name': '고전극단',
+                    'description': '고대 그리스 비극의 대표작을 현대적으로 재해석.',
+                    'location': '국립극장',
+                    'address': '서울특별시 중구 장충단로 59',
+                    'price': '40,000원',
+                    'date': '2024-12-22',
+                    'time': '18:00',
+                    'contact_email': 'oedipus@classic.com',
+                    'video_url': '',
+                    'ticket_url': '',
+                    'main_category': '공연',
+                    'category': '연극',
+                    'image_url': 'https://images.unsplash.com/photo-1464983953574-0892a716854b?w=800',
+                    'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '갈매기',
+                    'group_name': '체홉극단',
+                    'description': '러시아 문학의 거장 체홉의 대표작.',
+                    'location': '예술의전당',
+                    'address': '서울특별시 서초구 남부순환로 2406',
+                    'price': '35,000원',
+                    'date': '2024-12-28',
+                    'time': '17:00',
+                    'contact_email': 'seagull@chekhov.com',
+                    'video_url': '',
+                    'ticket_url': '',
+                    'main_category': '공연',
+                    'category': '연극',
+                    'image_url': 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800',
+                    'purchase_methods': '["현장구매"]'
+                }
+            ],
+            '뮤지컬': [
+                {
                     'title': '레 미제라블',
                     'group_name': '한국뮤지컬컴퍼니',
                     'description': '빅토르 위고의 소설을 원작으로 한 세계적인 뮤지컬입니다.',
@@ -352,6 +405,59 @@ def create_sample_data_if_needed():
                     'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800',
                     'purchase_methods': '["현장구매"]'
                 },
+                {
+                    'title': '오페라의 유령',
+                    'group_name': '팬텀뮤지컬',
+                    'description': '파리의 오페라 하우스를 배경으로 한 미스터리 뮤지컬입니다.',
+                    'location': '세종문화회관',
+                    'address': '서울특별시 종로구 세종로 81-3',
+                    'price': '90,000원',
+                    'date': '2024-12-30',
+                    'time': '19:30',
+                    'contact_email': 'phantom@phantommusical.com',
+                    'video_url': 'https://www.youtube.com/watch?v=example4',
+                    'ticket_url': 'https://ticket.interpark.com/example4',
+                    'main_category': '공연',
+                    'category': '뮤지컬',
+                    'image_url': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800',
+                    'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '위키드',
+                    'group_name': '그린위치',
+                    'description': '마법의 세계를 그린 환상적인 뮤지컬.',
+                    'location': '블루스퀘어',
+                    'address': '서울특별시 용산구 이태원로 294',
+                    'price': '100,000원',
+                    'date': '2025-01-05',
+                    'time': '20:00',
+                    'contact_email': 'wicked@musical.com',
+                    'video_url': '',
+                    'ticket_url': '',
+                    'main_category': '공연',
+                    'category': '뮤지컬',
+                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '맘마미아!',
+                    'group_name': 'ABBA뮤지컬',
+                    'description': 'ABBA의 명곡으로 꾸며진 신나는 뮤지컬.',
+                    'location': 'LG아트센터',
+                    'address': '서울특별시 강남구 논현로 508',
+                    'price': '85,000원',
+                    'date': '2025-01-10',
+                    'time': '19:30',
+                    'contact_email': 'mamma@musical.com',
+                    'video_url': '',
+                    'ticket_url': '',
+                    'main_category': '공연',
+                    'category': '뮤지컬',
+                    'image_url': 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800',
+                    'purchase_methods': '["현장구매"]'
+                }
+            ],
+            '스트릿댄스': [
                 {
                     'title': '힙합 배틀',
                     'group_name': '스트릿크루',
@@ -370,6 +476,59 @@ def create_sample_data_if_needed():
                     'purchase_methods': '["현장구매"]'
                 },
                 {
+                    'title': '브레이킹 쇼케이스',
+                    'group_name': '브레이킹팀',
+                    'description': '브레이킹의 모든 요소를 보여주는 쇼케이스입니다.',
+                    'location': '강남 댄스스튜디오',
+                    'address': '서울특별시 강남구 테헤란로 123',
+                    'price': '20,000원',
+                    'date': '2024-12-12',
+                    'time': '20:30',
+                    'contact_email': 'showcase@breakingteam.com',
+                    'video_url': 'https://www.youtube.com/watch?v=example6',
+                    'ticket_url': 'https://ticket.interpark.com/example6',
+                    'main_category': '공연',
+                    'category': '스트릿댄스',
+                    'image_url': 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800',
+                    'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '팝핀 퍼포먼스',
+                    'group_name': '팝핀팀',
+                    'description': '팝핀 댄스의 매력을 느낄 수 있는 무대.',
+                    'location': '홍대 거리',
+                    'address': '서울특별시 마포구 홍익로 5',
+                    'price': '무료',
+                    'date': '2024-12-15',
+                    'time': '18:00',
+                    'contact_email': 'poppin@dance.com',
+                    'video_url': '',
+                    'ticket_url': '',
+                    'main_category': '공연',
+                    'category': '스트릿댄스',
+                    'image_url': 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=800',
+                    'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '락킹 페스티벌',
+                    'group_name': '락킹크루',
+                    'description': '락킹 댄스의 에너지를 느낄 수 있는 페스티벌.',
+                    'location': '홍대 페스티벌 거리',
+                    'address': '서울특별시 마포구 와우산로 21',
+                    'price': '무료',
+                    'date': '2024-12-20',
+                    'time': '19:00',
+                    'contact_email': 'locking@dance.com',
+                    'video_url': '',
+                    'ticket_url': '',
+                    'main_category': '공연',
+                    'category': '스트릿댄스',
+                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'purchase_methods': '["현장구매"]'
+                }
+            ],
+            '클래식': [
+                {
                     'title': '베토벤 교향곡 9번',
                     'group_name': '서울교향악단',
                     'description': '베토벤의 마지막 교향곡을 연주합니다.',
@@ -385,31 +544,86 @@ def create_sample_data_if_needed():
                     'category': '클래식',
                     'image_url': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800',
                     'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '모차르트 피아노 협주곡',
+                    'group_name': '모차르트앙상블',
+                    'description': '모차르트의 아름다운 피아노 협주곡을 감상하세요.',
+                    'location': '세종문화회관',
+                    'address': '서울특별시 종로구 세종로 81-3',
+                    'price': '50,000원',
+                    'date': '2024-12-22',
+                    'time': '19:30',
+                    'contact_email': 'mozart@mozartensemble.com',
+                    'video_url': 'https://www.youtube.com/watch?v=example8',
+                    'ticket_url': 'https://ticket.interpark.com/example8',
+                    'main_category': '공연',
+                    'category': '클래식',
+                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '쇼팽 피아노 리사이틀',
+                    'group_name': '쇼팽스페셜',
+                    'description': '쇼팽의 명곡을 감상할 수 있는 피아노 리사이틀.',
+                    'location': '예술의전당',
+                    'address': '서울특별시 서초구 남부순환로 2406',
+                    'price': '55,000원',
+                    'date': '2025-01-03',
+                    'time': '20:00',
+                    'contact_email': 'chopin@recital.com',
+                    'video_url': '',
+                    'ticket_url': '',
+                    'main_category': '공연',
+                    'category': '클래식',
+                    'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800',
+                    'purchase_methods': '["현장구매"]'
+                },
+                {
+                    'title': '비발디 사계',
+                    'group_name': '바로크앙상블',
+                    'description': '비발디의 사계를 연주하는 바로크 음악회.',
+                    'location': '세종문화회관',
+                    'address': '서울특별시 종로구 세종로 81-3',
+                    'price': '45,000원',
+                    'date': '2025-01-08',
+                    'time': '19:30',
+                    'contact_email': 'vivaldi@baroque.com',
+                    'video_url': '',
+                    'ticket_url': '',
+                    'main_category': '공연',
+                    'category': '클래식',
+                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'purchase_methods': '["현장구매"]'
                 }
             ]
-            for perf_data in sample_performances:
-                performance = Performance(
-                    title=perf_data['title'],
-                    group_name=perf_data['group_name'],
-                    description=perf_data['description'],
-                    location=perf_data['location'],
-                    address=perf_data['address'],
-                    price=perf_data['price'],
-                    date=perf_data['date'],
-                    time=perf_data['time'],
-                    contact_email=perf_data['contact_email'],
-                    video_url=perf_data['video_url'],
-                    image_url=perf_data['image_url'],
-                    main_category=perf_data['main_category'],
-                    category=perf_data['category'],
-                    ticket_url=perf_data['ticket_url'],
-                    user_id=admin_user.id,
-                    is_approved=True,
-                    purchase_methods=perf_data['purchase_methods']
-                )
-                db.session.add(performance)
-            db.session.commit()
-            logger.info('✅ 샘플 공연 데이터 생성 완료!')
+        }
+        for category, performances in categories.items():
+            existing_count = Performance.query.filter_by(category=category).count()
+            if existing_count < 4:
+                for perf_data in performances[existing_count:4]:
+                    performance = Performance(
+                        title=perf_data['title'],
+                        group_name=perf_data['group_name'],
+                        description=perf_data['description'],
+                        location=perf_data['location'],
+                        address=perf_data['address'],
+                        price=perf_data['price'],
+                        date=perf_data['date'],
+                        time=perf_data['time'],
+                        contact_email=perf_data['contact_email'],
+                        video_url=perf_data['video_url'],
+                        image_url=perf_data['image_url'],
+                        main_category=perf_data['main_category'],
+                        category=perf_data['category'],
+                        ticket_url=perf_data['ticket_url'],
+                        user_id=admin_user.id,
+                        is_approved=True,
+                        purchase_methods=perf_data['purchase_methods']
+                    )
+                    db.session.add(performance)
+        db.session.commit()
+        logger.info('✅ 카테고리별 샘플 공연 데이터 생성 완료!')
 
 # Cloudinary 설정
 cloudinary.config(
