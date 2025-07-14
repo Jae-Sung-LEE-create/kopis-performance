@@ -283,6 +283,14 @@
                             {% if lang == 'en' %}My List{% elif lang == 'ja' %}マイリスト{% elif lang == 'zh' %}我的列表{% else %}내 공연/대회{% endif %}
                         </a>
                     </li>
+                    {% if current_user.is_admin %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/admin">
+                            <i class="fas fa-cog me-1"></i>
+                            {% if lang == 'en' %}Admin Panel{% elif lang == 'ja' %}管理者パネル{% elif lang == 'zh' %}管理员面板{% else %}관리자 패널{% endif %}
+                        </a>
+                    </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a class="nav-link" href="/logout">
                             <i class="fas fa-sign-out-alt me-1"></i>
