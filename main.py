@@ -1373,13 +1373,47 @@ def admin_panel():
         flash('관리자 권한이 필요합니다.', 'error')
         return redirect(url_for('login'))
     
-    pending_performances = Performance.query.filter_by(is_approved=False).all()
-    approved_performances = Performance.query.filter_by(is_approved=True).all()
+    # 필터 파라미터 받기
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    category_filter = request.args.get('category_filter')
+    
+    # 기본 쿼리
+    pending_query = Performance.query.filter_by(is_approved=False)
+    approved_query = Performance.query.filter_by(is_approved=True)
+    
+    # 날짜 필터 적용
+    if start_date:
+        pending_query = pending_query.filter(Performance.created_at >= start_date)
+        approved_query = approved_query.filter(Performance.created_at >= start_date)
+    
+    if end_date:
+        pending_query = pending_query.filter(Performance.created_at <= end_date + ' 23:59:59')
+        approved_query = approved_query.filter(Performance.created_at <= end_date + ' 23:59:59')
+    
+    # 카테고리 필터 적용
+    if category_filter:
+        pending_query = pending_query.filter_by(category=category_filter)
+        approved_query = approved_query.filter_by(category=category_filter)
+    
+    # 필터링된 결과 가져오기
+    pending_performances = pending_query.all()
+    approved_performances = approved_query.all()
+    
+    # 필터링된 통계 계산
+    filtered_pending_count = len(pending_performances)
+    filtered_approved_count = len(approved_performances)
+    filtered_rejected_count = 0  # 거절된 공연은 DB에서 삭제되므로 0
+    filtered_total_count = filtered_pending_count + filtered_approved_count + filtered_rejected_count
     
     return render_template("admin.html", 
                          pending_performances=pending_performances,
                          approved_performances=approved_performances,
-                         users=User.query.all())
+                         users=User.query.all(),
+                         filtered_pending_count=filtered_pending_count,
+                         filtered_approved_count=filtered_approved_count,
+                         filtered_rejected_count=filtered_rejected_count,
+                         filtered_total_count=filtered_total_count)
 
 @app.route('/admin/approve/<int:performance_id>', methods=['POST'])
 def approve_performance(performance_id):

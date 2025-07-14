@@ -13,6 +13,113 @@
         </div>
     </div>
 
+    <!-- 날짜 범위 필터 및 통계 -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>{% if lang == 'en' %}Performance Statistics & Filter{% elif lang == 'ja' %}公演統計・フィルター{% elif lang == 'zh' %}演出统计和筛选{% else %}공연 통계 및 필터{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="/admin" id="filterForm">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <label for="start_date" class="form-label">
+                                    {% if lang == 'en' %}Start Date{% elif lang == 'ja' %}開始日{% elif lang == 'zh' %}开始日期{% else %}시작일{% endif %}
+                                </label>
+                                <input type="date" class="form-control" id="start_date" name="start_date" 
+                                       value="{{ request.args.get('start_date', '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="end_date" class="form-label">
+                                    {% if lang == 'en' %}End Date{% elif lang == 'ja' %}終了日{% elif lang == 'zh' %}结束日期{% else %}종료일{% endif %}
+                                </label>
+                                <input type="date" class="form-control" id="end_date" name="end_date" 
+                                       value="{{ request.args.get('end_date', '') }}">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="category_filter" class="form-label">
+                                    {% if lang == 'en' %}Category{% elif lang == 'ja' %}カテゴリー{% elif lang == 'zh' %}类别{% else %}카테고리{% endif %}
+                                </label>
+                                <select class="form-select" id="category_filter" name="category_filter">
+                                    <option value="">{% if lang == 'en' %}All Categories{% elif lang == 'ja' %}全カテゴリー{% elif lang == 'zh' %}所有类别{% else %}전체 카테고리{% endif %}</option>
+                                    <option value="연극" {% if request.args.get('category_filter') == '연극' %}selected{% endif %}>연극</option>
+                                    <option value="뮤지컬" {% if request.args.get('category_filter') == '뮤지컬' %}selected{% endif %}>뮤지컬</option>
+                                    <option value="서양음악(클래식)" {% if request.args.get('category_filter') == '서양음악(클래식)' %}selected{% endif %}>서양음악(클래식)</option>
+                                    <option value="한국음악(국악)" {% if request.args.get('category_filter') == '한국음악(국악)' %}selected{% endif %}>한국음악(국악)</option>
+                                    <option value="대중음악" {% if request.args.get('category_filter') == '대중음악' %}selected{% endif %}>대중음악</option>
+                                    <option value="무용(서양/한국무용)" {% if request.args.get('category_filter') == '무용(서양/한국무용)' %}selected{% endif %}>무용(서양/한국무용)</option>
+                                    <option value="대중무용" {% if request.args.get('category_filter') == '대중무용' %}selected{% endif %}>대중무용</option>
+                                    <option value="서커스/마술" {% if request.args.get('category_filter') == '서커스/마술' %}selected{% endif %}>서커스/마술</option>
+                                    <option value="복합" {% if request.args.get('category_filter') == '복합' %}selected{% endif %}>복합</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-search me-1"></i>{% if lang == 'en' %}Filter{% elif lang == 'ja' %}フィルター{% elif lang == 'zh' %}筛选{% else %}필터{% endif %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- 필터링된 통계 -->
+                    {% if request.args.get('start_date') or request.args.get('end_date') or request.args.get('category_filter') %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <h5 class="text-primary">
+                                <i class="fas fa-chart-pie me-2"></i>{% if lang == 'en' %}Filtered Statistics{% elif lang == 'ja' %}フィルター統計{% elif lang == 'zh' %}筛选统计{% else %}필터링된 통계{% endif %}
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="card text-center border-primary">
+                                        <div class="card-body">
+                                            <i class="fas fa-clock fa-2x text-warning mb-2"></i>
+                                            <h6 class="card-title">{% if lang == 'en' %}Pending{% elif lang == 'ja' %}審査中{% elif lang == 'zh' %}审核中{% else %}대기 중{% endif %}</h6>
+                                            <h4 class="text-warning">{{ filtered_pending_count }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center border-primary">
+                                        <div class="card-body">
+                                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                            <h6 class="card-title">{% if lang == 'en' %}Approved{% elif lang == 'ja' %}承認済み{% elif lang == 'zh' %}已批准{% else %}승인됨{% endif %}</h6>
+                                            <h4 class="text-success">{{ filtered_approved_count }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center border-primary">
+                                        <div class="card-body">
+                                            <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
+                                            <h6 class="card-title">{% if lang == 'en' %}Rejected{% elif lang == 'ja' %}拒否{% elif lang == 'zh' %}拒绝{% else %}거절됨{% endif %}</h6>
+                                            <h4 class="text-danger">{{ filtered_rejected_count }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card text-center border-primary">
+                                        <div class="card-body">
+                                            <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
+                                            <h6 class="card-title">{% if lang == 'en' %}Total{% elif lang == 'ja' %}総数{% elif lang == 'zh' %}总计{% else %}총합{% endif %}</h6>
+                                            <h4 class="text-primary">{{ filtered_total_count }}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 승인 대기 중인 공연 -->
     <div class="row mb-5">
         <div class="col-12">
