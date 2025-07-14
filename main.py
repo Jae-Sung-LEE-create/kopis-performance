@@ -133,7 +133,7 @@ class Performance(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
-    # purchase_methods = db.Column(db.String(100), default='["현장구매"]')  # 구매방법 (JSON 문자열) - 임시 주석
+    purchase_methods = db.Column(db.String(100), default='["현장구매"]')  # 구매방법 (JSON 문자열)
 
     user = db.relationship('User', backref='performances')
 
@@ -221,6 +221,15 @@ def create_tables():
             with app.app_context():
                 logger.info(f"Creating database tables... (attempt {attempt + 1}/{max_retries})")
                 
+                # Performance 테이블에 필수 컬럼 체크
+                result = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance'"))
+                if result.fetchone():
+                    result = db.session.execute(text("PRAGMA table_info(performance)"))
+                    columns = [row[1] for row in result.fetchall()]
+                    required = {'address', 'purchase_methods'}
+                    if not required.issubset(set(columns)):
+                        logger.warning("Performance table missing required columns. Dropping and recreating tables...")
+                        db.drop_all()
                 # 기존 테이블에 address 컬럼이 있는지 확인
                 try:
                     # Performance 테이블이 존재하는지 확인
@@ -254,6 +263,7 @@ def create_tables():
 def create_sample_data_if_needed():
     with app.app_context():
         from datetime import datetime, timedelta
+        # 사용자 샘플 생성 (기존과 동일)
         if User.query.count() == 0:
             # admin 계정과 샘플 사용자 생성
             sample_users = [
