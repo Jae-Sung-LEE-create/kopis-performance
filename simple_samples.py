@@ -5,7 +5,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from main import app, db, User, Performance
+from main import app, db, User, Performance, detect_region_from_address
 from werkzeug.security import generate_password_hash
 from datetime import datetime, timedelta
 import random
@@ -174,6 +174,7 @@ def create_simple_samples():
             
             for i, sample in enumerate(samples):
                 try:
+                    region = detect_region_from_address(sample['address'])
                     performance = Performance(
                         title=sample['title'],
                         group_name=sample['group_name'],
@@ -190,7 +191,8 @@ def create_simple_samples():
                         category=category,
                         ticket_url=sample['ticket_url'],
                         user_id=admin_user.id,
-                        is_approved=True
+                        is_approved=True,
+                        region=region
                     )
                     
                     db.session.add(performance)

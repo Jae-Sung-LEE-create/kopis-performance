@@ -8,7 +8,7 @@ import os
 import sys
 import json
 from datetime import datetime, timedelta
-from main import app, db, User, Performance
+from main import app, db, User, Performance, detect_region_from_address
 from werkzeug.security import generate_password_hash
 
 def create_category_samples():
@@ -651,6 +651,7 @@ def create_category_samples():
                 purchase_methods_json = json.dumps(sample['purchase_methods'], ensure_ascii=False)
                 
                 # 공연 생성
+                region = detect_region_from_address(sample['address'])
                 performance = Performance(
                     title=sample['title'],
                     group_name=sample['group_name'],
@@ -667,7 +668,8 @@ def create_category_samples():
                     category=category,
                     ticket_url=sample['ticket_url'],
                     user_id=admin_user.id,
-                    is_approved=True
+                    is_approved=True,
+                    region=region
                 )
                 
                 db.session.add(performance)

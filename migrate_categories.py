@@ -11,7 +11,7 @@ from datetime import datetime
 # 프로젝트 루트 디렉토리를 Python 경로에 추가
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from main import app, db, Performance
+from main import app, db, Performance, detect_region_from_address
 
 def migrate_categories():
     """기존 공연 데이터에 메인 카테고리를 추가하는 마이그레이션"""
@@ -23,8 +23,12 @@ def migrate_categories():
             
             print(f"총 {len(performances)}개의 공연 데이터를 마이그레이션합니다...")
             
-            # 각 공연에 메인 카테고리 추가
+            # 각 공연에 메인 카테고리 및 region 추가
             for performance in performances:
+                # region 자동 채우기
+                if not performance.region and performance.address:
+                    performance.region = detect_region_from_address(performance.address)
+                    print(f"공연 '{performance.title}'의 지역(region) 자동 채움: {performance.region}")
                 if not performance.main_category:
                     # 기존 카테고리를 기반으로 메인 카테고리 설정
                     if performance.category in ['연극', '뮤지컬', '서양음악(클래식)', '한국음악(국악)', 
@@ -33,7 +37,6 @@ def migrate_categories():
                     else:
                         # 기본값으로 공연 설정
                         performance.main_category = '공연'
-                    
                     print(f"공연 '{performance.title}'에 메인 카테고리 '{performance.main_category}' 추가")
             
             # 변경사항 저장

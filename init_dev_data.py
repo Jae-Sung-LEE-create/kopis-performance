@@ -7,7 +7,7 @@
 import os
 import sys
 from datetime import datetime, timedelta
-from main import app, db, User, Performance
+from main import app, db, User, Performance, detect_region_from_address
 from werkzeug.security import generate_password_hash
 
 def create_sample_data():
@@ -111,6 +111,7 @@ def create_sample_data():
                 user_index = 0 if perf_data['is_approved'] else 1
                 user = created_users[user_index] if len(created_users) > user_index else created_users[0]
                 
+                region = detect_region_from_address(perf_data.get('location', ''))
                 performance = Performance(
                     title=perf_data['title'],
                     group_name=perf_data['group_name'],
@@ -122,7 +123,8 @@ def create_sample_data():
                     contact_email=perf_data['contact_email'],
                     video_url=perf_data['video_url'],
                     user_id=user.id,
-                    is_approved=perf_data['is_approved']
+                    is_approved=perf_data['is_approved'],
+                    region=region
                 )
                 db.session.add(performance)
                 status = "승인됨" if perf_data['is_approved'] else "승인 대기"
