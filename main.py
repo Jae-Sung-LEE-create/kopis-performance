@@ -133,6 +133,7 @@ class Performance(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
+    purchase_methods = db.Column(db.String(100), default='["현장구매"]')  # 구매방법 (JSON 문자열)
 
     user = db.relationship('User', backref='performances')
 
@@ -169,6 +170,11 @@ def nl2br_filter(text):
     if text:
         return text.replace('\n', '<br>')
     return text
+
+@app.template_filter('loads')
+def loads_filter(s):
+    import json
+    return json.loads(s) if s else []
 
 def detect_region_from_address(address):
     """주소에서 지역을 자동으로 감지하는 함수"""
@@ -826,6 +832,11 @@ def submit_performance():
         # 지역 설정 (주소에서 감지된 지역이 있으면 사용, 없으면 수동 입력 사용)
         location = detected_region if detected_region else request.form['location']
         
+        # 구매방법 처리
+        purchase_methods = request.form.getlist('purchase_methods')
+        import json
+        purchase_methods_json = json.dumps(purchase_methods, ensure_ascii=False)
+
         performance = Performance(
             title=request.form['title'],
             group_name=request.form['group_name'],
@@ -841,7 +852,8 @@ def submit_performance():
             main_category=request.form['main_category'],  # 메인 카테고리 저장
             category=request.form['category'],  # 세부 카테고리 저장
             ticket_url=request.form.get('ticket_url'),  # 티켓 예매 링크 저장
-            user_id=current_user.id
+            user_id=current_user.id,
+            purchase_methods=purchase_methods_json
         )
         db.session.add(performance)
         db.session.commit()

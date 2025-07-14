@@ -109,13 +109,47 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="price" class="form-label">
-                                    <i class="fas fa-ticket-alt me-1"></i>
+                                    <i class="fas fa-won-sign me-1"></i>
                                     {% if lang == 'en' %}Ticket Price *{% elif lang == 'ja' %}チケット価格 *{% elif lang == 'zh' %}票价 *{% else %}티켓 가격 *{% endif %}
                                 </label>
-                                <input type="text" class="form-control" id="price" name="price" 
-                                       placeholder="{% if lang == 'en' %}e.g. Free, 10,000 KRW, Student Discount{% elif lang == 'ja' %}例: 無料、10,000ウォン、学生割引{% elif lang == 'zh' %}例如：免费，10,000韩元，学生优惠{% else %}예: 무료, 10,000원, 학생할인{% endif %}" required>
+                                <input type="text" class="form-control" id="price" name="price" required>
                             </div>
                         </div>
+                        <!-- 구매방법 체크박스 -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-shopping-cart me-1"></i>
+                                {% if lang == 'en' %}Purchase Method{% elif lang == 'ja' %}購入方法{% elif lang == 'zh' %}购票方式{% else %}구매 방법{% endif %}
+                                <span class="text-muted small">({% if lang == 'en' %}Multiple selection possible{% elif lang == 'ja' %}複数選択可{% elif lang == 'zh' %}可多选{% else %}중복선택 가능{% endif %})</span>
+                            </label>
+                            <div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="purchase_on_site" name="purchase_methods" value="현장구매" checked>
+                                    <label class="form-check-label" for="purchase_on_site">{% if lang == 'en' %}On-site{% elif lang == 'ja' %}現地購入{% elif lang == 'zh' %}现场购票{% else %}현장구매{% endif %}</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" id="purchase_online" name="purchase_methods" value="사이트구매" onchange="toggleTicketUrlInput()">
+                                    <label class="form-check-label" for="purchase_online">{% if lang == 'en' %}Online (Site){% elif lang == 'ja' %}サイト購入{% elif lang == 'zh' %}网站购票{% else %}사이트구매{% endif %}</label>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- 사이트구매 선택 시 링크 입력란 -->
+                        <div class="mb-3" id="ticketUrlInput" style="display:none;">
+                            <label for="ticket_url" class="form-label">
+                                <i class="fas fa-link me-1"></i>
+                                {% if lang == 'en' %}Ticket Purchase Link{% elif lang == 'ja' %}購入サイトリンク{% elif lang == 'zh' %}购票链接{% else %}구매 사이트 링크{% endif %}
+                            </label>
+                            <input type="url" class="form-control" id="ticket_url" name="ticket_url" placeholder="https://">
+                        </div>
+                        <script>
+                        function toggleTicketUrlInput() {
+                            var online = document.getElementById('purchase_online').checked;
+                            document.getElementById('ticketUrlInput').style.display = online ? '' : 'none';
+                        }
+                        document.addEventListener('DOMContentLoaded', function() {
+                            toggleTicketUrlInput();
+                        });
+                        </script>
 
                         <!-- 상세 주소 입력 -->
                         <div class="mb-3">
