@@ -252,6 +252,84 @@ def create_tables():
                 logger.error(f"Failed to create tables after {max_retries} attempts")
                 raise
 
+def create_sample_data_if_needed():
+    with app.app_context():
+        from datetime import datetime, timedelta
+        if User.query.count() == 0:
+            # 샘플 사용자 생성
+            sample_users = [
+                {
+                    'name': '김댄서',
+                    'username': 'dancer1',
+                    'email': 'dancer1@test.com',
+                    'phone': '010-1111-1111',
+                    'password': 'test123'
+                },
+                {
+                    'name': '이크루',
+                    'username': 'crew2',
+                    'email': 'crew2@test.com',
+                    'phone': '010-2222-2222',
+                    'password': 'test123'
+                },
+                {
+                    'name': '박스트릿',
+                    'username': 'street3',
+                    'email': 'street3@test.com',
+                    'phone': '010-3333-3333',
+                    'password': 'test123'
+                }
+            ]
+            created_users = []
+            for user_data in sample_users:
+                user = User(
+                    name=user_data['name'],
+                    username=user_data['username'],
+                    email=user_data['email'],
+                    phone=user_data['phone'],
+                    password_hash=generate_password_hash(user_data['password'])
+                )
+                db.session.add(user)
+                created_users.append(user)
+            db.session.commit()
+
+            # 샘플 공연 데이터 생성
+            sample_performances = [
+                {
+                    'title': '스트릿댄스 쇼케이스',
+                    'group_name': '스트릿크루',
+                    'description': '다양한 스트릿댄스 장르를 선보이는 쇼케이스입니다. 힙합, 브레이킹, 팝핑 등 다양한 댄스 스타일을 감상하실 수 있습니다.',
+                    'location': '홍대 클럽',
+                    'address': '서울특별시 마포구 홍익로 1',
+                    'price': '무료',
+                    'date': (datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d'),
+                    'time': '19:00~21:00',
+                    'contact_email': 'street@test.com',
+                    'video_url': 'https://www.youtube.com/watch?v=example1',
+                    'is_approved': True
+                }
+            ]
+            for perf_data in sample_performances:
+                performance = Performance(
+                    title=perf_data['title'],
+                    group_name=perf_data['group_name'],
+                    description=perf_data['description'],
+                    location=perf_data['location'],
+                    address=perf_data['address'],
+                    price=perf_data['price'],
+                    date=perf_data['date'],
+                    time=perf_data['time'],
+                    contact_email=perf_data['contact_email'],
+                    video_url=perf_data['video_url'],
+                    user_id=created_users[0].id,
+                    is_approved=perf_data['is_approved']
+                )
+                db.session.add(performance)
+            db.session.commit()
+            print('✅ 샘플 계정 및 공연 자동 생성 완료!')
+        else:
+            print('샘플 계정 자동 생성: 이미 사용자 데이터가 있습니다.')
+
 # Cloudinary 설정
 cloudinary.config(
     cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
@@ -942,5 +1020,16 @@ def kakao_callback():
         flash('카카오 로그인 처리 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('login'))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    try:
+        # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
+        logger.info("Starting application initialization...")
+        create_tables()
+        create_sample_data_if_needed()  # 샘플 계정 자동 생성
+        logger.info("Database initialization completed successfully!")
+    except Exception as e:
+        logger.error(f"Database initialization failed: {e}")
+        logger.warning("Server will start without database initialization. Some features may not work.")
+        # 데이터베이스 초기화 실패해도 서버는 시작
+        pass
     app.run(debug=True) 
