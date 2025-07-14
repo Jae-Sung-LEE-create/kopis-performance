@@ -331,9 +331,9 @@ def create_sample_data_if_needed():
                 )
                 db.session.add(performance)
             db.session.commit()
-            print('✅ 모든 계정(admin + 샘플) 및 공연 자동 생성 완료!')
+            logger.info('✅ 모든 계정(admin + 샘플) 및 공연 자동 생성 완료!')
         else:
-            print('샘플 계정 자동 생성: 이미 사용자 데이터가 있습니다.')
+            logger.info('샘플 계정 자동 생성: 이미 사용자 데이터가 있습니다.')
 
 # Cloudinary 설정
 cloudinary.config(
