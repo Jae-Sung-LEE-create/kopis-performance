@@ -949,29 +949,38 @@ def create_sample_data_if_needed():
             ],
         }
         for category, performances in categories.items():
-            existing_count = Performance.query.filter_by(category=category).count()
-            if existing_count < 4:
-                for perf_data in performances[existing_count:4]:
-                    performance = Performance(
-                        title=perf_data['title'],
-                        group_name=perf_data['group_name'],
-                        description=perf_data['description'],
-                        location=perf_data['location'],
-                        address=perf_data['address'],
-                        price=perf_data['price'],
-                        date=perf_data['date'],
-                        time=perf_data['time'],
-                        contact_email=perf_data['contact_email'],
-                        video_url=perf_data['video_url'],
-                        image_url=perf_data['image_url'],
-                        main_category=perf_data['main_category'],
-                        category=perf_data['category'],
-                        ticket_url=perf_data['ticket_url'],
-                        user_id=admin_user.id,
-                        is_approved=True,
-                        purchase_methods=perf_data['purchase_methods']
-                    )
-                    db.session.add(performance)
+            # 각 카테고리별 4개 공연 중 앞 2개는 사이트구매, 뒤 2개는 현장구매로 설정
+            for i, perf_data in enumerate(performances):
+                perf_data = perf_data.copy()  # 원본 변형 방지
+                if i < 2:
+                    perf_data['purchase_methods'] = '["사이트구매"]'
+                    perf_data['ticket_url'] = perf_data['ticket_url'] or f"https://tickets.example.com/{category}_{i+1}"
+                else:
+                    perf_data['purchase_methods'] = '["현장구매"]'
+                    perf_data['ticket_url'] = ''
+                # 이미 해당 제목의 공연이 있으면 건너뜀
+                if Performance.query.filter_by(title=perf_data['title']).first():
+                    continue
+                performance = Performance(
+                    title=perf_data['title'],
+                    group_name=perf_data['group_name'],
+                    description=perf_data['description'],
+                    location=perf_data['location'],
+                    address=perf_data['address'],
+                    price=perf_data['price'],
+                    date=perf_data['date'],
+                    time=perf_data['time'],
+                    contact_email=perf_data['contact_email'],
+                    video_url=perf_data['video_url'],
+                    image_url=perf_data['image_url'],
+                    main_category=perf_data['main_category'],
+                    category=perf_data['category'],
+                    ticket_url=perf_data['ticket_url'],
+                    user_id=admin_user.id,
+                    is_approved=True,
+                    purchase_methods=perf_data['purchase_methods']
+                )
+                db.session.add(performance)
         db.session.commit()
         logger.info('✅ 카테고리별 샘플 공연 데이터 생성 완료!')
 
