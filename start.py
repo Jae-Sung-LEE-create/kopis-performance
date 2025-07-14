@@ -1,7 +1,7 @@
 import os
 import sys
 import logging
-from main import app, create_tables
+from main import app, create_tables, create_sample_data_if_needed
 
 # 로깅 설정
 logging.basicConfig(
@@ -15,6 +15,7 @@ if __name__ == "__main__":
         # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
         logger.info("Starting application initialization...")
         create_tables()
+        create_sample_data_if_needed()  # 샘플 계정 자동 생성
         logger.info("Database initialization completed successfully!")
     except Exception as e:
         logger.error(f"Database initialization failed: {e}")
