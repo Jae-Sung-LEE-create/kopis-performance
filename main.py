@@ -1082,7 +1082,7 @@ def home():
                     )
             
             # 지역 필터
-            if location:
+            if location and location != '전체':
                 query = query.filter(Performance.region == location)
             
             # 가격 필터
