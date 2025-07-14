@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, jsonify, session, g, send_file
+from io import BytesIO
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -1840,15 +1841,15 @@ def bulk_reject_performances():
 
 @app.route('/admin/export/excel')
 def export_excel():
-    """공연 데이터 Excel 내보내기"""
+    """공연 데이터 Excel 내보내기 (CSV 형식으로 대체)"""
     if not current_user.is_authenticated or not current_user.is_admin:
         flash('관리자 권한이 필요합니다.', 'error')
         return redirect(url_for('login'))
     
     try:
-        import pandas as pd
-        from io import BytesIO
+        from io import StringIO
         from datetime import datetime
+        import csv
         
         # 필터 파라미터 받기
         start_date = request.args.get('start_date')
@@ -1867,54 +1868,57 @@ def export_excel():
         
         performances = query.all()
         
-        # 데이터프레임 생성
-        data = []
+        # CSV 데이터 생성
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # 헤더 작성
+        writer.writerow([
+            'ID', '제목', '팀명', '설명', '장소', '주소', '가격', '날짜', '시간',
+            '연락처', '비디오URL', '이미지URL', '메인카테고리', '카테고리', 
+            '티켓URL', '좋아요수', '승인상태', '신청자', '신청자이메일', '등록일'
+        ])
+        
+        # 데이터 작성
         for perf in performances:
             user = User.query.get(perf.user_id)
-            data.append({
-                'ID': perf.id,
-                '제목': perf.title,
-                '팀명': perf.group_name,
-                '설명': perf.description,
-                '장소': perf.location,
-                '주소': perf.address,
-                '가격': perf.price,
-                '날짜': perf.date,
-                '시간': perf.time,
-                '연락처': perf.contact_email,
-                '비디오URL': perf.video_url,
-                '이미지URL': perf.image_url,
-                '메인카테고리': perf.main_category,
-                '카테고리': perf.category,
-                '티켓URL': perf.ticket_url,
-                '좋아요수': perf.likes,
-                '승인상태': '승인됨' if perf.is_approved else '대기중',
-                '신청자': user.name if user else '알 수 없음',
-                '신청자이메일': user.email if user else '알 수 없음',
-                '등록일': perf.created_at.strftime('%Y-%m-%d %H:%M:%S')
-            })
-        
-        df = pd.DataFrame(data)
-        
-        # Excel 파일 생성
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, sheet_name='공연데이터', index=False)
+            writer.writerow([
+                perf.id,
+                perf.title,
+                perf.group_name,
+                perf.description or '',
+                perf.location or '',
+                perf.address or '',
+                perf.price or '',
+                perf.date or '',
+                perf.time or '',
+                perf.contact_email or '',
+                perf.video_url or '',
+                perf.image_url or '',
+                perf.main_category or '',
+                perf.category or '',
+                perf.ticket_url or '',
+                perf.likes,
+                '승인됨' if perf.is_approved else '대기중',
+                user.name if user else '알 수 없음',
+                user.email if user else '알 수 없음',
+                perf.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
         
         output.seek(0)
         
-        filename = f"공연데이터_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        filename = f"공연데이터_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         
         return send_file(
-            output,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            BytesIO(output.getvalue().encode('utf-8-sig')),
+            mimetype='text/csv',
             as_attachment=True,
             download_name=filename
         )
         
     except Exception as e:
         logger.error(f"Excel export error: {e}")
-        flash('Excel 내보내기 중 오류가 발생했습니다.', 'error')
+        flash('데이터 내보내기 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
 
 @app.route('/admin/export/csv')
@@ -1925,9 +1929,9 @@ def export_csv():
         return redirect(url_for('login'))
     
     try:
-        import pandas as pd
         from io import StringIO
         from datetime import datetime
+        import csv
         
         # 필터 파라미터 받기
         start_date = request.args.get('start_date')
@@ -1946,38 +1950,43 @@ def export_csv():
         
         performances = query.all()
         
-        # 데이터프레임 생성
-        data = []
+        # CSV 데이터 생성
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # 헤더 작성
+        writer.writerow([
+            'ID', '제목', '팀명', '설명', '장소', '주소', '가격', '날짜', '시간',
+            '연락처', '비디오URL', '이미지URL', '메인카테고리', '카테고리', 
+            '티켓URL', '좋아요수', '승인상태', '신청자', '신청자이메일', '등록일'
+        ])
+        
+        # 데이터 작성
         for perf in performances:
             user = User.query.get(perf.user_id)
-            data.append({
-                'ID': perf.id,
-                '제목': perf.title,
-                '팀명': perf.group_name,
-                '설명': perf.description,
-                '장소': perf.location,
-                '주소': perf.address,
-                '가격': perf.price,
-                '날짜': perf.date,
-                '시간': perf.time,
-                '연락처': perf.contact_email,
-                '비디오URL': perf.video_url,
-                '이미지URL': perf.image_url,
-                '메인카테고리': perf.main_category,
-                '카테고리': perf.category,
-                '티켓URL': perf.ticket_url,
-                '좋아요수': perf.likes,
-                '승인상태': '승인됨' if perf.is_approved else '대기중',
-                '신청자': user.name if user else '알 수 없음',
-                '신청자이메일': user.email if user else '알 수 없음',
-                '등록일': perf.created_at.strftime('%Y-%m-%d %H:%M:%S')
-            })
+            writer.writerow([
+                perf.id,
+                perf.title,
+                perf.group_name,
+                perf.description or '',
+                perf.location or '',
+                perf.address or '',
+                perf.price or '',
+                perf.date or '',
+                perf.time or '',
+                perf.contact_email or '',
+                perf.video_url or '',
+                perf.image_url or '',
+                perf.main_category or '',
+                perf.category or '',
+                perf.ticket_url or '',
+                perf.likes,
+                '승인됨' if perf.is_approved else '대기중',
+                user.name if user else '알 수 없음',
+                user.email if user else '알 수 없음',
+                perf.created_at.strftime('%Y-%m-%d %H:%M:%S')
+            ])
         
-        df = pd.DataFrame(data)
-        
-        # CSV 파일 생성
-        output = StringIO()
-        df.to_csv(output, index=False, encoding='utf-8-sig')
         output.seek(0)
         
         filename = f"공연데이터_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
