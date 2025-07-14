@@ -12,6 +12,7 @@ import traceback
 import cloudinary
 import cloudinary.uploader
 import requests
+import time
 
 from flask_babel import Babel
 
@@ -214,70 +215,73 @@ def create_tables():
             with app.app_context():
                 logger.info(f"Creating database tables... (attempt {attempt + 1}/{max_retries})")
                 
+                # 기존 테이블에 address 컬럼이 있는지 확인
+                try:
+                    # Performance 테이블이 존재하는지 확인
+                    result = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance'"))
+                    if result.fetchone():
+                        # address 컬럼이 있는지 확인
+                        result = db.session.execute(text("PRAGMA table_info(performance)"))
+                        columns = [row[1] for row in result.fetchall()]
+                        if 'address' not in columns:
+                            logger.warning("Performance table exists but missing 'address' column. Dropping and recreating tables...")
+                            db.drop_all()
+                            logger.info("All tables dropped successfully")
+                except Exception as schema_check_error:
+                    logger.info(f"Schema check failed (this is normal for new databases): {schema_check_error}")
+                
                 # 테이블 생성 (간소화된 연결 테스트)
                 db.create_all()
                 logger.info("Database tables created successfully!")
                 
-                # 관리자 계정 자동 생성
-                try:
-                    admin = User.query.filter_by(username='admin').first()
-                    if not admin:
-                        logger.info("Creating admin user...")
-                        admin_user = User(
-                            name='관리자',
-                            username='admin',
-                            email='admin@admin.com',
-                            phone='010-0000-0000',
-                            password_hash=generate_password_hash('admin123'),
-                            is_admin=True
-                        )
-                        db.session.add(admin_user)
-                        db.session.commit()
-                        logger.info("Admin user created successfully!")
-                    else:
-                        logger.info("Admin user already exists!")
-                except Exception as user_error:
-                    logger.error(f"Error creating admin user: {user_error}")
-                
                 return  # 성공하면 함수 종료
                 
         except Exception as e:
-            logger.error(f"Attempt {attempt + 1} failed: {e}")
+            logger.error(f"Database creation attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
                 logger.info(f"Retrying in {retry_delay} seconds...")
-                import time
                 time.sleep(retry_delay)
-                retry_delay *= 2  # 지수 백오프
             else:
-                logger.error(f"Failed to create tables after {max_retries} attempts")
+                logger.error("All database creation attempts failed!")
                 raise
 
 def create_sample_data_if_needed():
     with app.app_context():
         from datetime import datetime, timedelta
         if User.query.count() == 0:
-            # 샘플 사용자 생성
+            # admin 계정과 샘플 사용자 생성
             sample_users = [
+                {
+                    'name': '관리자',
+                    'username': 'admin',
+                    'email': 'admin@admin.com',
+                    'phone': '010-0000-0000',
+                    'password': 'admin123',
+                    'is_admin': True
+                },
                 {
                     'name': '김댄서',
                     'username': 'dancer1',
                     'email': 'dancer1@test.com',
                     'phone': '010-1111-1111',
-                    'password': 'test123'
+                    'password': 'test123',
+                    'is_admin': False
                 },
                 {
                     'name': '이크루',
                     'username': 'crew2',
                     'email': 'crew2@test.com',
                     'phone': '010-2222-2222',
-                    'password': 'test123'
+                    'password': 'test123',
+                    'is_admin': False
                 },
                 {
                     'name': '박스트릿',
                     'username': 'street3',
                     'email': 'street3@test.com',
                     'phone': '010-3333-3333',
-                    'password': 'test123'
+                    'password': 'test123',
+                    'is_admin': False
                 }
             ]
             created_users = []
@@ -287,7 +291,8 @@ def create_sample_data_if_needed():
                     username=user_data['username'],
                     email=user_data['email'],
                     phone=user_data['phone'],
-                    password_hash=generate_password_hash(user_data['password'])
+                    password_hash=generate_password_hash(user_data['password']),
+                    is_admin=user_data['is_admin']
                 )
                 db.session.add(user)
                 created_users.append(user)
@@ -321,12 +326,12 @@ def create_sample_data_if_needed():
                     time=perf_data['time'],
                     contact_email=perf_data['contact_email'],
                     video_url=perf_data['video_url'],
-                    user_id=created_users[0].id,
+                    user_id=created_users[1].id,  # dancer1 계정으로 설정
                     is_approved=perf_data['is_approved']
                 )
                 db.session.add(performance)
             db.session.commit()
-            print('✅ 샘플 계정 및 공연 자동 생성 완료!')
+            print('✅ 모든 계정(admin + 샘플) 및 공연 자동 생성 완료!')
         else:
             print('샘플 계정 자동 생성: 이미 사용자 데이터가 있습니다.')
 
