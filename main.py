@@ -1385,12 +1385,12 @@ def admin_panel():
     
     # 날짜 필터 적용
     if start_date:
-        pending_query = pending_query.filter(Performance.created_at >= start_date)
-        approved_query = approved_query.filter(Performance.created_at >= start_date)
+        pending_query = pending_query.filter(Performance.date >= start_date)
+        approved_query = approved_query.filter(Performance.date >= start_date)
     
     if end_date:
-        pending_query = pending_query.filter(Performance.created_at <= end_date + ' 23:59:59')
-        approved_query = approved_query.filter(Performance.created_at <= end_date + ' 23:59:59')
+        pending_query = pending_query.filter(Performance.date <= end_date)
+        approved_query = approved_query.filter(Performance.date <= end_date)
     
     # 카테고리 필터 적용
     if category_filter:
@@ -1860,9 +1860,9 @@ def export_excel():
         query = Performance.query
         
         if start_date:
-            query = query.filter(Performance.created_at >= start_date)
+            query = query.filter(Performance.date >= start_date)
         if end_date:
-            query = query.filter(Performance.created_at <= end_date + ' 23:59:59')
+            query = query.filter(Performance.date <= end_date)
         if category_filter:
             query = query.filter_by(category=category_filter)
         
@@ -1942,9 +1942,9 @@ def export_csv():
         query = Performance.query
         
         if start_date:
-            query = query.filter(Performance.created_at >= start_date)
+            query = query.filter(Performance.date >= start_date)
         if end_date:
-            query = query.filter(Performance.created_at <= end_date + ' 23:59:59')
+            query = query.filter(Performance.date <= end_date)
         if category_filter:
             query = query.filter_by(category=category_filter)
         
