@@ -1407,9 +1407,9 @@ def admin_panel():
     filtered_rejected_count = 0  # 거절된 공연은 DB에서 삭제되므로 0
     filtered_total_count = filtered_pending_count + filtered_approved_count + filtered_rejected_count
     
-    # 차트 데이터 생성
-    monthly_chart_data = get_monthly_chart_data()
-    category_chart_data = get_category_chart_data()
+    # 차트 데이터 생성 (필터 적용)
+    monthly_chart_data = get_monthly_chart_data(start_date, end_date, category_filter)
+    category_chart_data = get_category_chart_data(start_date, end_date, category_filter)
     
     return render_template("admin.html", 
                          pending_performances=pending_performances,
@@ -1422,59 +1422,71 @@ def admin_panel():
                          monthly_chart_data=monthly_chart_data,
                          category_chart_data=category_chart_data)
 
-def get_monthly_chart_data():
-    """월별 공연 등록 차트 데이터 (공연일 기준)"""
+def get_monthly_chart_data(start_date=None, end_date=None, category_filter=None):
+    """월별 공연 등록 차트 데이터 (필터 적용)"""
     from datetime import datetime, timedelta
     import calendar
-    from sqlalchemy import and_
-    
-    # 필터 파라미터 받기 (관리자 패널에서 전달)
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
     
     # 최근 12개월 데이터
     months = []
     data = []
     
     for i in range(11, -1, -1):
-        date_obj = datetime.now() - timedelta(days=30*i)
-        year = date_obj.year
-        month = date_obj.month
+        date = datetime.now() - timedelta(days=30*i)
+        year = date.year
+        month = date.month
+        
         # 해당 월의 시작일과 종료일
         month_start = datetime(year, month, 1)
         if month == 12:
             month_end = datetime(year + 1, 1, 1) - timedelta(days=1)
         else:
             month_end = datetime(year, month + 1, 1) - timedelta(days=1)
-        # 문자열로 변환
-        month_start_str = month_start.strftime('%Y-%m-%d')
-        month_end_str = month_end.strftime('%Y-%m-%d')
-        # 공연일 기준 집계
-        query = Performance.query.filter(
-            Performance.date >= month_start_str,
-            Performance.date <= month_end_str
-        )
-        # 필터가 있으면 추가 적용
+        
+        # 기본 쿼리
+        query = Performance.query
+        
+        # 필터 적용
         if start_date:
             query = query.filter(Performance.date >= start_date)
         if end_date:
             query = query.filter(Performance.date <= end_date)
-        count = query.count()
+        if category_filter:
+            query = query.filter_by(category=category_filter)
+        
+        # 해당 월의 공연 수 (공연일 기준)
+        count = query.filter(
+            Performance.date >= month_start.strftime('%Y-%m-%d'),
+            Performance.date <= month_end.strftime('%Y-%m-%d')
+        ).count()
+        
         months.append(f"{year}-{month:02d}")
         data.append(count)
+    
     return {
         'labels': months,
         'data': data
     }
 
-def get_category_chart_data():
-    """카테고리별 공연 차트 데이터"""
+def get_category_chart_data(start_date=None, end_date=None, category_filter=None):
+    """카테고리별 공연 차트 데이터 (필터 적용)"""
     categories = ['연극', '뮤지컬', '서양음악(클래식)', '한국음악(국악)', 
                  '대중음악', '무용(서양/한국무용)', '대중무용', '서커스/마술', '복합']
     
     data = []
     for category in categories:
-        count = Performance.query.filter_by(category=category).count()
+        # 기본 쿼리
+        query = Performance.query.filter_by(category=category)
+        
+        # 필터 적용
+        if start_date:
+            query = query.filter(Performance.date >= start_date)
+        if end_date:
+            query = query.filter(Performance.date <= end_date)
+        if category_filter:
+            query = query.filter_by(category=category_filter)
+        
+        count = query.count()
         data.append(count)
     
     return {

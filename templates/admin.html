@@ -329,7 +329,7 @@
                     <h5 class="card-title">
                         {% if lang == 'en' %}Pending{% elif lang == 'ja' %}審査中{% elif lang == 'zh' %}审核中{% else %}대기 중{% endif %}
                     </h5>
-                    <h3 class="text-warning">{{ pending_performances|length }}</h3>
+                    <h3 class="text-warning">{{ filtered_pending_count }}</h3>
                 </div>
             </div>
         </div>
@@ -340,7 +340,7 @@
                     <h5 class="card-title">
                         {% if lang == 'en' %}Approved{% elif lang == 'ja' %}承認済み{% elif lang == 'zh' %}已批准{% else %}승인됨{% endif %}
                     </h5>
-                    <h3 class="text-success">{{ approved_performances|length }}</h3>
+                    <h3 class="text-success">{{ filtered_approved_count }}</h3>
                 </div>
             </div>
         </div>
@@ -351,7 +351,7 @@
                     <h5 class="card-title">
                         {% if lang == 'en' %}Total Applications{% elif lang == 'ja' %}総申請数{% elif lang == 'zh' %}总申请数{% else %}총 신청{% endif %}
                     </h5>
-                    <h3 class="text-primary">{{ pending_performances|length + approved_performances|length }}</h3>
+                    <h3 class="text-primary">{{ filtered_total_count }}</h3>
                 </div>
             </div>
         </div>
