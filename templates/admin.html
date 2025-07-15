@@ -285,7 +285,7 @@
                                     <td>{{ performance.group_name }}</td>
                                     <td>{{ performance.location }}</td>
                                     <td>{{ performance.date }} {{ performance.time }}</td>
-                                    <td><span class="badge bg-primary">{{ performance.price }}</span></td>
+                                    <td><span class="badge bg-primary">₩{{ performance.price }}</span></td>
                                     <td>{{ performance.created_at.strftime('%Y-%m-%d') }}</td>
                                     <td>
                                         <a href="/performance/{{ performance.id }}" class="btn btn-outline-primary btn-sm">
@@ -610,7 +610,7 @@ new Chart(categoryCtx, {
                         <p>{{ performance.date }} {{ performance.time }}</p>
                         
                         <h6><i class="fas fa-ticket-alt me-2"></i>{% if lang == 'en' %}Ticket Price{% elif lang == 'ja' %}チケット価格{% elif lang == 'zh' %}票价{% else %}티켓 가격{% endif %}</h6>
-                        <p>{{ performance.price }}</p>
+                        <p>₩{{ performance.price }}</p>
                         
                         <h6><i class="fas fa-envelope me-2"></i>{% if lang == 'en' %}Contact{% elif lang == 'ja' %}連絡先{% elif lang == 'zh' %}联系方式{% else %}연락처{% endif %}</h6>
                         <p>{{ performance.contact_email }}</p>

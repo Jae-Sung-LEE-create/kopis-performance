@@ -112,9 +112,12 @@
                                     <i class="fas fa-won-sign me-1"></i>
                                     {% if lang == 'en' %}Ticket Price *{% elif lang == 'ja' %}チケット価格 *{% elif lang == 'zh' %}票价 *{% else %}티켓 가격 *{% endif %}
                                 </label>
-                                <input type="text" class="form-control" id="price" name="price" 
-                                       placeholder="{% if lang == 'en' %}e.g. 1,000,000{% elif lang == 'ja' %}例: 1,000,000{% elif lang == 'zh' %}例如：1,000,000{% else %}예: 1,000,000{% endif %}" 
-                                       required oninput="formatPrice(this)" onkeypress="return onlyNumbers(event)">
+                                <div class="input-group">
+                                    <span class="input-group-text">₩</span>
+                                    <input type="text" class="form-control" id="price" name="price" 
+                                           placeholder="{% if lang == 'en' %}e.g. 1,000,000{% elif lang == 'ja' %}例: 1,000,000{% elif lang == 'zh' %}例如：1,000,000{% else %}예: 1,000,000{% endif %}" 
+                                           required oninput="formatPrice(this)" onkeypress="return onlyNumbers(event)">
+                                </div>
                                 <input type="hidden" id="price_raw" name="price_raw">
                             </div>
                         </div>
