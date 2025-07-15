@@ -45,7 +45,8 @@ def create_simple_samples():
                     'time': '19:30',
                     'contact_email': 'hamlet@seoultheater.com',
                     'video_url': 'https://www.youtube.com/watch?v=example1',
-                    'ticket_url': 'https://ticket.interpark.com/example1'
+                    'image_url': '/static/kopis_map.jpg',
+                'ticket_url': 'https://ticket.interpark.com/example1'
                 },
                 {
                     'title': '로미오와 줄리엣',
@@ -58,7 +59,8 @@ def create_simple_samples():
                     'time': '20:00',
                     'contact_email': 'romeo@youththeater.com',
                     'video_url': 'https://www.youtube.com/watch?v=example2',
-                    'ticket_url': 'https://ticket.interpark.com/example2'
+                    'image_url': '/static/kopis_map.jpg',
+                'ticket_url': 'https://ticket.interpark.com/example2'
                 }
             ],
             '뮤지컬': [
@@ -73,7 +75,8 @@ def create_simple_samples():
                     'time': '19:00',
                     'contact_email': 'lesmis@koreanmusical.com',
                     'video_url': 'https://www.youtube.com/watch?v=example3',
-                    'ticket_url': 'https://ticket.interpark.com/example3'
+                    'image_url': '/static/kopis_map.jpg',
+                'ticket_url': 'https://ticket.interpark.com/example3'
                 },
                 {
                     'title': '오페라의 유령',
@@ -86,7 +89,8 @@ def create_simple_samples():
                     'time': '19:30',
                     'contact_email': 'phantom@phantommusical.com',
                     'video_url': 'https://www.youtube.com/watch?v=example4',
-                    'ticket_url': 'https://ticket.interpark.com/example4'
+                    'image_url': '/static/kopis_map.jpg',
+                'ticket_url': 'https://ticket.interpark.com/example4'
                 }
             ],
             '스트릿댄스': [
@@ -101,7 +105,8 @@ def create_simple_samples():
                     'time': '21:00',
                     'contact_email': 'battle@streetcrew.com',
                     'video_url': 'https://www.youtube.com/watch?v=example5',
-                    'ticket_url': ''
+                    'image_url': '/static/kopis_map.jpg',
+                'ticket_url': ''
                 },
                 {
                     'title': '브레이킹 쇼케이스',
@@ -114,7 +119,8 @@ def create_simple_samples():
                     'time': '20:30',
                     'contact_email': 'showcase@breakingteam.com',
                     'video_url': 'https://www.youtube.com/watch?v=example6',
-                    'ticket_url': 'https://ticket.interpark.com/example6'
+                    'image_url': '/static/kopis_map.jpg',
+                'ticket_url': 'https://ticket.interpark.com/example6'
                 }
             ],
             '클래식': [
@@ -129,7 +135,8 @@ def create_simple_samples():
                     'time': '19:00',
                     'contact_email': 'beethoven@seoulsymphony.com',
                     'video_url': 'https://www.youtube.com/watch?v=example7',
-                    'ticket_url': 'https://ticket.interpark.com/example7'
+                    'image_url': '/static/kopis_map.jpg',
+                'ticket_url': 'https://ticket.interpark.com/example7'
                 },
                 {
                     'title': '모차르트 피아노 협주곡',
@@ -142,7 +149,8 @@ def create_simple_samples():
                     'time': '19:30',
                     'contact_email': 'mozart@mozartensemble.com',
                     'video_url': 'https://www.youtube.com/watch?v=example8',
-                    'ticket_url': 'https://ticket.interpark.com/example8'
+                    'image_url': '/static/kopis_map.jpg',
+                'ticket_url': 'https://ticket.interpark.com/example8'
                 }
             ]
         }

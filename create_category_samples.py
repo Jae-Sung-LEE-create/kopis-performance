@@ -97,6 +97,7 @@ def create_category_samples():
                 'time': '19:00~21:30',
                 'contact_email': 'hamlet@seoultheater.com',
                 'video_url': 'https://www.youtube.com/watch?v=example1',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/hamlet'
             },
@@ -111,6 +112,7 @@ def create_category_samples():
                 'time': '20:00~22:30',
                 'contact_email': 'othello@nationaltheater.com',
                 'video_url': 'https://www.youtube.com/watch?v=example2',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/othello'
             },
@@ -125,6 +127,7 @@ def create_category_samples():
                 'time': '18:30~20:30',
                 'contact_email': 'romeo@youththeater.com',
                 'video_url': 'https://www.youtube.com/watch?v=example3',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매'],
                 'ticket_url': None
             },
@@ -139,6 +142,7 @@ def create_category_samples():
                 'time': '19:30~21:45',
                 'contact_email': 'macbeth@darktheater.com',
                 'video_url': 'https://www.youtube.com/watch?v=example4',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.melon.com/macbeth'
             }
@@ -157,6 +161,7 @@ def create_category_samples():
                 'time': '19:30~22:30',
                 'contact_email': 'lesmis@broadway.com',
                 'video_url': 'https://www.youtube.com/watch?v=example5',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/lesmis'
             },
@@ -171,6 +176,7 @@ def create_category_samples():
                 'time': '20:00~23:00',
                 'contact_email': 'phantom@opera.com',
                 'video_url': 'https://www.youtube.com/watch?v=example6',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/phantom'
             },
@@ -185,6 +191,7 @@ def create_category_samples():
                 'time': '19:00~21:30',
                 'contact_email': 'cats@musical.com',
                 'video_url': 'https://www.youtube.com/watch?v=example7',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.melon.com/cats'
             },
@@ -199,6 +206,7 @@ def create_category_samples():
                 'time': '20:30~22:45',
                 'contact_email': 'chicago@jazz.com',
                 'video_url': 'https://www.youtube.com/watch?v=example8',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/chicago'
             }
@@ -217,6 +225,7 @@ def create_category_samples():
                 'time': '20:00~22:30',
                 'contact_email': 'beethoven@seoulphil.com',
                 'video_url': 'https://www.youtube.com/watch?v=example9',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/beethoven9'
             },
@@ -231,6 +240,7 @@ def create_category_samples():
                 'time': '19:30~21:30',
                 'contact_email': 'mozart@kbsorchestra.com',
                 'video_url': 'https://www.youtube.com/watch?v=example10',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/mozart'
             },
@@ -245,6 +255,7 @@ def create_category_samples():
                 'time': '19:00~21:30',
                 'contact_email': 'swanlake@nationalballet.com',
                 'video_url': 'https://www.youtube.com/watch?v=example11',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.melon.com/swanlake'
             },
@@ -259,6 +270,7 @@ def create_category_samples():
                 'time': '20:00~21:30',
                 'contact_email': 'bach@seoulchamber.com',
                 'video_url': 'https://www.youtube.com/watch?v=example12',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매'],
                 'ticket_url': None
             }
@@ -277,6 +289,7 @@ def create_category_samples():
                 'time': '19:30~21:30',
                 'contact_email': 'chunhyang@nationalgugak.com',
                 'video_url': 'https://www.youtube.com/watch?v=example13',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.gugak.go.kr/chunhyang'
             },
@@ -291,6 +304,7 @@ def create_category_samples():
                 'time': '20:00~21:30',
                 'contact_email': 'samulnori@traditional.com',
                 'video_url': 'https://www.youtube.com/watch?v=example14',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매'],
                 'ticket_url': None
             },
@@ -305,6 +319,7 @@ def create_category_samples():
                 'time': '19:00~20:30',
                 'contact_email': 'gayageum@ensemble.com',
                 'video_url': 'https://www.youtube.com/watch?v=example15',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/gayageum'
             },
@@ -319,6 +334,7 @@ def create_category_samples():
                 'time': '19:30~22:00',
                 'contact_email': 'simcheong@koreanopera.com',
                 'video_url': 'https://www.youtube.com/watch?v=example16',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/simcheong'
             }
@@ -337,6 +353,7 @@ def create_category_samples():
                 'time': '19:00~22:00',
                 'contact_email': 'kpop@concert.com',
                 'video_url': 'https://www.youtube.com/watch?v=example17',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.melon.com/kpopconcert'
             },
@@ -351,6 +368,7 @@ def create_category_samples():
                 'time': '21:00~23:00',
                 'contact_email': 'jazz@club.com',
                 'video_url': 'https://www.youtube.com/watch?v=example18',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매'],
                 'ticket_url': None
             },
@@ -365,6 +383,7 @@ def create_category_samples():
                 'time': '18:00~22:00',
                 'contact_email': 'rock@festival.com',
                 'video_url': 'https://www.youtube.com/watch?v=example19',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/rockfestival'
             },
@@ -379,6 +398,7 @@ def create_category_samples():
                 'time': '20:00~21:30',
                 'contact_email': 'acoustic@music.com',
                 'video_url': 'https://www.youtube.com/watch?v=example20',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/acoustic'
             }
@@ -397,6 +417,7 @@ def create_category_samples():
                 'time': '19:30~22:00',
                 'contact_email': 'ballet@seoulballet.com',
                 'video_url': 'https://www.youtube.com/watch?v=example21',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/ballet'
             },
@@ -411,6 +432,7 @@ def create_category_samples():
                 'time': '20:00~21:30',
                 'contact_email': 'modern@dance.com',
                 'video_url': 'https://www.youtube.com/watch?v=example22',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/moderndance'
             },
@@ -425,6 +447,7 @@ def create_category_samples():
                 'time': '19:00~20:30',
                 'contact_email': 'korean@dance.com',
                 'video_url': 'https://www.youtube.com/watch?v=example23',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매'],
                 'ticket_url': None
             },
@@ -439,6 +462,7 @@ def create_category_samples():
                 'time': '20:30~22:00',
                 'contact_email': 'tap@dance.com',
                 'video_url': 'https://www.youtube.com/watch?v=example24',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.melon.com/tapdance'
             }
@@ -457,6 +481,7 @@ def create_category_samples():
                 'time': '18:00~22:00',
                 'contact_email': 'hiphop@battle.com',
                 'video_url': 'https://www.youtube.com/watch?v=example25',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/hiphopbattle'
             },
@@ -471,6 +496,7 @@ def create_category_samples():
                 'time': '19:00~21:00',
                 'contact_email': 'street@showcase.com',
                 'video_url': 'https://www.youtube.com/watch?v=example26',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매'],
                 'ticket_url': None
             },
@@ -485,6 +511,7 @@ def create_category_samples():
                 'time': '20:00~21:30',
                 'contact_email': 'kpop@cover.com',
                 'video_url': 'https://www.youtube.com/watch?v=example27',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/kpopcover'
             },
@@ -499,6 +526,7 @@ def create_category_samples():
                 'time': '19:30~22:00',
                 'contact_email': 'dancesport@competition.com',
                 'video_url': 'https://www.youtube.com/watch?v=example28',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.melon.com/dancesport'
             }
@@ -517,6 +545,7 @@ def create_category_samples():
                 'time': '19:00~21:00',
                 'contact_email': 'circus@show.com',
                 'video_url': 'https://www.youtube.com/watch?v=example29',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/circus'
             },
@@ -531,6 +560,7 @@ def create_category_samples():
                 'time': '20:00~21:30',
                 'contact_email': 'magic@show.com',
                 'video_url': 'https://www.youtube.com/watch?v=example30',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매'],
                 'ticket_url': None
             },
@@ -545,6 +575,7 @@ def create_category_samples():
                 'time': '19:30~21:30',
                 'contact_email': 'illusion@show.com',
                 'video_url': 'https://www.youtube.com/watch?v=example31',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/illusion'
             },
@@ -559,6 +590,7 @@ def create_category_samples():
                 'time': '14:00~15:30',
                 'contact_email': 'kids@magic.com',
                 'video_url': 'https://www.youtube.com/watch?v=example32',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.melon.com/kidsmagic'
             }
@@ -577,6 +609,7 @@ def create_category_samples():
                 'time': '20:00~22:00',
                 'contact_email': 'multimedia@art.com',
                 'video_url': 'https://www.youtube.com/watch?v=example33',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.interpark.com/multimedia'
             },
@@ -591,6 +624,7 @@ def create_category_samples():
                 'time': '19:30~21:00',
                 'contact_email': 'performance@art.com',
                 'video_url': 'https://www.youtube.com/watch?v=example34',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매'],
                 'ticket_url': None
             },
@@ -605,6 +639,7 @@ def create_category_samples():
                 'time': '20:00~21:30',
                 'contact_email': 'musicaldance@show.com',
                 'video_url': 'https://www.youtube.com/watch?v=example35',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['현장구매', '사이트구매'],
                 'ticket_url': 'https://ticket.yes24.com/musicaldance'
             },
@@ -619,6 +654,7 @@ def create_category_samples():
                 'time': '19:30~21:00',
                 'contact_email': 'classicjazz@ensemble.com',
                 'video_url': 'https://www.youtube.com/watch?v=example36',
+                'image_url': '/static/kopis_map.jpg',
                 'purchase_methods': ['사이트구매'],
                 'ticket_url': 'https://ticket.melon.com/classicjazz'
             }

@@ -333,7 +333,7 @@ def create_sample_data_if_needed():
                     'ticket_url': 'https://ticket.interpark.com/example1',
                     'main_category': '공연',
                     'category': '연극',
-                    'image_url': 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -350,7 +350,7 @@ def create_sample_data_if_needed():
                     'ticket_url': 'https://ticket.interpark.com/example2',
                     'main_category': '공연',
                     'category': '연극',
-                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -367,7 +367,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '연극',
-                    'image_url': 'https://images.unsplash.com/photo-1464983953574-0892a716854b?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -384,7 +384,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '연극',
-                    'image_url': 'https://images.unsplash.com/photo-1509228468518-180dd4864904?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
@@ -403,7 +403,7 @@ def create_sample_data_if_needed():
                     'ticket_url': 'https://ticket.interpark.com/example3',
                     'main_category': '공연',
                     'category': '뮤지컬',
-                    'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -420,7 +420,7 @@ def create_sample_data_if_needed():
                     'ticket_url': 'https://ticket.interpark.com/example4',
                     'main_category': '공연',
                     'category': '뮤지컬',
-                    'image_url': 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -437,7 +437,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '뮤지컬',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -454,7 +454,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '뮤지컬',
-                    'image_url': 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
@@ -473,7 +473,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '서양음악(클래식)',
-                    'image_url': 'https://images.unsplash.com/photo-1464983953574-0892a716854b?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -490,7 +490,7 @@ def create_sample_data_if_needed():
                     'ticket_url': 'https://ticket.interpark.com/example8',
                     'main_category': '공연',
                     'category': '클래식',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -507,7 +507,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '클래식',
-                    'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -524,7 +524,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '클래식',
-                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
@@ -543,7 +543,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '한국음악(국악)',
-                    'image_url': 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -560,7 +560,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '한국음악(국악)',
-                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -577,7 +577,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '한국음악(국악)',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -594,7 +594,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '한국음악(국악)',
-                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
@@ -613,7 +613,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '대중음악',
-                    'image_url': 'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -630,7 +630,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '대중음악',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -647,7 +647,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '대중음악',
-                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -664,7 +664,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '대중음악',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
@@ -683,7 +683,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '무용(서양/한국무용)',
-                    'image_url': 'https://images.unsplash.com/photo-1503095396549-807759245b35?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -700,7 +700,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '무용(서양/한국무용)',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -717,7 +717,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '무용(서양/한국무용)',
-                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -734,7 +734,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '무용(서양/한국무용)',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
@@ -753,7 +753,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '대중무용',
-                    'image_url': 'https://images.unsplash.com/photo-1517457373958-b7bdd4587205?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -770,7 +770,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '대중무용',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -787,7 +787,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '대중무용',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -804,7 +804,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '대중무용',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
@@ -823,7 +823,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '서커스/마술',
-                    'image_url': 'https://images.unsplash.com/photo-1464983953574-0892a716854b?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -840,7 +840,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '서커스/마술',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -857,7 +857,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '서커스/마술',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -874,7 +874,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '서커스/마술',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
@@ -893,7 +893,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '복합',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -910,7 +910,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '복합',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -927,7 +927,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '복합',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 },
                 {
@@ -944,7 +944,7 @@ def create_sample_data_if_needed():
                     'ticket_url': '',
                     'main_category': '공연',
                     'category': '복합',
-                    'image_url': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=800',
+                    'image_url': '/static/kopis_map.jpg',
                     'purchase_methods': '["현장구매"]'
                 }
             ],
