@@ -1593,13 +1593,21 @@ def submit_performance():
         import json
         purchase_methods_json = json.dumps(purchase_methods, ensure_ascii=False)
 
+        # 가격 처리 (콤마 제거 후 숫자만 저장)
+        price_raw = request.form.get('price_raw', '')
+        if price_raw:
+            price = price_raw
+        else:
+            # price_raw가 없으면 기존 price에서 콤마 제거
+            price = request.form['price'].replace(',', '')
+        
         performance = Performance(
             title=request.form['title'],
             group_name=request.form['group_name'],
             description=request.form['description'],
             location=location,  # 자동 감지된 지역 또는 수동 입력
             address=address,  # 상세 주소 저장
-            price=request.form['price'],
+            price=price,  # 숫자만 저장
             date=request.form['date'],
             time=f"{request.form['start_time']}~{request.form['end_time']}",
             contact_email=request.form['contact_email'],

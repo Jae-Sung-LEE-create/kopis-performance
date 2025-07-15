@@ -112,7 +112,10 @@
                                     <i class="fas fa-won-sign me-1"></i>
                                     {% if lang == 'en' %}Ticket Price *{% elif lang == 'ja' %}チケット価格 *{% elif lang == 'zh' %}票价 *{% else %}티켓 가격 *{% endif %}
                                 </label>
-                                <input type="text" class="form-control" id="price" name="price" required>
+                                <input type="text" class="form-control" id="price" name="price" 
+                                       placeholder="{% if lang == 'en' %}e.g. 1,000,000{% elif lang == 'ja' %}例: 1,000,000{% elif lang == 'zh' %}例如：1,000,000{% else %}예: 1,000,000{% endif %}" 
+                                       required oninput="formatPrice(this)" onkeypress="return onlyNumbers(event)">
+                                <input type="hidden" id="price_raw" name="price_raw">
                             </div>
                         </div>
                         <!-- 구매방법 체크박스 -->
@@ -445,6 +448,49 @@
                             </div>
                         </div>
                         <script>
+                            // 가격 포맷팅 함수
+                            function formatPrice(input) {
+                                // 숫자가 아닌 문자 제거
+                                let value = input.value.replace(/[^\d]/g, '');
+                                
+                                // 숫자가 없으면 빈 문자열 반환
+                                if (value === '') {
+                                    input.value = '';
+                                    document.getElementById('price_raw').value = '';
+                                    return;
+                                }
+                                
+                                // 숫자를 3자리마다 콤마로 구분
+                                const formattedValue = parseInt(value).toLocaleString();
+                                input.value = formattedValue;
+                                
+                                // 원본 숫자 값을 hidden 필드에 저장
+                                document.getElementById('price_raw').value = value;
+                            }
+                            
+                            // 숫자만 입력 허용
+                            function onlyNumbers(event) {
+                                const charCode = (event.which) ? event.which : event.keyCode;
+                                if (charCode > 31 && (charCode < 48 || charCode > 57)) {
+                                    return false;
+                                }
+                                return true;
+                            }
+                            
+                            // 폼 제출 시 원본 숫자 값 사용
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const form = document.querySelector('form');
+                                form.addEventListener('submit', function(e) {
+                                    const priceInput = document.getElementById('price');
+                                    const priceRaw = document.getElementById('price_raw');
+                                    
+                                    // 콤마가 포함된 표시용 값을 원본 숫자로 교체
+                                    if (priceRaw.value) {
+                                        priceInput.value = priceRaw.value;
+                                    }
+                                });
+                            });
+                            
                             const dropzone = document.getElementById('dropzone');
                             const fileInput = document.getElementById('image_file');
                             const preview = document.getElementById('preview');
