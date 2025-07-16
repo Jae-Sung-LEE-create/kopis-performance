@@ -21,32 +21,85 @@
     {% endif %}
 {% endwith %}
 
+<!-- 새로운 멋진 Hero Section -->
 <div class="hero-section">
+    <div class="hero-background">
+        <div class="hero-particles"></div>
+        <div class="hero-gradient"></div>
+    </div>
     <div class="container text-center">
-        <div class="main-title mb-2">
-            {% if lang == 'en' %}Notice{% elif lang == 'ja' %}お知らせ{% elif lang == 'zh' %}公告{% else %}공고{% endif %}
-        </div>
-        <div class="main-subtitle mb-3">(공)연 + (고)go</div>
-        <div class="main-desc mb-4">
-            {% if lang == 'en' %}Promote your stage easily for everyone.{% elif lang == 'ja' %}誰でも簡単に自分の舞台を宣伝できます。{% elif lang == 'zh' %}任何人都可以轻松宣传自己的舞台。{% else %}누구나 간편하게 본인의 무대를 홍보하세요.{% endif %}
-        </div>
-        {% if current_user.is_authenticated %}
-            <a href="/submit" class="btn btn-light btn-lg main-btn">
-                <i class="fas fa-plus me-2"></i>
-                {% if lang == 'en' %}Submit Performance{% elif lang == 'ja' %}公演申請{% elif lang == 'zh' %}申请演出{% else %}공연 신청하기{% endif %}
-            </a>
-        {% else %}
-            <div class="d-flex gap-3 justify-content-center">
-                <a href="/login" class="btn btn-light btn-lg main-btn">
-                    <i class="fas fa-sign-in-alt me-2"></i>
-                    {% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
-                </a>
-                <a href="/register" class="btn btn-outline-light btn-lg main-btn">
-                    <i class="fas fa-user-plus me-2"></i>
-                    {% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
-                </a>
+        <div class="hero-content">
+            <!-- 메인 타이틀 -->
+            <div class="main-title-wrapper">
+                <h1 class="main-title animate-title">
+                    {% if lang == 'en' %}Notice{% elif lang == 'ja' %}お知らせ{% elif lang == 'zh' %}公告{% else %}공고{% endif %}
+                </h1>
+                <div class="title-underline"></div>
             </div>
-        {% endif %}
+            
+            <!-- 서브타이틀 -->
+            <div class="main-subtitle-wrapper">
+                <div class="main-subtitle animate-subtitle">
+                    <span class="highlight-text">(공)연</span> + <span class="highlight-text">(고)go</span>
+                </div>
+                <div class="subtitle-decoration">
+                    <i class="fas fa-star star-1"></i>
+                    <i class="fas fa-star star-2"></i>
+                    <i class="fas fa-star star-3"></i>
+                </div>
+            </div>
+            
+            <!-- 설명 -->
+            <div class="main-desc-wrapper">
+                <p class="main-desc animate-desc">
+                    {% if lang == 'en' %}Promote your stage easily for everyone.{% elif lang == 'ja' %}誰でも簡単に自分の舞台を宣伝できます。{% elif lang == 'zh' %}任何人都可以轻松宣传自己的舞台。{% else %}누구나 간편하게 본인의 무대를 홍보하세요.{% endif %}
+                </p>
+            </div>
+            
+            <!-- 액션 버튼 -->
+            <div class="hero-actions">
+                {% if current_user.is_authenticated %}
+                    <a href="/submit" class="btn btn-hero-primary animate-btn">
+                        <div class="btn-content">
+                            <i class="fas fa-plus btn-icon"></i>
+                            <span class="btn-text">
+                                {% if lang == 'en' %}Submit Performance{% elif lang == 'ja' %}公演申請{% elif lang == 'zh' %}申请演出{% else %}공연 신청하기{% endif %}
+                            </span>
+                        </div>
+                        <div class="btn-glow"></div>
+                    </a>
+                {% else %}
+                    <div class="btn-group-hero">
+                        <a href="/login" class="btn btn-hero-secondary animate-btn">
+                            <div class="btn-content">
+                                <i class="fas fa-sign-in-alt btn-icon"></i>
+                                <span class="btn-text">
+                                    {% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
+                                </span>
+                            </div>
+                        </a>
+                        <a href="/register" class="btn btn-hero-outline animate-btn">
+                            <div class="btn-content">
+                                <i class="fas fa-user-plus btn-icon"></i>
+                                <span class="btn-text">
+                                    {% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
+                                </span>
+                            </div>
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- 스크롤 인디케이터 -->
+            <div class="scroll-indicator">
+                <div class="scroll-arrow">
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+                <div class="scroll-text">
+                    {% if lang == 'en' %}Scroll to explore{% elif lang == 'ja' %}スクロールして探索{% elif lang == 'zh' %}滚动探索{% else %}스크롤하여 탐색{% endif %}
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
