@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}공연시장 분석 대시보드{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">
+                <i class="fas fa-chart-line me-2"></i>공연시장 분석 대시보드
+            </h1>
+            <p class="text-center text-muted mb-4">총 {{ total_performances }}개의 공연 데이터를 분석했습니다.</p>
+        </div>
+    </div>
+
+    <!-- 대시보드 임베드 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>종합 분석 대시보드
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <iframe src="{{ dashboard_url }}" width="100%" height="800" frameborder="0"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 시장 공백 분석 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-search me-2"></i>시장 공백 분석
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- 카테고리별 공백 -->
+                        <div class="col-md-6 mb-3">
+                            <h6>카테고리별 공백</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>카테고리</th>
+                                            <th>현재 수</th>
+                                            <th>기대 비율</th>
+                                            <th>기회 수준</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for category, data in market_gaps.category_gaps.items() %}
+                                        <tr>
+                                            <td>{{ category }}</td>
+                                            <td>{{ data.current_count }}개</td>
+                                            <td>{{ "%.1f"|format(data.expected_ratio * 100) }}%</td>
+                                            <td>
+                                                {% if data.opportunity_level == 'high' %}
+                                                <span class="badge bg-danger">높음</span>
+                                                {% elif data.opportunity_level == 'medium' %}
+                                                <span class="badge bg-warning">보통</span>
+                                                {% else %}
+                                                <span class="badge bg-success">낮음</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- 지역별 공백 -->
+                        <div class="col-md-6 mb-3">
+                            <h6>지역별 공백</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>지역</th>
+                                            <th>현재 수</th>
+                                            <th>기대 비율</th>
+                                            <th>기회 수준</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for location, data in market_gaps.location_gaps.items() %}
+                                        <tr>
+                                            <td>{{ location }}</td>
+                                            <td>{{ data.current_count }}개</td>
+                                            <td>{{ "%.1f"|format(data.expected_ratio * 100) }}%</td>
+                                            <td>
+                                                {% if data.opportunity_level == 'high' %}
+                                                <span class="badge bg-danger">높음</span>
+                                                {% elif data.opportunity_level == 'medium' %}
+                                                <span class="badge bg-warning">보통</span>
+                                                {% else %}
+                                                <span class="badge bg-success">낮음</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 시장 기회 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>시장 기회
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if market_gaps.opportunities %}
+                    <div class="row">
+                        {% for opportunity in market_gaps.opportunities %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <h6 class="card-title text-primary">
+                                        <i class="fas fa-target me-2"></i>{{ opportunity.target }}
+                                    </h6>
+                                    <p class="card-text">{{ opportunity.description }}</p>
+                                    <p class="card-text"><small class="text-muted">{{ opportunity.recommendation }}</small></p>
+                                    <span class="badge bg-primary">{{ opportunity.type }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">현재 특별한 시장 기회가 발견되지 않았습니다.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 액션 버튼 -->
+    <div class="row">
+        <div class="col-12 text-center">
+            <a href="{{ url_for('generate_market_report') }}" class="btn btn-success me-2">
+                <i class="fas fa-file-alt me-2"></i>시장 발전 리포트 생성
+            </a>
+            <a href="{{ url_for('admin_panel') }}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>관리자 패널로 돌아가기
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

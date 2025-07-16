@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}개인화된 공연 추천{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">
+                <i class="fas fa-magic me-2"></i>개인화된 공연 추천
+            </h1>
+            <p class="text-center text-muted mb-4">당신을 위한 맞춤형 공연을 추천해드립니다.</p>
+        </div>
+    </div>
+
+    <!-- 추천 타입 선택 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cog me-2"></i>추천 방식 선택
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('get_recommendations') }}?type=preference" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-heart me-2"></i>선호도 기반
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('get_recommendations') }}?type=popularity" class="btn btn-outline-success w-100">
+                                <i class="fas fa-fire me-2"></i>인기도 기반
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('get_recommendations') }}?type=diversity" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-palette me-2"></i>다양성 기반
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <a href="{{ url_for('get_recommendations') }}?type=hybrid" class="btn btn-outline-info w-100">
+                                <i class="fas fa-brain me-2"></i>하이브리드
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 선호도 기반 추천 -->
+    {% if recommendations.preference_based %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-heart me-2"></i>선호도 기반 추천
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for rec in recommendations.preference_based[:6] %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100">
+                                {% if rec.performance.image_url %}
+                                <img src="{{ rec.performance.image_url }}" class="card-img-top" alt="{{ rec.performance.title }}" style="height: 200px; object-fit: cover;">
+                                {% else %}
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-music fa-3x text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ rec.performance.title }}</h6>
+                                    <p class="card-text text-muted">{{ rec.performance.group_name }}</p>
+                                    <p class="card-text"><small>{{ rec.performance.location }} | {{ rec.performance.date }}</small></p>
+                                    <p class="card-text"><small class="text-success">{{ rec.reason }}</small></p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-primary">{{ rec.performance.category }}</span>
+                                        <span class="text-warning">
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="fas fa-star"></i>
+                                            <i class="far fa-star"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{{ url_for('performance_detail', performance_id=rec.performance.id) }}" class="btn btn-sm btn-primary w-100">
+                                        <i class="fas fa-info-circle me-2"></i>상세보기
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 인기도 기반 추천 -->
+    {% if recommendations.popularity_based %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-fire me-2"></i>인기도 기반 추천
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for rec in recommendations.popularity_based[:6] %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100">
+                                {% if rec.performance.image_url %}
+                                <img src="{{ rec.performance.image_url }}" class="card-img-top" alt="{{ rec.performance.title }}" style="height: 200px; object-fit: cover;">
+                                {% else %}
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-music fa-3x text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ rec.performance.title }}</h6>
+                                    <p class="card-text text-muted">{{ rec.performance.group_name }}</p>
+                                    <p class="card-text"><small>{{ rec.performance.location }} | {{ rec.performance.date }}</small></p>
+                                    <p class="card-text"><small class="text-success">{{ rec.reason }}</small></p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-success">{{ rec.performance.category }}</span>
+                                        <span class="text-danger">
+                                            <i class="fas fa-heart"></i> {{ rec.performance.likes }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{{ url_for('performance_detail', performance_id=rec.performance.id) }}" class="btn btn-sm btn-success w-100">
+                                        <i class="fas fa-info-circle me-2"></i>상세보기
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 다양성 기반 추천 -->
+    {% if recommendations.diversity_based %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-palette me-2"></i>다양성 기반 추천
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for rec in recommendations.diversity_based[:6] %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100">
+                                {% if rec.performance.image_url %}
+                                <img src="{{ rec.performance.image_url }}" class="card-img-top" alt="{{ rec.performance.title }}" style="height: 200px; object-fit: cover;">
+                                {% else %}
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-music fa-3x text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ rec.performance.title }}</h6>
+                                    <p class="card-text text-muted">{{ rec.performance.group_name }}</p>
+                                    <p class="card-text"><small>{{ rec.performance.location }} | {{ rec.performance.date }}</small></p>
+                                    <p class="card-text"><small class="text-success">{{ rec.reason }}</small></p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-warning">{{ rec.performance.category }}</span>
+                                        <span class="text-info">
+                                            <i class="fas fa-palette"></i> 다양한 장르
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{{ url_for('performance_detail', performance_id=rec.performance.id) }}" class="btn btn-sm btn-warning w-100">
+                                        <i class="fas fa-info-circle me-2"></i>상세보기
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 하이브리드 추천 -->
+    {% if recommendations.hybrid %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-brain me-2"></i>하이브리드 추천 (종합)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for rec in recommendations.hybrid[:6] %}
+                        <div class="col-md-6 col-lg-4 mb-3">
+                            <div class="card h-100">
+                                {% if rec.performance.image_url %}
+                                <img src="{{ rec.performance.image_url }}" class="card-img-top" alt="{{ rec.performance.title }}" style="height: 200px; object-fit: cover;">
+                                {% else %}
+                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                                    <i class="fas fa-music fa-3x text-muted"></i>
+                                </div>
+                                {% endif %}
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ rec.performance.title }}</h6>
+                                    <p class="card-text text-muted">{{ rec.performance.group_name }}</p>
+                                    <p class="card-text"><small>{{ rec.performance.location }} | {{ rec.performance.date }}</small></p>
+                                    <p class="card-text"><small class="text-success">종합 점수: {{ "%.1f"|format(rec.total_score) }}</small></p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="badge bg-info">{{ rec.performance.category }}</span>
+                                        <span class="text-primary">
+                                            <i class="fas fa-brain"></i> AI 추천
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="card-footer">
+                                    <a href="{{ url_for('performance_detail', performance_id=rec.performance.id) }}" class="btn btn-sm btn-info w-100">
+                                        <i class="fas fa-info-circle me-2"></i>상세보기
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 사용자 프로필 설정 -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user-cog me-2"></i>추천 정확도 향상
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">더 정확한 추천을 위해 선호도를 설정해보세요.</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>선호 카테고리</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="category1">
+                                <label class="form-check-label" for="category1">뮤지컬</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="category2">
+                                <label class="form-check-label" for="category2">연극</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="category3">
+                                <label class="form-check-label" for="category3">클래식</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>선호 지역</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="location1">
+                                <label class="form-check-label" for="location1">서울</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="location2">
+                                <label class="form-check-label" for="location2">경기</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="location3">
+                                <label class="form-check-label" for="location3">부산</label>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary mt-3">
+                        <i class="fas fa-save me-2"></i>선호도 저장
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

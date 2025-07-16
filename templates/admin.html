@@ -120,6 +120,43 @@
         </div>
     </div>
 
+    <!-- 새로운 기능 메뉴 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-rocket me-2"></i>{% if lang == 'en' %}Advanced Features{% elif lang == 'ja' %}高度な機能{% elif lang == 'zh' %}高级功能{% else %}고급 기능{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('analytics_dashboard') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-chart-line me-2"></i>{% if lang == 'en' %}Market Analytics{% elif lang == 'ja' %}市場分析{% elif lang == 'zh' %}市场分析{% else %}시장 분석{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('get_recommendations') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-magic me-2"></i>{% if lang == 'en' %}Recommendations{% elif lang == 'ja' %}おすすめ{% elif lang == 'zh' %}推荐{% else %}추천 시스템{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{{ url_for('generate_market_report') }}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-file-alt me-2"></i>{% if lang == 'en' %}Market Report{% elif lang == 'ja' %}市場レポート{% elif lang == 'zh' %}市场报告{% else %}시장 리포트{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="/?kopis_sync=true" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-sync me-2"></i>{% if lang == 'en' %}Sync KOPIS{% elif lang == 'ja' %}KOPIS同期{% elif lang == 'zh' %}同步KOPIS{% else %}KOPIS 동기화{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 승인 대기 중인 공연 -->
     <div class="row mb-5">
         <div class="col-12">

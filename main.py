@@ -1009,6 +1009,12 @@ def home():
         
         logger.info(f"Filters - Main Category: {main_category}, Category: {category}, Search: {search}, Date: {date_filter}, Location: {location}, Price: {price_filter}")
         
+        # 추천 시스템 파라미터
+        recommendation_type = request.args.get('recommendation', '')
+        
+        # KOPIS 데이터 연동 파라미터
+        kopis_sync = request.args.get('kopis_sync', 'false').lower() == 'true'
+        
         # 데이터베이스 연결 확인 (간소화)
         try:
             # 기본 쿼리 (승인된 공연만)
@@ -2031,6 +2037,161 @@ def export_csv():
     except Exception as e:
         logger.error(f"CSV export error: {e}")
         flash('CSV 내보내기 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/analytics')
+@login_required
+def analytics_dashboard():
+    """공연시장 분석 대시보드"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        from market_analytics_dashboard import MarketAnalyticsDashboard
+        from market_development_features import MarketDevelopmentAnalyzer
+        
+        # 공연 데이터 수집
+        performances = Performance.query.filter_by(is_approved=True).all()
+        performances_data = []
+        
+        for perf in performances:
+            performances_data.append({
+                'title': perf.title,
+                'category': perf.category,
+                'location': perf.location,
+                'price': perf.price,
+                'date': perf.date,
+                'likes': perf.likes,
+                'comments': len(perf.comments) if hasattr(perf, 'comments') else 0
+            })
+        
+        # 분석 실행
+        dashboard = MarketAnalyticsDashboard()
+        analyzer = MarketDevelopmentAnalyzer()
+        
+        # 시장 공백 분석
+        market_gaps = analyzer.analyze_market_gaps(performances_data)
+        
+        # 대시보드 생성
+        dashboard_html = dashboard.export_dashboard_html(market_gaps, "static/analytics_dashboard.html")
+        
+        return render_template('analytics.html', 
+                             market_gaps=market_gaps,
+                             total_performances=len(performances_data),
+                             dashboard_url='/static/analytics_dashboard.html')
+        
+    except ImportError as e:
+        logger.error(f"Analytics module import error: {e}")
+        flash('분석 모듈을 불러올 수 없습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+    except Exception as e:
+        logger.error(f"Analytics error: {e}")
+        flash('분석 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/recommendations')
+@login_required
+def get_recommendations():
+    """개인화된 공연 추천"""
+    try:
+        from performance_recommendation_system import RecommendationEngine
+        
+        # 사용자 프로필 생성
+        user_profile = {
+            'categories': [],  # 사용자 선호 카테고리 (향후 확장)
+            'locations': [],   # 사용자 선호 지역 (향후 확장)
+            'price_range': 'all',
+            'time': 'all',
+            'interests': [],
+            'viewing_history': [],
+            'ratings': {}
+        }
+        
+        # 공연 데이터 수집
+        performances = Performance.query.filter_by(is_approved=True).all()
+        performances_data = []
+        
+        for perf in performances:
+            performances_data.append({
+                'id': perf.id,
+                'title': perf.title,
+                'category': perf.category,
+                'location': perf.location,
+                'price': perf.price,
+                'date': perf.date,
+                'time': perf.time,
+                'description': perf.description,
+                'likes': perf.likes,
+                'comments': []
+            })
+        
+        # 추천 엔진 실행
+        engine = RecommendationEngine()
+        recommendations = engine.get_hybrid_recommendations(
+            user_id=current_user.id,
+            user_profile=user_profile,
+            performances=performances_data
+        )
+        
+        return render_template('recommendations.html', 
+                             recommendations=recommendations,
+                             user_profile=user_profile)
+        
+    except ImportError as e:
+        logger.error(f"Recommendation module import error: {e}")
+        flash('추천 시스템을 불러올 수 없습니다.', 'error')
+        return redirect(url_for('home'))
+    except Exception as e:
+        logger.error(f"Recommendation error: {e}")
+        flash('추천 시스템 오류가 발생했습니다.', 'error')
+        return redirect(url_for('home'))
+
+@app.route('/market-report')
+@login_required
+def generate_market_report():
+    """시장 발전 리포트 생성"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        from market_development_features import MarketDevelopmentReport
+        
+        # 공연 데이터 수집
+        performances = Performance.query.filter_by(is_approved=True).all()
+        performances_data = []
+        
+        for perf in performances:
+            performances_data.append({
+                'title': perf.title,
+                'category': perf.category,
+                'location': perf.location,
+                'price': perf.price,
+                'date': perf.date,
+                'venue': perf.location,  # 간단한 매핑
+                'likes': perf.likes
+            })
+        
+        # 리포트 생성
+        report_generator = MarketDevelopmentReport()
+        report = report_generator.generate_comprehensive_report(performances_data)
+        
+        # 리포트 파일 저장
+        report_filename = f"market_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+        with open(f"static/{report_filename}", 'w', encoding='utf-8') as f:
+            f.write(report)
+        
+        flash(f'시장 발전 리포트가 생성되었습니다: {report_filename}', 'success')
+        return redirect(url_for('analytics_dashboard'))
+        
+    except ImportError as e:
+        logger.error(f"Market report module import error: {e}")
+        flash('시장 리포트 모듈을 불러올 수 없습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+    except Exception as e:
+        logger.error(f"Market report error: {e}")
+        flash('시장 리포트 생성 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
 
 if __name__ == "__main__":
