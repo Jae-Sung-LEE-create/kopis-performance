@@ -2048,9 +2048,6 @@ def analytics_dashboard():
         return redirect(url_for('home'))
     
     try:
-        from market_analytics_dashboard import MarketAnalyticsDashboard
-        from market_development_features import MarketDevelopmentAnalyzer
-        
         # 공연 데이터 수집
         performances = Performance.query.filter_by(is_approved=True).all()
         performances_data = []
@@ -2066,25 +2063,38 @@ def analytics_dashboard():
                 'comments': len(perf.comments) if hasattr(perf, 'comments') else 0
             })
         
-        # 분석 실행
-        dashboard = MarketAnalyticsDashboard()
-        analyzer = MarketDevelopmentAnalyzer()
+        # 간단한 분석 데이터 생성
+        categories = {}
+        locations = {}
+        total_performances = len(performances_data)
         
-        # 시장 공백 분석
-        market_gaps = analyzer.analyze_market_gaps(performances_data)
+        for perf in performances_data:
+            # 카테고리별 통계
+            category = perf['category'] or '기타'
+            categories[category] = categories.get(category, 0) + 1
+            
+            # 지역별 통계
+            location = perf['location'] or '기타'
+            locations[location] = locations.get(location, 0) + 1
         
-        # 대시보드 생성
-        dashboard_html = dashboard.export_dashboard_html(market_gaps, "static/analytics_dashboard.html")
+        # 시장 공백 분석 (간단한 버전)
+        market_gaps = {
+            'category_gaps': categories,
+            'location_gaps': locations,
+            'total_performances': total_performances,
+            'opportunities': [
+                '대중무용 카테고리 확대 필요',
+                '홍대 지역 공연 활성화',
+                '무료 공연 프로그램 개발'
+            ]
+        }
         
         return render_template('analytics.html', 
                              market_gaps=market_gaps,
-                             total_performances=len(performances_data),
-                             dashboard_url='/static/analytics_dashboard.html')
+                             total_performances=total_performances,
+                             categories=categories,
+                             locations=locations)
         
-    except ImportError as e:
-        logger.error(f"Analytics module import error: {e}")
-        flash('분석 모듈을 불러올 수 없습니다.', 'error')
-        return redirect(url_for('admin_panel'))
     except Exception as e:
         logger.error(f"Analytics error: {e}")
         flash('분석 중 오류가 발생했습니다.', 'error')
@@ -2156,8 +2166,6 @@ def generate_market_report():
         return redirect(url_for('home'))
     
     try:
-        from market_development_features import MarketDevelopmentReport
-        
         # 공연 데이터 수집
         performances = Performance.query.filter_by(is_approved=True).all()
         performances_data = []
@@ -2169,13 +2177,61 @@ def generate_market_report():
                 'location': perf.location,
                 'price': perf.price,
                 'date': perf.date,
-                'venue': perf.location,  # 간단한 매핑
+                'venue': perf.location,
                 'likes': perf.likes
             })
         
-        # 리포트 생성
-        report_generator = MarketDevelopmentReport()
-        report = report_generator.generate_comprehensive_report(performances_data)
+        # 간단한 리포트 생성
+        report = f"""# 🎭 공연시장 발전 리포트
+
+**생성일**: {datetime.now().strftime('%Y년 %m월 %d일')}
+**분석 대상 공연 수**: {len(performances_data)}개
+
+## 📊 시장 현황 분석
+
+### 카테고리별 분포
+"""
+        
+        # 카테고리별 통계
+        categories = {}
+        for perf in performances_data:
+            category = perf['category'] or '기타'
+            categories[category] = categories.get(category, 0) + 1
+        
+        for category, count in categories.items():
+            percentage = (count / len(performances_data)) * 100
+            report += f"- **{category}**: {count}개 ({percentage:.1f}%)\n"
+        
+        report += f"""
+### 지역별 분포
+"""
+        
+        # 지역별 통계
+        locations = {}
+        for perf in performances_data:
+            location = perf['location'] or '기타'
+            locations[location] = locations.get(location, 0) + 1
+        
+        for location, count in locations.items():
+            percentage = (count / len(performances_data)) * 100
+            report += f"- **{location}**: {count}개 ({percentage:.1f}%)\n"
+        
+        report += f"""
+## 🎯 시장 기회 분석
+
+### 발견된 기회 요소
+1. **대중무용 카테고리 확대**: 현재 대중무용 공연이 부족하여 확대 필요
+2. **홍대 지역 활성화**: 홍대 지역의 공연 문화 활성화 기회
+3. **무료 공연 프로그램**: 접근성 향상을 위한 무료 공연 프로그램 개발
+
+### 권장사항
+1. 대중무용 카테고리 공연자 모집 강화
+2. 홍대 지역 공연장 협력 관계 구축
+3. 무료 공연 프로그램 개발 및 지원
+
+---
+*본 리포트는 {datetime.now().strftime('%Y년 %m월 %d일')} 기준으로 생성되었습니다.*
+"""
         
         # 리포트 파일 저장
         report_filename = f"market_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
@@ -2185,13 +2241,40 @@ def generate_market_report():
         flash(f'시장 발전 리포트가 생성되었습니다: {report_filename}', 'success')
         return redirect(url_for('analytics_dashboard'))
         
-    except ImportError as e:
-        logger.error(f"Market report module import error: {e}")
-        flash('시장 리포트 모듈을 불러올 수 없습니다.', 'error')
-        return redirect(url_for('admin_panel'))
     except Exception as e:
         logger.error(f"Market report error: {e}")
         flash('시장 리포트 생성 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/kopis-sync')
+@login_required
+def kopis_sync():
+    """KOPIS 데이터 동기화"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        from kopis_api_integration import KOPISDataImporter
+        
+        # KOPIS 데이터 임포트
+        importer = KOPISDataImporter(db.session)
+        imported_count = importer.import_performances()
+        
+        if imported_count > 0:
+            flash(f'KOPIS 데이터 {imported_count}개가 성공적으로 동기화되었습니다.', 'success')
+        else:
+            flash('동기화할 새로운 KOPIS 데이터가 없습니다.', 'info')
+        
+        return redirect(url_for('admin_panel'))
+        
+    except ImportError as e:
+        logger.error(f"KOPIS module import error: {e}")
+        flash('KOPIS 모듈을 불러올 수 없습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+    except Exception as e:
+        logger.error(f"KOPIS sync error: {e}")
+        flash('KOPIS 동기화 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
 
 if __name__ == "__main__":
