@@ -21,7 +21,7 @@
     {% endif %}
 {% endwith %}
 
-<!-- 새로운 멋진 Hero Section -->
+<!-- Hero Section -->
 <div class="hero-section">
     <div class="hero-background">
         <div class="hero-particles"></div>
@@ -103,27 +103,39 @@
     </div>
 </div>
 
-<div class="container my-5">
-    <!-- 검색 및 필터 UI -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <!-- 검색창 -->
-            <div class="mb-3">
-                <form method="GET" action="/" class="d-flex gap-2">
-                    <input type="text" name="search" class="form-control form-control-lg" 
+<!-- 검색 및 필터 섹션 -->
+<section class="search-section section-animate" data-section="search">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title">
+                <i class="fas fa-search me-3"></i>
+                {% if lang == 'en' %}Find Your Perfect Performance{% elif lang == 'ja' %}理想の公演を見つけよう{% elif lang == 'zh' %}寻找完美演出{% else %}나에게 맞는 공연을 찾아보세요{% endif %}
+            </h2>
+            <p class="section-subtitle">
+                {% if lang == 'en' %}Search and filter through thousands of performances{% elif lang == 'ja' %}数千の公演から検索・フィルタリング{% elif lang == 'zh' %}搜索和筛选数千场演出{% else %}수천 개의 공연을 검색하고 필터링하세요{% endif %}
+            </p>
+        </div>
+        
+        <!-- 검색창 -->
+        <div class="search-container mb-4">
+            <form method="GET" action="/" class="search-form">
+                <div class="input-group input-group-lg">
+                    <input type="text" name="search" class="form-control search-input" 
                            placeholder="{% if lang == 'en' %}Search by performance title or team name...{% elif lang == 'ja' %}公演タイトルまたはチーム名で検索...{% elif lang == 'zh' %}请输入演出标题或团队名称...{% else %}공연 제목 또는 팀명을 검색하세요...{% endif %}"
                            value="{{ search }}">
-                    <button type="submit" class="btn btn-primary btn-lg">
+                    <button type="submit" class="btn btn-primary search-btn">
                         <i class="fas fa-search"></i>
                     </button>
-                </form>
-            </div>
-            
-            <!-- 필터 버튼들 -->
+                </div>
+            </form>
+        </div>
+        
+        <!-- 필터 버튼들 -->
+        <div class="filter-container">
             <div class="row g-3 mb-3">
                 <!-- 날짜별 필터 -->
                 <div class="col-md-3">
-                    <select name="date_filter" class="form-select" onchange="applyFilter('date_filter', this.value)">
+                    <select name="date_filter" class="form-select filter-select" onchange="applyFilter('date_filter', this.value)">
                         <option value="">{% if lang == 'en' %}All Periods{% elif lang == 'ja' %}全期間{% elif lang == 'zh' %}全部时间{% else %}전체 기간{% endif %}</option>
                         <option value="this_week" {% if date_filter == 'this_week' %}selected{% endif %}>{% if lang == 'en' %}This Week{% elif lang == 'ja' %}今週{% elif lang == 'zh' %}本周{% else %}이번 주{% endif %}</option>
                         <option value="this_month" {% if date_filter == 'this_month' %}selected{% endif %}>{% if lang == 'en' %}This Month{% elif lang == 'ja' %}今月{% elif lang == 'zh' %}本月{% else %}이번 달{% endif %}</option>
@@ -133,7 +145,7 @@
                 
                 <!-- 지역별 필터 -->
                 <div class="col-md-3">
-                    <select name="location" class="form-select" onchange="applyFilter('location', this.value)">
+                    <select name="location" class="form-select filter-select" onchange="applyFilter('location', this.value)">
                         <option value="">{% if lang == 'en' %}All Regions{% elif lang == 'ja' %}全地域{% elif lang == 'zh' %}全部地区{% else %}전체 지역{% endif %}</option>
                         <option value="서울특별시" {% if location == '서울특별시' %}selected{% endif %}>{% if lang == 'en' %}Seoul{% elif lang == 'ja' %}ソウル特別市{% elif lang == 'zh' %}首尔特别市{% else %}서울특별시{% endif %}</option>
                         <option value="경기도" {% if location == '경기도' %}selected{% endif %}>{% if lang == 'en' %}Gyeonggi-do{% elif lang == 'ja' %}京畿道{% elif lang == 'zh' %}京畿道{% else %}경기도{% endif %}</option>
@@ -157,7 +169,7 @@
                 
                 <!-- 가격별 필터 -->
                 <div class="col-md-3">
-                    <select name="price_filter" class="form-select" onchange="applyFilter('price_filter', this.value)">
+                    <select name="price_filter" class="form-select filter-select" onchange="applyFilter('price_filter', this.value)">
                         <option value="">{% if lang == 'en' %}All Prices{% elif lang == 'ja' %}全価格{% elif lang == 'zh' %}全部价格{% else %}전체 가격{% endif %}</option>
                         <option value="free" {% if price_filter == 'free' %}selected{% endif %}>{% if lang == 'en' %}Free{% elif lang == 'ja' %}無料{% elif lang == 'zh' %}免费{% else %}무료{% endif %}</option>
                         <option value="paid" {% if price_filter == 'paid' %}selected{% endif %}>{% if lang == 'en' %}Paid{% elif lang == 'ja' %}有料{% elif lang == 'zh' %}收费{% else %}유료{% endif %}</option>
@@ -167,19 +179,32 @@
                 
                 <!-- 필터 초기화 -->
                 <div class="col-md-3">
-                    <a href="/" class="btn btn-outline-secondary w-100">
+                    <a href="/" class="btn btn-outline-secondary w-100 reset-btn">
                         <i class="fas fa-undo me-2"></i>{% if lang == 'en' %}Reset Filters{% elif lang == 'ja' %}フィルター初期化{% elif lang == 'zh' %}重置筛选{% else %}필터 초기화{% endif %}
                     </a>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- 메인 카테고리 버튼 UI -->
-    <div class="row mb-3">
-        <div class="col-12 text-center">
+</section>
+
+<!-- 카테고리 섹션 -->
+<section class="category-section section-animate" data-section="category">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title">
+                <i class="fas fa-tags me-3"></i>
+                {% if lang == 'en' %}Browse by Category{% elif lang == 'ja' %}カテゴリー別に閲覧{% elif lang == 'zh' %}按类别浏览{% else %}카테고리별로 둘러보기{% endif %}
+            </h2>
+            <p class="section-subtitle">
+                {% if lang == 'en' %}Choose from various performance categories{% elif lang == 'ja' %}様々な公演カテゴリーから選択{% elif lang == 'zh' %}从各种演出类别中选择{% else %}다양한 공연 카테고리에서 선택하세요{% endif %}
+            </p>
+        </div>
+        
+        <!-- 메인 카테고리 버튼 UI -->
+        <div class="category-container">
             <!-- 메인 카테고리 버튼 직접 분기 -->
-            <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
+            <div class="main-category-buttons">
                 <a href="/?main_category=전체" class="btn btn-outline-primary btn-lg btn-main-category {% if selected_main_category=='전체' or not selected_main_category %}active{% endif %}">
                     <i class="fas fa-list me-2"></i>{% if lang == 'en' %}All{% elif lang == 'ja' %}全体{% elif lang == 'zh' %}全部{% else %}전체{% endif %}
                 </a>
@@ -190,9 +215,10 @@
                     <i class="fas fa-trophy me-2"></i>{% if lang == 'en' %}Competition{% elif lang == 'ja' %}大会{% elif lang == 'zh' %}大赛{% else %}대회{% endif %}
                 </a>
             </div>
+            
             <!-- 세부 카테고리 버튼 직접 분기 -->
             {% if selected_main_category == '공연' or not selected_main_category %}
-            <div class="d-flex flex-wrap justify-content-center gap-2">
+            <div class="sub-category-buttons">
                 <a href="/?main_category=공연&category=전체" class="btn btn-outline-success btn-category {% if selected_category=='전체' or not selected_category %}active{% endif %}">{% if lang == 'en' %}All{% elif lang == 'ja' %}全体{% elif lang == 'zh' %}全部{% else %}전체{% endif %}</a>
                 <a href="/?main_category=공연&category=연극" class="btn btn-outline-success btn-category {% if selected_category=='연극' %}active{% endif %}">{% if lang == 'en' %}Play{% elif lang == 'ja' %}演劇{% elif lang == 'zh' %}话剧{% else %}연극{% endif %}</a>
                 <a href="/?main_category=공연&category=뮤지컬" class="btn btn-outline-success btn-category {% if selected_category=='뮤지컬' %}active{% endif %}">{% if lang == 'en' %}Musical{% elif lang == 'ja' %}ミュージカル{% elif lang == 'zh' %}音乐剧{% else %}뮤지컬{% endif %}</a>
@@ -205,7 +231,7 @@
                 <a href="/?main_category=공연&category=복합" class="btn btn-outline-success btn-category {% if selected_category=='복합' %}active{% endif %}">{% if lang == 'en' %}Mixed{% elif lang == 'ja' %}複合{% elif lang == 'zh' %}综合{% else %}복합{% endif %}</a>
             </div>
             {% elif selected_main_category == '대회' %}
-            <div class="d-flex flex-wrap justify-content-center gap-2">
+            <div class="sub-category-buttons">
                 <a href="/?main_category=대회&category=전체" class="btn btn-outline-warning btn-category {% if selected_category=='전체' or not selected_category %}active{% endif %}">{% if lang == 'en' %}All{% elif lang == 'ja' %}全体{% elif lang == 'zh' %}全部{% else %}전체{% endif %}</a>
                 <a href="/?main_category=대회&category=댄스대회" class="btn btn-outline-warning btn-category {% if selected_category=='댄스대회' %}active{% endif %}">{% if lang == 'en' %}Dance Competition{% elif lang == 'ja' %}ダンス大会{% elif lang == 'zh' %}舞蹈大赛{% else %}댄스대회{% endif %}</a>
                 <a href="/?main_category=대회&category=노래대회" class="btn btn-outline-warning btn-category {% if selected_category=='노래대회' %}active{% endif %}">{% if lang == 'en' %}Singing Competition{% elif lang == 'ja' %}歌大会{% elif lang == 'zh' %}歌唱大赛{% else %}노래대회{% endif %}</a>
@@ -217,152 +243,154 @@
             {% endif %}
         </div>
     </div>
-    <!-- 최신 공연/대회 섹션 -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <h2 class="text-center mb-4">
-                <i class="fas fa-star me-2"></i>
+</section>
+
+<!-- 공연 목록 섹션 -->
+<section class="performance-section section-animate" data-section="performance">
+    <div class="container">
+        <div class="section-header text-center mb-5">
+            <h2 class="section-title">
+                <i class="fas fa-star me-3"></i>
                 {% if selected_main_category == '대회' %}
-                    {% if lang == 'en' %}Latest Competition{% elif lang == 'ja' %}最新の大会{% elif lang == 'zh' %}最新大赛{% else %}최신 대회{% endif %}
+                    {% if lang == 'en' %}Latest Competitions{% elif lang == 'ja' %}最新の大会{% elif lang == 'zh' %}最新大赛{% else %}최신 대회{% endif %}
                 {% else %}
-                    {% if lang == 'en' %}Latest Performance{% elif lang == 'ja' %}最新の公演{% elif lang == 'zh' %}最新演出{% else %}최신 공연{% endif %}
+                    {% if lang == 'en' %}Latest Performances{% elif lang == 'ja' %}最新の公演{% elif lang == 'zh' %}最新演出{% else %}최신 공연{% endif %}
                 {% endif %}
             </h2>
-        </div>
-    </div>
-
-    {% if performances %}
-    <div class="row">
-        {% for performance in performances %}
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card performance-card h-100 shadow-sm">
-                {% if performance.image_url %}
-                <img src="{{ performance.image_url }}" class="card-img-top" alt="{{ performance.title }}" 
-                     style="height: 200px; object-fit: cover;">
-                {% else %}
-                <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center" 
-                     style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <div class="text-center text-white">
-                        <i class="fas fa-music fa-3x mb-2"></i>
-                        <div class="small">이미지 없음</div>
-                    </div>
-                </div>
-                {% endif %}
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start mb-2">
-                        <div>
-                            <span class="badge bg-primary me-1">{{ performance.main_category }}</span>
-                            <span class="badge bg-secondary">{{ performance.category }}</span>
-                        </div>
-                        <button class="btn btn-sm btn-outline-danger like-btn" data-performance-id="{{ performance.id }}">
-                            <i class="fas fa-heart"></i> <span class="like-count">{{ performance.likes }}</span>
-                        </button>
-                    </div>
-                    <h5 class="card-title">{{ performance.title }}</h5>
-                    <p class="card-text text-muted">
-                        <i class="fas fa-users me-1"></i>{{ performance.group_name }}
-                    </p>
-                    <p class="card-text">{{ performance.description[:100] }}{% if performance.description|length > 100 %}...{% endif %}</p>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <small class="text-muted">
-                            <i class="fas fa-calendar me-1"></i>{{ performance.date }}
-                        </small>
-                        <span class="badge bg-primary">₩{{ performance.price }}</span>
-                    </div>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <div class="d-flex gap-2">
-                        <a href="/performance/{{ performance.id }}" class="btn btn-primary btn-sm flex-fill">
-                            <i class="fas fa-info-circle me-1"></i>자세히 보기
-                        </a>
-                        {% if performance.ticket_url %}
-                        <a href="{{ performance.ticket_url }}" target="_blank" class="btn btn-success btn-sm">
-                            <i class="fas fa-ticket-alt"></i>
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-    {% else %}
-    <div class="text-center py-5">
-        <i class="fas fa-music fa-4x text-muted mb-3"></i>
-        <h4 class="text-muted">
-            {% if selected_main_category == '대회' %}
-                {% if lang == 'en' %}No competitions registered yet{% elif lang == 'ja' %}まだ登録された大会がありません{% elif lang == 'zh' %}尚未注册任何大赛{% else %}아직 등록된 대회가 없습니다{% endif %}
-            {% else %}
-                {% if lang == 'en' %}No performances registered yet{% elif lang == 'ja' %}まだ登録された公演がありません{% elif lang == 'zh' %}尚未注册任何演出{% else %}아직 등록된 공연이 없습니다{% endif %}
-            {% endif %}
-        </h4>
-        <p class="text-muted">
-            {% if selected_main_category == '대회' %}
-                {% if lang == 'en' %}Be the first to submit a competition!{% elif lang == 'ja' %}最初の大会を申請してください！{% elif lang == 'zh' %}快来申请第一个大赛吧！{% else %}첫 번째 대회를 신청해보세요!{% endif %}
-            {% else %}
-                {% if lang == 'en' %}Be the first to submit a performance!{% elif lang == 'ja' %}最初の公演を申請してください！{% elif lang == 'zh' %}快来申请第一个演出吧！{% else %}첫 번째 공연을 신청해보세요!{% endif %}
-            {% endif %}
-        </p>
-        {% if current_user.is_authenticated %}
-            <a href="/submit" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>
+            <p class="section-subtitle">
                 {% if selected_main_category == '대회' %}
-                    {% if lang == 'en' %}Submit Competition{% elif lang == 'ja' %}大会申請{% elif lang == 'zh' %}申请大赛{% else %}대회 신청하기{% endif %}
+                    {% if lang == 'en' %}Discover amazing competitions and events{% elif lang == 'ja' %}素晴らしい大会やイベントを発見{% elif lang == 'zh' %}发现精彩的大赛和活动{% else %}놀라운 대회와 이벤트를 발견하세요{% endif %}
                 {% else %}
-                    {% if lang == 'en' %}Submit Performance{% elif lang == 'ja' %}公演申請{% elif lang == 'zh' %}申请演出{% else %}공연 신청하기{% endif %}
+                    {% if lang == 'en' %}Discover amazing performances and shows{% elif lang == 'ja' %}素晴らしい公演やショーを発見{% elif lang == 'zh' %}发现精彩的演出和表演{% else %}놀라운 공연과 쇼를 발견하세요{% endif %}
                 {% endif %}
-            </a>
-        {% else %}
-            <div class="d-flex gap-2 justify-content-center">
-                <a href="/login" class="btn btn-primary">
-                    <i class="fas fa-sign-in-alt me-2"></i>
-                    {% if lang == 'en' %}Login{% elif lang == 'ja' %}ログイン{% elif lang == 'zh' %}登录{% else %}로그인{% endif %}
-                </a>
-                <a href="/register" class="btn btn-outline-primary">
-                    <i class="fas fa-user-plus me-2"></i>
-                    {% if lang == 'en' %}Sign Up{% elif lang == 'ja' %}新規登録{% elif lang == 'zh' %}注册{% else %}회원가입{% endif %}
-                </a>
+            </p>
+        </div>
+
+        {% if performances %}
+        <div class="performance-grid">
+            {% for performance in performances %}
+            <div class="performance-card-wrapper" data-aos="fade-up" data-aos-delay="{{ loop.index * 100 }}">
+                <div class="card performance-card h-100 shadow-sm">
+                    {% if performance.image_url %}
+                    <img src="{{ performance.image_url }}" class="card-img-top" alt="{{ performance.title }}" 
+                         style="height: 200px; object-fit: cover;">
+                    {% else %}
+                    <div class="card-img-top bg-gradient d-flex align-items-center justify-content-center" 
+                         style="height: 200px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="text-center text-white">
+                            <i class="fas fa-music fa-3x mb-2"></i>
+                            <div class="small">이미지 없음</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge bg-primary me-1">{{ performance.main_category }}</span>
+                                <span class="badge bg-secondary">{{ performance.category }}</span>
+                            </div>
+                            <button class="btn btn-sm btn-outline-danger like-btn" data-performance-id="{{ performance.id }}">
+                                <i class="fas fa-heart"></i> <span class="like-count">{{ performance.likes }}</span>
+                            </button>
+                        </div>
+                        <h5 class="card-title">{{ performance.title }}</h5>
+                        <p class="card-text text-muted">
+                            <i class="fas fa-users me-1"></i>{{ performance.group_name }}
+                        </p>
+                        <p class="card-text">{{ performance.description[:100] }}{% if performance.description|length > 100 %}...{% endif %}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar me-1"></i>{{ performance.date }}
+                            </small>
+                            <span class="badge bg-primary">₩{{ performance.price }}</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex gap-2">
+                            <a href="/performance/{{ performance.id }}" class="btn btn-primary btn-sm flex-fill">
+                                <i class="fas fa-info-circle me-1"></i>자세히 보기
+                            </a>
+                            {% if performance.ticket_url %}
+                            <a href="{{ performance.ticket_url }}" target="_blank" class="btn btn-success btn-sm">
+                                <i class="fas fa-ticket-alt"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
             </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state text-center py-5">
+            <i class="fas fa-music fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">
+                {% if selected_main_category == '대회' %}
+                    {% if lang == 'en' %}No competitions registered yet{% elif lang == 'ja' %}まだ登録された大会がありません{% elif lang == 'zh' %}尚未注册任何大赛{% else %}아직 등록된 대회가 없습니다{% endif %}
+                {% else %}
+                    {% if lang == 'en' %}No performances registered yet{% elif lang == 'ja' %}まだ登録された公演がありません{% elif lang == 'zh' %}尚未注册任何演出{% else %}아직 등록된 공연이 없습니다{% endif %}
+                {% endif %}
+            </h4>
+            <p class="text-muted">
+                {% if selected_main_category == '대회' %}
+                    {% if lang == 'en' %}Be the first to submit a competition!{% elif lang == 'ja' %}最初の大会を申請してください！{% elif lang == 'zh' %}快来申请第一个大赛吧！{% else %}첫 번째 대회를 신청해보세요!{% endif %}
+                {% else %}
+                    {% if lang == 'en' %}Be the first to submit a performance!{% elif lang == 'ja' %}最初の公演を申請してください！{% elif lang == 'zh' %}快来申请第一个演出吧！{% else %}첫 번째 공연을 신청해보세요!{% endif %}
+                {% endif %}
+            </p>
+        </div>
         {% endif %}
     </div>
-    {% endif %}
-</div>
+</section>
 
-<div class="bg-light py-5">
-    <div class="container">
-        <div class="row text-center">
-            <div class="col-md-4 mb-4">
-                <i class="fas fa-theater-masks fa-3x text-primary mb-3"></i>
-                <h4>다양한 예술의 만남</h4>
-                <p class="text-muted">다양한 공연예술과 대회를 한 곳에서 만나보세요</p>
-            </div>
-            <div class="col-md-4 mb-4">
-                <i class="fas fa-user-friends fa-3x text-primary mb-3"></i>
-                <h4>누구나 쉽게 참여</h4>
-                <p class="text-muted">누구나 쉽고 간편하게 공연과 대회를 신청하고 홍보할 수 있습니다</p>
-            </div>
-            <div class="col-md-4 mb-4">
-                <i class="fas fa-globe-asia fa-3x text-primary mb-3"></i>
-                <h4>예술로 소통하는 공간</h4>
-                <p class="text-muted">예술을 사랑하는 모두가 함께 소통하고 성장하는 열린 무대입니다</p>
-            </div>
-        </div>
-    </div>
-</div>
-
+<!-- JavaScript -->
 <script>
 // 필터 적용 함수
 function applyFilter(filterType, value) {
     const urlParams = new URLSearchParams(window.location.search);
-    
     if (value) {
         urlParams.set(filterType, value);
     } else {
         urlParams.delete(filterType);
     }
-    
-    window.location.href = '/' + (urlParams.toString() ? '?' + urlParams.toString() : '');
+    window.location.search = urlParams.toString();
 }
+
+// 스크롤 애니메이션
+document.addEventListener('DOMContentLoaded', function() {
+    const sections = document.querySelectorAll('.section-animate');
+    
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+    
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('animate-in');
+            }
+        });
+    }, observerOptions);
+    
+    sections.forEach(section => {
+        observer.observe(section);
+    });
+    
+    // 스크롤 인디케이터 클릭 이벤트
+    const scrollIndicator = document.querySelector('.scroll-indicator');
+    if (scrollIndicator) {
+        scrollIndicator.addEventListener('click', function() {
+            const searchSection = document.querySelector('.search-section');
+            if (searchSection) {
+                searchSection.scrollIntoView({ 
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    }
+});
 
 // 좋아요 기능
 document.addEventListener('DOMContentLoaded', function() {
@@ -373,7 +401,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const performanceId = this.dataset.performanceId;
             const likeCount = this.querySelector('.like-count');
             
-            fetch('/like/' + performanceId, {
+            fetch(`/like/${performanceId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -383,20 +411,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(data => {
                 if (data.success) {
                     likeCount.textContent = data.likes;
-                    if (data.liked) {
-                        this.classList.remove('btn-outline-danger');
-                        this.classList.add('btn-danger');
-                    } else {
-                        this.classList.remove('btn-danger');
-                        this.classList.add('btn-outline-danger');
-                    }
-                } else {
-                    alert('로그인이 필요합니다.');
+                    this.classList.toggle('liked');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                alert('오류가 발생했습니다.');
             });
         });
     });
