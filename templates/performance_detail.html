@@ -134,13 +134,13 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="mailto:{{ performance.contact_email }}?subject={{ performance.title }} 공연 문의" 
-                           class="btn btn-primary">
+                        <button onclick="sendInquiryEmail('{{ performance.contact_email }}', '{{ performance.title }}')" 
+                                class="btn btn-primary">
                             <i class="fas fa-envelope me-2"></i>{% if lang == 'en' %}Contact by Email{% elif lang == 'ja' %}メールで問い合わせ{% elif lang == 'zh' %}邮件咨询{% else %}예매 문의하기{% endif %}
-                        </a>
-                        <a href="tel:{{ performance.contact_email }}" class="btn btn-outline-primary">
+                        </button>
+                        <button onclick="showPhoneNumber()" class="btn btn-outline-primary">
                             <i class="fas fa-phone me-2"></i>{% if lang == 'en' %}Contact by Phone{% elif lang == 'ja' %}電話で問い合わせ{% elif lang == 'zh' %}电话咨询{% else %}전화 문의{% endif %}
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -198,6 +198,101 @@
         </div>
     </div>
 </div>
+
+<!-- 문의 기능 JavaScript -->
+<script>
+// 예매 문의 이메일 보내기
+function sendInquiryEmail(email, title) {
+    if (!email || email === '') {
+        alert('연락처 이메일이 등록되지 않은 공연입니다.');
+        return;
+    }
+    
+    // 이메일 클라이언트로 메일 보내기
+    var subject = encodeURIComponent(title + ' 공연 예매 문의');
+    var body = encodeURIComponent(
+        '안녕하세요,\n\n' + title + ' 공연에 대한 예매 문의입니다.\n\n' +
+        '문의 내용:\n' +
+        '- 예매 희망 일정:\n' +
+        '- 예매 희망 인원:\n' +
+        '- 기타 문의사항:\n\n' +
+        '빠른 답변 부탁드립니다.\n\n' +
+        '감사합니다.'
+    );
+    
+    var mailtoLink = 'mailto:' + email + '?subject=' + subject + '&body=' + body;
+    window.open(mailtoLink);
+}
+
+// 전화번호 표시
+function showPhoneNumber() {
+    var phoneNumber = '010-9909-2723';
+    
+    // 모달 또는 알림창으로 전화번호 표시
+    var modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    
+    modal.innerHTML = `
+        <div style="
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        ">
+            <h4 style="margin-bottom: 20px;">
+                <i class="fas fa-phone text-primary me-2"></i>전화 문의
+            </h4>
+            <div style="margin-bottom: 20px;">
+                <p style="font-size: 18px; margin-bottom: 10px;">연락처 전화번호</p>
+                <h3 style="color: #007bff; font-weight: bold;">${phoneNumber}</h3>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="callPhone('${phoneNumber}')" class="btn btn-primary">
+                    <i class="fas fa-phone me-2"></i>전화 걸기
+                </button>
+                <button onclick="closeModal()" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>닫기
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// 전화 걸기
+function callPhone(phoneNumber) {
+    window.location.href = 'tel:' + phoneNumber;
+}
+
+// 모달 닫기
+function closeModal() {
+    var modal = document.querySelector('div[style*="position: fixed"]');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// 모달 외부 클릭 시 닫기
+document.addEventListener('click', function(e) {
+    if (e.target.style && e.target.style.position === 'fixed') {
+        closeModal();
+    }
+});
+</script>
 
 <!-- 카카오맵 API -->
 {% if performance.address %}
