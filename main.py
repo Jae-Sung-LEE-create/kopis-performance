@@ -45,11 +45,13 @@ GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:10000/a
 # 구글 OAuth 설정 검증
 if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == 'your_google_client_id':
     logger.warning("GOOGLE_CLIENT_ID not set or using placeholder value")
-    GOOGLE_CLIENT_ID = None
+    # 테스트용 더미 값 설정 (실제 사용 시 제거)
+    GOOGLE_CLIENT_ID = 'test_google_client_id' if os.getenv('FLASK_ENV') == 'development' else None
 
 if not GOOGLE_CLIENT_SECRET or GOOGLE_CLIENT_SECRET == 'your_google_client_secret':
     logger.warning("GOOGLE_CLIENT_SECRET not set or using placeholder value")
-    GOOGLE_CLIENT_SECRET = None
+    # 테스트용 더미 값 설정 (실제 사용 시 제거)
+    GOOGLE_CLIENT_SECRET = 'test_google_client_secret' if os.getenv('FLASK_ENV') == 'development' else None
 
 app = Flask(__name__, 
            template_folder='templates',
