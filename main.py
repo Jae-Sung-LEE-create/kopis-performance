@@ -2277,6 +2277,68 @@ def kopis_sync():
         flash('KOPIS 동기화 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
 
+# ===== AI 기반 기능 데모 라우트 =====
+@app.route('/ai/demo')
+def ai_demo():
+    """AI 기반 기능 데모: 이미지 태깅, 설명 생성, 관객수 예측"""
+    # 샘플 입력값 (실제 서비스에서는 form 등으로 입력받을 수 있음)
+    sample_image_url = request.args.get('image_url') or 'https://upload.wikimedia.org/wikipedia/commons/6/6e/Dancers_in_the_park.jpg'
+    sample_performance = {
+        'title': '현대무용 갈라',
+        'category': '무용(서양/한국무용)',
+        'location': '서울',
+        'price': '30000',
+        'date': '2024-12-05',
+        'group_name': '서울무용단'
+    }
+
+    # 1. 이미지 자동 태깅 (더미)
+    def dummy_image_tagging(image_url):
+        # 실제로는 AI API 호출
+        if 'dance' in image_url.lower():
+            return ['댄스', '무용', '무대', '조명', '공연']
+        return ['공연', '예술', '관객', '음악']
+
+    # 2. 설명 자동 생성 (더미)
+    def dummy_description(tags, perf):
+        if '댄스' in tags:
+            return f"{perf['group_name']}의 {perf['title']}! 역동적인 무대와 감동적인 퍼포먼스를 경험하세요."
+        return f"{perf['title']} 공연입니다. 많은 관심 부탁드립니다."
+
+    # 3. 관객 수 예측 (더미)
+    def dummy_audience_predict(perf):
+        base = 100
+        if perf['category'].startswith('무용'):
+            base += 50
+        if perf['location'] == '서울':
+            base += 30
+        if int(perf['price']) < 20000:
+            base += 20
+        return base, 80  # 관객수, 신뢰도(%)
+
+    # 실제 동작
+    tags = dummy_image_tagging(sample_image_url)
+    auto_desc = dummy_description(tags, sample_performance)
+    audience, confidence = dummy_audience_predict(sample_performance)
+
+    # 결과 렌더링 (간단한 HTML)
+    html = f'''
+    <h2>AI 기반 기능 데모</h2>
+    <h4>1. 이미지 자동 태깅</h4>
+    <img src="{sample_image_url}" style="max-width:300px;"><br>
+    <b>태그:</b> {', '.join(tags)}
+    <h4>2. 공연 설명 자동 생성</h4>
+    <div style="background:#f8f8f8;padding:10px;border-radius:5px;">{auto_desc}</div>
+    <h4>3. 관객 수 예측</h4>
+    <b>예상 관객 수:</b> {audience}명 (신뢰도 {confidence}%)
+    <hr>
+    <form method="get">
+      <label>테스트할 이미지 URL: <input name="image_url" value="{sample_image_url}" style="width:300px"></label>
+      <button type="submit">테스트</button>
+    </form>
+    '''
+    return html
+
 if __name__ == "__main__":
     try:
         # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
