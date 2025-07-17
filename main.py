@@ -37,6 +37,20 @@ if not KAKAO_CLIENT_SECRET or KAKAO_CLIENT_SECRET == 'your_kakao_client_secret':
     logger.warning("KAKAO_CLIENT_SECRET not set or using placeholder value")
     KAKAO_CLIENT_SECRET = None
 
+# 구글 OAuth 설정
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
+GOOGLE_REDIRECT_URI = os.getenv('GOOGLE_REDIRECT_URI', 'http://localhost:10000/auth/google/callback')
+
+# 구글 OAuth 설정 검증
+if not GOOGLE_CLIENT_ID or GOOGLE_CLIENT_ID == 'your_google_client_id':
+    logger.warning("GOOGLE_CLIENT_ID not set or using placeholder value")
+    GOOGLE_CLIENT_ID = None
+
+if not GOOGLE_CLIENT_SECRET or GOOGLE_CLIENT_SECRET == 'your_google_client_secret':
+    logger.warning("GOOGLE_CLIENT_SECRET not set or using placeholder value")
+    GOOGLE_CLIENT_SECRET = None
+
 app = Flask(__name__, 
            template_folder='templates',
            static_folder='static')
@@ -1805,6 +1819,122 @@ def kakao_callback():
     except Exception as e:
         logger.error(f"Kakao callback error: {e}")
         flash('카카오 로그인 처리 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('login'))
+
+# 구글 OAuth 라우트들
+@app.route('/login/google')
+def google_login():
+    """구글 로그인 시작"""
+    try:
+        # 구글 API 키 확인
+        if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+            logger.error("Google API keys not configured")
+            flash('구글 로그인이 현재 설정되지 않았습니다. 관리자에게 문의하세요.', 'error')
+            return redirect(url_for('login'))
+        
+        # 구글 OAuth 인증 URL 생성
+        auth_url = f"https://accounts.google.com/o/oauth2/v2/auth?client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&response_type=code&scope=openid%20email%20profile"
+        logger.info(f"Redirecting to Google OAuth: {auth_url}")
+        return redirect(auth_url)
+    except Exception as e:
+        logger.error(f"Google login error: {e}")
+        flash('구글 로그인 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('login'))
+
+@app.route('/register/google')
+def google_register():
+    """구글 회원가입 시작 (로그인과 동일한 플로우)"""
+    return redirect(url_for('google_login'))
+
+@app.route('/auth/google/callback')
+def google_callback():
+    """구글 OAuth 콜백 처리"""
+    try:
+        # 구글 API 키 확인
+        if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+            logger.error("Google API keys not configured in callback")
+            flash('구글 로그인이 현재 설정되지 않았습니다. 관리자에게 문의하세요.', 'error')
+            return redirect(url_for('login'))
+        
+        # 인증 코드 받기
+        code = request.args.get('code')
+        if not code:
+            flash('구글 인증에 실패했습니다.', 'error')
+            return redirect(url_for('login'))
+        
+        logger.info(f"Received Google authorization code: {code}")
+        
+        # 액세스 토큰 요청
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            'grant_type': 'authorization_code',
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': GOOGLE_CLIENT_SECRET,
+            'code': code,
+            'redirect_uri': GOOGLE_REDIRECT_URI
+        }
+        
+        token_response = requests.post(token_url, data=token_data)
+        token_response.raise_for_status()
+        token_info = token_response.json()
+        
+        access_token = token_info.get('access_token')
+        if not access_token:
+            flash('구글 액세스 토큰을 받지 못했습니다.', 'error')
+            return redirect(url_for('login'))
+        
+        logger.info("Successfully obtained Google access token")
+        
+        # 사용자 정보 요청
+        user_info_url = "https://www.googleapis.com/oauth2/v2/userinfo"
+        headers = {'Authorization': f'Bearer {access_token}'}
+        user_response = requests.get(user_info_url, headers=headers)
+        user_response.raise_for_status()
+        user_info = user_response.json()
+        
+        logger.info(f"Google user info: {user_info}")
+        
+        # 구글 사용자 ID
+        google_id = str(user_info['id'])
+        
+        # 사용자 정보 추출
+        name = user_info.get('name') or f"구글사용자{google_id[-4:]}"
+        email = user_info.get('email') or f"google_{google_id}@google.com"
+        
+        # 기존 사용자 확인 (구글 ID로)
+        existing_user = User.query.filter_by(username=f"google_{google_id}").first()
+        
+        if existing_user:
+            # 기존 사용자 로그인
+            login_user(existing_user)
+            flash('구글로 로그인되었습니다!', 'success')
+            logger.info(f"Existing Google user logged in: {existing_user.username}")
+        else:
+            # 새 사용자 생성
+            new_user = User(
+                name=name,
+                username=f"google_{google_id}",
+                email=email,
+                phone=None,
+                password_hash=generate_password_hash(f"google_{google_id}_{uuid.uuid4()}")  # 랜덤 비밀번호
+            )
+            
+            db.session.add(new_user)
+            db.session.commit()
+            
+            login_user(new_user)
+            flash('구글로 회원가입 및 로그인되었습니다!', 'success')
+            logger.info(f"New Google user created and logged in: {new_user.username}")
+        
+        return redirect(url_for('home'))
+        
+    except requests.exceptions.RequestException as e:
+        logger.error(f"Google API request error: {e}")
+        flash('구글 서버와의 통신 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('login'))
+    except Exception as e:
+        logger.error(f"Google callback error: {e}")
+        flash('구글 로그인 처리 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('login'))
 
 @app.route('/admin/bulk-approve', methods=['POST'])
