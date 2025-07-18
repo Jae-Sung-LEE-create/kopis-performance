@@ -176,6 +176,11 @@ class KOPISAPIClient:
                 perf_data['description'] = self._get_text(db, 'sty')
                 perf_data['time'] = self._get_text(db, 'dtguidance')
                 
+                # 예매처 정보 추출 (KOPIS API에서 제공하는 필드)
+                perf_data['ticket_url'] = self._get_text(db, 'ticket_url')  # 예매 URL
+                perf_data['booking_phone'] = self._get_text(db, 'booking_phone')  # 예매 전화번호
+                perf_data['booking_website'] = self._get_text(db, 'booking_website')  # 예매 웹사이트
+                
                 # 필수 필드가 있는 경우만 추가
                 if perf_data['title'] and perf_data['kopis_id']:
                     performances.append(perf_data)
@@ -321,6 +326,25 @@ class KOPISDataImporter:
                         self.logger.info(f"이미 존재하는 공연: {perf_data.get('title', '')}")
                         continue
                     
+                    # 공연 상세 정보 가져오기 (예매처 정보 포함)
+                    if perf_data.get('kopis_id'):
+                        detail_data = self.kopis_client.get_performance_detail(perf_data['kopis_id'])
+                        if detail_data:
+                            # 상세 정보에서 예매처 정보 업데이트
+                            perf_data['ticket_url'] = detail_data.get('ticket_url', perf_data.get('ticket_url', ''))
+                            perf_data['booking_phone'] = detail_data.get('booking_phone', '')
+                            perf_data['booking_website'] = detail_data.get('booking_website', '')
+                            perf_data['contact_email'] = detail_data.get('contact_email', '')
+                    
+                    # 구매 방법 설정 (예매처 정보 기반)
+                    purchase_methods = []
+                    if perf_data.get('ticket_url'):
+                        purchase_methods.append('사이트구매')
+                    if perf_data.get('booking_phone'):
+                        purchase_methods.append('전화구매')
+                    if not purchase_methods:
+                        purchase_methods.append('현장구매')
+                    
                     # 새로운 공연 데이터 생성
                     performance = self.Performance(
                         title=perf_data.get('title', ''),
@@ -337,6 +361,7 @@ class KOPISDataImporter:
                         main_category='공연',
                         category=perf_data.get('category', ''),
                         ticket_url=perf_data.get('ticket_url', ''),
+                        purchase_methods=json.dumps(purchase_methods),
                         is_approved=True,
                         kopis_id=perf_data.get('kopis_id', ''),
                         kopis_synced_at=datetime.now()
@@ -344,7 +369,7 @@ class KOPISDataImporter:
                     
                     self.db_session.add(performance)
                     imported_count += 1
-                    self.logger.info(f"새로운 공연 추가: {perf_data.get('title', '')}")
+                    self.logger.info(f"새로운 공연 추가: {perf_data.get('title', '')} (예매처: {', '.join(purchase_methods)})")
                     
                 except Exception as e:
                     self.logger.error(f"공연 데이터 임포트 실패: {e}")
