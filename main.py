@@ -522,10 +522,12 @@ def create_sample_data_if_needed():
                     'contact_email': 'hamlet@seoultheater.com',
                     'video_url': 'https://www.youtube.com/watch?v=example1',
                     'ticket_url': 'https://ticket.interpark.com/example1',
+                    'booking_phone': '02-1234-5678',
+                    'booking_website': 'https://booking.naver.com/example1',
                     'main_category': '공연',
                     'category': '연극',
                     'image_url': '/static/kopis_map.jpg',
-                    'purchase_methods': '["현장구매"]'
+                    'purchase_methods': '["사이트구매", "전화구매"]'
                 },
                 {
                     'title': '로미오와 줄리엣',
@@ -538,11 +540,13 @@ def create_sample_data_if_needed():
                     'time': '20:00',
                     'contact_email': 'romeo@youththeater.com',
                     'video_url': 'https://www.youtube.com/watch?v=example2',
-                    'ticket_url': 'https://ticket.interpark.com/example2',
+                    'ticket_url': 'https://ticket.yes24.com/example2',
+                    'booking_phone': '02-2345-6789',
+                    'booking_website': 'https://booking.naver.com/example2',
                     'main_category': '공연',
                     'category': '연극',
                     'image_url': '/static/kopis_map.jpg',
-                    'purchase_methods': '["현장구매"]'
+                    'purchase_methods': '["사이트구매", "전화구매"]'
                 },
                 {
                     'title': '오이디푸스',
@@ -1168,6 +1172,8 @@ def create_sample_data_if_needed():
                     main_category=perf_data['main_category'],
                     category=perf_data['category'],
                     ticket_url=perf_data['ticket_url'],
+                    booking_phone=perf_data.get('booking_phone', ''),
+                    booking_website=perf_data.get('booking_website', ''),
                     user_id=admin_user.id,
                     is_approved=True,
                     purchase_methods=perf_data['purchase_methods']

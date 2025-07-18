@@ -84,11 +84,69 @@ class KOPISAPIClient:
             
             # 상세 정보 전용 파싱 메서드 사용
             data = self._parse_detail_xml_response(response.text)
+            
+            # 예매처 정보 추가 조회
+            booking_info = self.get_booking_info(performance_id)
+            if booking_info:
+                data.update(booking_info)
+            
             return data
             
         except Exception as e:
             self.logger.error(f"공연 상세 정보 조회 실패: {e}")
             return None
+    
+    def get_booking_info(self, performance_id: str) -> Optional[Dict]:
+        """공연 예매처 정보 조회"""
+        if not self.api_key:
+            return None
+        
+        params = {
+            'service': self.api_key,
+            'mt20id': performance_id
+        }
+        
+        try:
+            # 예매처 정보 API (실제 엔드포인트는 KOPIS 문서 확인 필요)
+            response = requests.get(f"{self.base_url}/pblprfr/{performance_id}/booking", params=params)
+            response.raise_for_status()
+            
+            # 예매처 정보 파싱
+            booking_data = self._parse_booking_xml_response(response.text)
+            return booking_data
+            
+        except Exception as e:
+            # 예매처 정보 API가 없을 수 있으므로 기본값 반환
+            self.logger.info(f"예매처 정보 API 호출 실패 (기본값 사용): {e}")
+            return {
+                'ticket_url': '',
+                'booking_phone': '',
+                'booking_website': '',
+                'contact_email': ''
+            }
+    
+    def _parse_booking_xml_response(self, xml_text: str) -> Dict:
+        """예매처 정보 XML 파싱"""
+        try:
+            root = ET.fromstring(xml_text)
+            booking_data = {}
+            
+            # 예매처 정보 필드들 (실제 필드명은 KOPIS 문서 확인 필요)
+            booking_data['ticket_url'] = self._get_text(root, 'ticket_url')
+            booking_data['booking_phone'] = self._get_text(root, 'telno')
+            booking_data['booking_website'] = self._get_text(root, 'relateurl')
+            booking_data['contact_email'] = self._get_text(root, 'email')
+            
+            return booking_data
+            
+        except Exception as e:
+            self.logger.error(f"예매처 정보 XML 파싱 실패: {e}")
+            return {
+                'ticket_url': '',
+                'booking_phone': '',
+                'booking_website': '',
+                'contact_email': ''
+            }
     
     def get_venue_list(self, location: str = None) -> List[Dict]:
         """공연장 목록 조회"""
@@ -166,7 +224,7 @@ class KOPISAPIClient:
                 # 기본 정보 추출
                 perf_data['kopis_id'] = self._get_text(db, 'mt20id')
                 perf_data['title'] = self._get_text(db, 'prfnm')
-                perf_data['group_name'] = self._get_text(db, 'prfpdfrom')
+                perf_data['group_name'] = self._get_text(db, 'entrpsnm')  # 수정: prfpdfrom -> entrpsnm
                 perf_data['date'] = self._get_text(db, 'prfpdfrom')
                 perf_data['end_date'] = self._get_text(db, 'prfpdto')
                 perf_data['location'] = self._get_text(db, 'fcltynm')
@@ -208,7 +266,7 @@ class KOPISAPIClient:
             # 기본 정보
             detail_data['kopis_id'] = self._get_text(db, 'mt20id')
             detail_data['title'] = self._get_text(db, 'prfnm')
-            detail_data['group_name'] = self._get_text(db, 'prfpdfrom')
+            detail_data['group_name'] = self._get_text(db, 'entrpsnm')  # 수정: prfpdfrom -> entrpsnm
             detail_data['date'] = self._get_text(db, 'prfpdfrom')
             detail_data['end_date'] = self._get_text(db, 'prfpdto')
             detail_data['location'] = self._get_text(db, 'fcltynm')
