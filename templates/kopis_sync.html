@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% set lang = g.lang if g.lang else 'ko' %}
+
+{% block title %}
+    {% if lang == 'en' %}KOPIS Sync - KOPIS Performing Arts Platform{% elif lang == 'ja' %}KOPIS同期 - KOPIS公演プラットフォーム{% elif lang == 'zh' %}KOPIS同步 - KOPIS演出宣传平台{% else %}KOPIS 동기화 - KOPIS 공연 홍보 플랫폼{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-sync-alt me-2"></i>
+                        {% if lang == 'en' %}KOPIS Data Synchronization{% elif lang == 'ja' %}KOPISデータ同期{% elif lang == 'zh' %}KOPIS数据同步{% else %}KOPIS 데이터 동기화{% endif %}
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5 class="mb-3">
+                                <i class="fas fa-cog me-2"></i>
+                                {% if lang == 'en' %}Sync Settings{% elif lang == 'ja' %}同期設定{% elif lang == 'zh' %}同步设置{% else %}동기화 설정{% endif %}
+                            </h5>
+                            
+                            <form id="syncForm">
+                                <div class="mb-3">
+                                    <label for="startDate" class="form-label">
+                                        {% if lang == 'en' %}Start Date{% elif lang == 'ja' %}開始日{% elif lang == 'zh' %}开始日期{% else %}시작일{% endif %}
+                                    </label>
+                                    <input type="date" class="form-control" id="startDate" name="startDate" 
+                                           value="{{ today }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="endDate" class="form-label">
+                                        {% if lang == 'en' %}End Date{% elif lang == 'ja' %}終了日{% elif lang == 'zh' %}结束日期{% else %}종료일{% endif %}
+                                    </label>
+                                    <input type="date" class="form-control" id="endDate" name="endDate" 
+                                           value="{{ end_date }}" required>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="forceUpdate" name="forceUpdate">
+                                        <label class="form-check-label" for="forceUpdate">
+                                            {% if lang == 'en' %}Force Update (Overwrite existing data){% elif lang == 'ja' %}強制更新（既存データを上書き）{% elif lang == 'zh' %}强制更新（覆盖现有数据）{% else %}강제 업데이트 (기존 데이터 덮어쓰기){% endif %}
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <button type="submit" class="btn btn-primary" id="syncBtn">
+                                    <i class="fas fa-sync-alt me-2"></i>
+                                    {% if lang == 'en' %}Start Sync{% elif lang == 'ja' %}同期開始{% elif lang == 'zh' %}开始同步{% else %}동기화 시작{% endif %}
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5 class="mb-3">
+                                <i class="fas fa-info-circle me-2"></i>
+                                {% if lang == 'en' %}Sync Information{% elif lang == 'ja' %}同期情報{% elif lang == 'zh' %}同步信息{% else %}동기화 정보{% endif %}
+                            </h5>
+                            
+                            <div class="alert alert-info">
+                                <h6>
+                                    <i class="fas fa-lightbulb me-2"></i>
+                                    {% if lang == 'en' %}What will be synchronized?{% elif lang == 'ja' %}何が同期されますか？{% elif lang == 'zh' %}将同步什么？{% else %}동기화되는 내용{% endif %}
+                                </h6>
+                                <ul class="mb-0">
+                                    <li>{% if lang == 'en' %}Performance title and details{% elif lang == 'ja' %}公演タイトルと詳細{% elif lang == 'zh' %}演出标题和详情{% else %}공연 제목 및 상세 정보{% endif %}</li>
+                                    <li>{% if lang == 'en' %}Performance dates and venue{% elif lang == 'ja' %}公演日と会場{% elif lang == 'zh' %}演出日期和场馆{% else %}공연 일정 및 장소{% endif %}</li>
+                                    <li>{% if lang == 'en' %}Genre and category{% elif lang == 'ja' %}ジャンルとカテゴリ{% elif lang == 'zh' %}类型和分类{% else %}장르 및 카테고리{% endif %}</li>
+                                    <li>{% if lang == 'en' %}Poster images{% elif lang == 'ja' %}ポスター画像{% elif lang == 'zh' %}海报图片{% else %}포스터 이미지{% endif %}</li>
+                                    <li>{% if lang == 'en' %}Performance status{% elif lang == 'ja' %}公演状況{% elif lang == 'zh' %}演出状态{% else %}공연 상태{% endif %}</li>
+                                </ul>
+                            </div>
+                            
+                            <div class="alert alert-warning">
+                                <h6>
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    {% if lang == 'en' %}Note{% elif lang == 'ja' %}注意{% elif lang == 'zh' %}注意{% else %}주의사항{% endif %}
+                                </h6>
+                                <p class="mb-0">
+                                    {% if lang == 'en' %}KOPIS data will be automatically approved. Price information and contact details are not provided by KOPIS.{% elif lang == 'ja' %}KOPISデータは自動的に承認されます。価格情報と連絡先はKOPISから提供されません。{% elif lang == 'zh' %}KOPIS数据将自动获得批准。价格信息和联系方式不由KOPIS提供。{% else %}KOPIS 데이터는 자동으로 승인됩니다. 가격 정보와 연락처는 KOPIS에서 제공하지 않습니다.{% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 동기화 결과 -->
+                    <div id="syncResult" class="mt-4" style="display: none;">
+                        <h5 class="mb-3">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            {% if lang == 'en' %}Sync Results{% elif lang == 'ja' %}同期結果{% elif lang == 'zh' %}同步结果{% else %}동기화 결과{% endif %}
+                        </h5>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h4 id="syncedCount">0</h4>
+                                        <p class="mb-0">
+                                            {% if lang == 'en' %}New{% elif lang == 'ja' %}新規{% elif lang == 'zh' %}新增{% else %}신규{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h4 id="updatedCount">0</h4>
+                                        <p class="mb-0">
+                                            {% if lang == 'en' %}Updated{% elif lang == 'ja' %}更新{% elif lang == 'zh' %}更新{% else %}업데이트{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h4 id="errorCount">0</h4>
+                                        <p class="mb-0">
+                                            {% if lang == 'en' %}Errors{% elif lang == 'ja' %}エラー{% elif lang == 'zh' %}错误{% else %}오류{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h4 id="totalProcessed">0</h4>
+                                        <p class="mb-0">
+                                            {% if lang == 'en' %}Total{% elif lang == 'ja' %}合計{% elif lang == 'zh' %}总计{% else %}총 처리{% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="syncMessage" class="alert mt-3" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const syncForm = document.getElementById('syncForm');
+    const syncBtn = document.getElementById('syncBtn');
+    const syncResult = document.getElementById('syncResult');
+    const syncMessage = document.getElementById('syncMessage');
+    
+    // 기본 날짜 설정
+    const today = new Date();
+    const endDate = new Date();
+    endDate.setDate(today.getDate() + 30);
+    
+    document.getElementById('startDate').value = today.toISOString().split('T')[0];
+    document.getElementById('endDate').value = endDate.toISOString().split('T')[0];
+    
+    syncForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 버튼 비활성화
+        syncBtn.disabled = true;
+        syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>동기화 중...';
+        
+        // 결과 초기화
+        syncResult.style.display = 'none';
+        syncMessage.style.display = 'none';
+        
+        // 폼 데이터 수집
+        const formData = {
+            start_date: document.getElementById('startDate').value.replace(/-/g, ''),
+            end_date: document.getElementById('endDate').value.replace(/-/g, ''),
+            force_update: document.getElementById('forceUpdate').checked
+        };
+        
+        // API 호출
+        fetch('/api/kopis/sync', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            // 결과 표시
+            syncResult.style.display = 'block';
+            
+            if (data.success) {
+                // 성공 메시지
+                syncMessage.className = 'alert alert-success mt-3';
+                syncMessage.textContent = data.message;
+                syncMessage.style.display = 'block';
+                
+                // 통계 업데이트
+                document.getElementById('syncedCount').textContent = data.synced_count;
+                document.getElementById('updatedCount').textContent = data.updated_count;
+                document.getElementById('errorCount').textContent = data.error_count;
+                document.getElementById('totalProcessed').textContent = data.total_processed;
+                
+            } else {
+                // 오류 메시지
+                syncMessage.className = 'alert alert-danger mt-3';
+                syncMessage.textContent = data.error;
+                syncMessage.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            
+            // 오류 메시지
+            syncResult.style.display = 'block';
+            syncMessage.className = 'alert alert-danger mt-3';
+            syncMessage.textContent = '동기화 중 오류가 발생했습니다.';
+            syncMessage.style.display = 'block';
+        })
+        .finally(() => {
+            // 버튼 복원
+            syncBtn.disabled = false;
+            syncBtn.innerHTML = '<i class="fas fa-sync-alt me-2"></i>동기화 시작';
+        });
+    });
+});
+</script>
+{% endblock %} 

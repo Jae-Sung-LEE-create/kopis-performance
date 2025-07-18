@@ -14,6 +14,7 @@ import cloudinary
 import cloudinary.uploader
 import requests
 import time
+import xml.etree.ElementTree as ET
 
 from flask_babel import Babel
 
@@ -52,6 +53,14 @@ if not GOOGLE_CLIENT_SECRET or GOOGLE_CLIENT_SECRET == 'your_google_client_secre
     logger.warning("GOOGLE_CLIENT_SECRET not set or using placeholder value")
     # 테스트용 더미 값 설정 (실제 사용 시 제거)
     GOOGLE_CLIENT_SECRET = 'test_google_client_secret' if os.getenv('FLASK_ENV') == 'development' else None
+
+# KOPIS OAuth 설정
+KOPIS_API_KEY = os.getenv('KOPIS_API_KEY', 'bbfe976d316347c8928fe3a2169ab8fe')
+
+# KOPIS API 설정 검증
+if not KOPIS_API_KEY or KOPIS_API_KEY == 'your_kopis_api_key':
+    logger.warning("KOPIS_API_KEY not set or using placeholder value")
+    KOPIS_API_KEY = 'bbfe976d316347c8928fe3a2169ab8fe'  # 기본값으로 설정
 
 app = Flask(__name__, 
            template_folder='templates',
@@ -151,6 +160,11 @@ class Performance(db.Model):
     is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=func.now())
     purchase_methods = db.Column(db.String(100), default='["현장구매"]')  # 구매방법 (JSON 문자열)
+    
+    # KOPIS 연동 필드
+    kopis_id = db.Column(db.String(50))  # KOPIS 고유 ID
+    kopis_venue_id = db.Column(db.String(50))  # KOPIS 공연장 ID
+    kopis_synced_at = db.Column(db.DateTime)  # KOPIS 동기화 시간
 
     user = db.relationship('User', backref='performances')
 
@@ -192,6 +206,162 @@ def nl2br_filter(text):
 def loads_filter(s):
     import json
     return json.loads(s) if s else []
+
+class KopisAPIClient:
+    """KOPIS API 클라이언트"""
+    
+    def __init__(self, api_key):
+        self.api_key = api_key
+        self.base_url = "http://www.kopis.or.kr/openApi/restful"
+        self.logger = logging.getLogger(__name__)
+    
+    def get_performances(self, start_date=None, end_date=None, page=1, rows=100):
+        """공연 목록 조회"""
+        try:
+            # 기본값 설정
+            if not start_date:
+                start_date = datetime.now().strftime('%Y%m%d')
+            if not end_date:
+                end_date = (datetime.now() + timedelta(days=30)).strftime('%Y%m%d')
+            
+            params = {
+                'service': self.api_key,
+                'stdate': start_date,
+                'eddate': end_date,
+                'cpage': page,
+                'rows': rows,
+                'prfstate': '02'  # 공연예정
+            }
+            
+            response = requests.get(f"{self.base_url}/pblprfr", params=params)
+            response.raise_for_status()
+            
+            # XML 파싱
+            root = ET.fromstring(response.content)
+            performances = []
+            
+            for db in root.findall('.//db'):
+                performance = {
+                    'mt20id': self._get_text(db, 'mt20id'),
+                    'prfnm': self._get_text(db, 'prfnm'),
+                    'prfpdfrom': self._get_text(db, 'prfpdfrom'),
+                    'prfpdto': self._get_text(db, 'prfpdto'),
+                    'fcltynm': self._get_text(db, 'fcltynm'),
+                    'poster': self._get_text(db, 'poster'),
+                    'genrenm': self._get_text(db, 'genrenm'),
+                    'prfstate': self._get_text(db, 'prfstate'),
+                    'openrun': self._get_text(db, 'openrun')
+                }
+                performances.append(performance)
+            
+            return performances
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching performances: {e}")
+            return []
+    
+    def get_performance_detail(self, mt20id):
+        """공연 상세 정보 조회"""
+        try:
+            params = {
+                'service': self.api_key
+            }
+            
+            response = requests.get(f"{self.base_url}/pblprfr/{mt20id}", params=params)
+            response.raise_for_status()
+            
+            # XML 파싱
+            root = ET.fromstring(response.content)
+            db = root.find('.//db')
+            
+            if db is not None:
+                detail = {
+                    'mt20id': self._get_text(db, 'mt20id'),
+                    'mt10id': self._get_text(db, 'mt10id'),
+                    'prfnm': self._get_text(db, 'prfnm'),
+                    'prfpdfrom': self._get_text(db, 'prfpdfrom'),
+                    'prfpdto': self._get_text(db, 'prfpdto'),
+                    'fcltynm': self._get_text(db, 'fcltynm'),
+                    'prfcast': self._get_text(db, 'prfcast'),
+                    'prfcrew': self._get_text(db, 'prfcrew'),
+                    'prfruntime': self._get_text(db, 'prfruntime'),
+                    'prfage': self._get_text(db, 'prfage'),
+                    'entrpsnm': self._get_text(db, 'entrpsnm'),
+                    'pcseguidance': self._get_text(db, 'pcseguidance'),
+                    'poster': self._get_text(db, 'poster'),
+                    'story': self._get_text(db, 'story'),
+                    'genrenm': self._get_text(db, 'genrenm'),
+                    'prfstate': self._get_text(db, 'prfstate'),
+                    'openrun': self._get_text(db, 'openrun'),
+                    'dtguidance': self._get_text(db, 'dtguidance'),
+                    'styurls': [url.text for url in db.findall('.//styurl')]
+                }
+                return detail
+            
+            return None
+            
+        except Exception as e:
+            self.logger.error(f"Error fetching performance detail: {e}")
+            return None
+    
+    def _get_text(self, element, tag):
+        """XML 요소에서 텍스트 추출"""
+        found = element.find(tag)
+        return found.text if found is not None else ''
+
+def map_kopis_to_performance(kopis_data):
+    """KOPIS 데이터를 내부 Performance 모델로 매핑"""
+    
+    # 장르 매핑
+    genre_mapping = {
+        '연극': '연극',
+        '뮤지컬': '뮤지컬',
+        '클래식': '서양음악(클래식)',
+        '국악': '한국음악(국악)',
+        '대중음악': '대중음악',
+        '무용': '무용(서양/한국무용)',
+        '대중무용': '대중무용',
+        '서커스/마술': '서커스/마술',
+        '복합': '복합'
+    }
+    
+    # 날짜 형식 변환
+    try:
+        start_date = datetime.strptime(kopis_data['prfpdfrom'], '%Y.%m.%d').strftime('%Y-%m-%d')
+        end_date = datetime.strptime(kopis_data['prfpdto'], '%Y.%m.%d').strftime('%Y-%m-%d')
+        date_range = f"{start_date} ~ {end_date}"
+    except:
+        date_range = f"{kopis_data.get('prfpdfrom', '')} ~ {kopis_data.get('prfpdto', '')}"
+    
+    # 장르 분류
+    genre = kopis_data.get('genrenm', '')
+    mapped_genre = genre_mapping.get(genre, '복합')
+    
+    # 메인 카테고리 결정
+    main_category = '공연'  # 기본값
+    
+    performance = {
+        'title': kopis_data.get('prfnm', ''),
+        'group_name': kopis_data.get('entrpsnm', ''),
+        'description': kopis_data.get('story', ''),
+        'location': kopis_data.get('fcltynm', ''),
+        'address': '',  # KOPIS에서 제공하지 않음
+        'price': '가격 정보 없음',  # KOPIS에서 제공하지 않음
+        'date': date_range,
+        'time': kopis_data.get('dtguidance', ''),
+        'contact_email': '',  # KOPIS에서 제공하지 않음
+        'video_url': '',  # KOPIS에서 제공하지 않음
+        'image_url': kopis_data.get('poster', ''),
+        'main_category': main_category,
+        'category': mapped_genre,
+        'ticket_url': '',  # KOPIS에서 제공하지 않음
+        'is_approved': True,  # KOPIS 데이터는 자동 승인
+        'kopis_id': kopis_data.get('mt20id', ''),  # KOPIS 고유 ID 저장
+        'kopis_venue_id': kopis_data.get('mt10id', ''),  # KOPIS 공연장 ID
+        'kopis_synced_at': datetime.now()
+    }
+    
+    return performance
 
 def detect_region_from_address(address):
     """주소에서 지역을 자동으로 감지하는 함수"""
