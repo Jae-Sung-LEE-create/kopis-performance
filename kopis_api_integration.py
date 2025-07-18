@@ -82,8 +82,9 @@ class KOPISAPIClient:
             response = requests.get(f"{self.base_url}/pblprfr/{performance_id}", params=params)
             response.raise_for_status()
             
-            data = self._parse_xml_response(response.text)
-            return data[0] if data else None
+            # 상세 정보 전용 파싱 메서드 사용
+            data = self._parse_detail_xml_response(response.text)
+            return data
             
         except Exception as e:
             self.logger.error(f"공연 상세 정보 조회 실패: {e}")
@@ -176,10 +177,11 @@ class KOPISAPIClient:
                 perf_data['description'] = self._get_text(db, 'sty')
                 perf_data['time'] = self._get_text(db, 'dtguidance')
                 
-                # 예매처 정보 추출 (KOPIS API에서 제공하는 필드)
+                # 예매처 정보 추출 (KOPIS API 실제 필드명)
                 perf_data['ticket_url'] = self._get_text(db, 'ticket_url')  # 예매 URL
-                perf_data['booking_phone'] = self._get_text(db, 'booking_phone')  # 예매 전화번호
-                perf_data['booking_website'] = self._get_text(db, 'booking_website')  # 예매 웹사이트
+                perf_data['booking_phone'] = self._get_text(db, 'telno')  # 예매 전화번호
+                perf_data['booking_website'] = self._get_text(db, 'relateurl')  # 관련 URL
+                perf_data['contact_email'] = self._get_text(db, 'email')  # 연락처 이메일
                 
                 # 필수 필드가 있는 경우만 추가
                 if perf_data['title'] and perf_data['kopis_id']:
@@ -191,6 +193,47 @@ class KOPISAPIClient:
         except Exception as e:
             self.logger.error(f"XML 파싱 실패: {e}")
             return []
+    
+    def _parse_detail_xml_response(self, xml_text: str) -> Optional[Dict]:
+        """공연 상세 정보 XML 파싱"""
+        try:
+            root = ET.fromstring(xml_text)
+            db = root.find('.//db')
+            
+            if db is None:
+                return None
+            
+            detail_data = {}
+            
+            # 기본 정보
+            detail_data['kopis_id'] = self._get_text(db, 'mt20id')
+            detail_data['title'] = self._get_text(db, 'prfnm')
+            detail_data['group_name'] = self._get_text(db, 'prfpdfrom')
+            detail_data['date'] = self._get_text(db, 'prfpdfrom')
+            detail_data['end_date'] = self._get_text(db, 'prfpdto')
+            detail_data['location'] = self._get_text(db, 'fcltynm')
+            detail_data['address'] = self._get_text(db, 'adres')
+            detail_data['category'] = self._get_text(db, 'genrenm')
+            detail_data['price'] = self._get_text(db, 'pcseguidance')
+            detail_data['image_url'] = self._get_text(db, 'poster')
+            detail_data['description'] = self._get_text(db, 'sty')
+            detail_data['time'] = self._get_text(db, 'dtguidance')
+            
+            # 예매처 정보 (상세 정보에서 더 정확한 정보)
+            detail_data['ticket_url'] = self._get_text(db, 'ticket_url')
+            detail_data['booking_phone'] = self._get_text(db, 'telno')
+            detail_data['booking_website'] = self._get_text(db, 'relateurl')
+            detail_data['contact_email'] = self._get_text(db, 'email')
+            
+            # KOPIS 예매처 시스템 정보
+            detail_data['booking_system'] = self._get_text(db, 'booking_system')
+            detail_data['booking_links'] = self._get_text(db, 'booking_links')
+            
+            return detail_data
+            
+        except Exception as e:
+            self.logger.error(f"상세 정보 XML 파싱 실패: {e}")
+            return None
     
     def _get_text(self, element, tag: str) -> str:
         """XML 요소에서 텍스트 추출"""
