@@ -266,47 +266,59 @@ class KOPISDataImporter:
     
     def import_performances(self, start_date: str = None, end_date: str = None) -> int:
         """KOPIS 데이터를 로컬 데이터베이스로 임포트"""
-        performances = self.kopis_client.get_performance_list(start_date, end_date)
-        
-        imported_count = 0
-        for perf_data in performances:
-            try:
-                # 중복 확인
-                existing = self.db_session.query('Performance').filter_by(
-                    title=perf_data.get('title')
-                ).first()
-                
-                if existing:
+        try:
+            # 실제 KOPIS API 호출
+            performances = self.kopis_client.get_performances(start_date, end_date)
+            self.logger.info(f"KOPIS API에서 {len(performances)}개의 공연 데이터를 가져왔습니다.")
+            
+            imported_count = 0
+            for perf_data in performances:
+                try:
+                    # 중복 확인 (제목으로 체크)
+                    existing = self.db_session.query(Performance).filter_by(
+                        title=perf_data.get('title', '')
+                    ).first()
+                    
+                    if existing:
+                        self.logger.info(f"이미 존재하는 공연: {perf_data.get('title', '')}")
+                        continue
+                    
+                    # 새로운 공연 데이터 생성
+                    performance = Performance(
+                        title=perf_data.get('title', ''),
+                        group_name=perf_data.get('group_name', ''),
+                        description=perf_data.get('description', ''),
+                        location=perf_data.get('location', ''),
+                        address=perf_data.get('address', ''),
+                        price=perf_data.get('price', ''),
+                        date=perf_data.get('date', ''),
+                        time=perf_data.get('time', ''),
+                        contact_email=perf_data.get('contact_email', ''),
+                        video_url=perf_data.get('video_url', ''),
+                        image_url=perf_data.get('image_url', ''),
+                        main_category='공연',
+                        category=perf_data.get('category', ''),
+                        ticket_url=perf_data.get('ticket_url', ''),
+                        is_approved=True,
+                        kopis_id=perf_data.get('kopis_id', ''),
+                        kopis_synced_at=datetime.now()
+                    )
+                    
+                    self.db_session.add(performance)
+                    imported_count += 1
+                    self.logger.info(f"새로운 공연 추가: {perf_data.get('title', '')}")
+                    
+                except Exception as e:
+                    self.logger.error(f"공연 데이터 임포트 실패: {e}")
                     continue
-                
-                # 새로운 공연 데이터 생성
-                performance = Performance(
-                    title=perf_data.get('title', ''),
-                    group_name=perf_data.get('group_name', ''),
-                    description=perf_data.get('description', ''),
-                    location=perf_data.get('location', ''),
-                    address=perf_data.get('address', ''),
-                    price=perf_data.get('price', ''),
-                    date=perf_data.get('date', ''),
-                    time=perf_data.get('time', ''),
-                    contact_email=perf_data.get('contact_email', ''),
-                    video_url=perf_data.get('video_url', ''),
-                    image_url=perf_data.get('image_url', ''),
-                    main_category='공연',
-                    category=perf_data.get('category', ''),
-                    ticket_url=perf_data.get('ticket_url', ''),
-                    is_approved=True
-                )
-                
-                self.db_session.add(performance)
-                imported_count += 1
-                
-            except Exception as e:
-                self.logger.error(f"공연 데이터 임포트 실패: {e}")
-                continue
-        
-        self.db_session.commit()
-        return imported_count
+            
+            self.db_session.commit()
+            self.logger.info(f"총 {imported_count}개의 새로운 공연이 성공적으로 임포트되었습니다.")
+            return imported_count
+            
+        except Exception as e:
+            self.logger.error(f"KOPIS 데이터 임포트 중 오류 발생: {e}")
+            return 0
 
 def main():
     """메인 실행 함수"""

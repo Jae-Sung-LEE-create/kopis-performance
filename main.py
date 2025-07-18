@@ -2660,6 +2660,7 @@ def kopis_sync():
     
     try:
         from kopis_api_integration import KOPISDataImporter
+        from datetime import datetime
         
         # KOPIS 데이터 임포트
         importer = KOPISDataImporter(db.session)
@@ -2667,8 +2668,10 @@ def kopis_sync():
         
         if imported_count > 0:
             flash(f'KOPIS 데이터 {imported_count}개가 성공적으로 동기화되었습니다.', 'success')
+            logger.info(f'KOPIS 동기화 완료: {imported_count}개 공연 추가')
         else:
-            flash('동기화할 새로운 KOPIS 데이터가 없습니다.', 'info')
+            flash('동기화할 새로운 KOPIS 데이터가 없습니다. (이미 모든 데이터가 동기화되어 있습니다)', 'info')
+            logger.info('KOPIS 동기화: 새로운 데이터 없음')
         
         return redirect(url_for('admin_panel'))
         
