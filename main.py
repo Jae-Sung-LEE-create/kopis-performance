@@ -155,6 +155,8 @@ class Performance(db.Model):
     main_category = db.Column(db.String(20))  # 메인 카테고리 (공연/대회)
     category = db.Column(db.String(50))  # 세부 카테고리
     ticket_url = db.Column(db.String(300))  # 티켓 예매 링크
+    booking_phone = db.Column(db.String(50))  # 예매 전화번호
+    booking_website = db.Column(db.String(300))  # 예매 웹사이트
     likes = db.Column(db.Integer, default=0)  # 좋아요 수
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     is_approved = db.Column(db.Boolean, default=False)

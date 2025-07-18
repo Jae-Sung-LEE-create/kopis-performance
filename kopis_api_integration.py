@@ -404,6 +404,8 @@ class KOPISDataImporter:
                         main_category='공연',
                         category=perf_data.get('category', ''),
                         ticket_url=perf_data.get('ticket_url', ''),
+                        booking_phone=perf_data.get('booking_phone', ''),
+                        booking_website=perf_data.get('booking_website', ''),
                         purchase_methods=json.dumps(purchase_methods),
                         is_approved=True,
                         kopis_id=perf_data.get('kopis_id', ''),
