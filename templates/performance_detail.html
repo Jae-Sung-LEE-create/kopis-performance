@@ -129,10 +129,33 @@
             <div class="card mb-4">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0">
-                        <i class="fas fa-ticket-alt me-2"></i>{% if lang == 'en' %}Contact for Booking{% elif lang == 'ja' %}予約問い合わせ{% elif lang == 'zh' %}预订咨询{% else %}예매 정보{% endif %}
+                        <i class="fas fa-ticket-alt me-2"></i>{% if lang == 'en' %}Booking Information{% elif lang == 'ja' %}予約情報{% elif lang == 'zh' %}预订信息{% else %}예매 정보{% endif %}
                     </h5>
                 </div>
                 <div class="card-body">
+                    <!-- 예매처 바로가기 버튼 -->
+                    {% if performance.ticket_url or performance.booking_phone or performance.booking_website %}
+                    <div class="mb-3">
+                        <button onclick="showBookingOptions()" class="btn btn-success w-100 mb-2">
+                            <i class="fas fa-external-link-alt me-2"></i>{% if lang == 'en' %}Go to Booking Site{% elif lang == 'ja' %}予約サイトへ{% elif lang == 'zh' %}前往预订网站{% else %}예매처 바로가기{% endif %}
+                        </button>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 구매 방법 표시 -->
+                    {% set purchase_methods = performance.purchase_methods | safe | loads %}
+                    {% if purchase_methods %}
+                    <div class="mb-3">
+                        <h6 class="text-muted mb-2">
+                            <i class="fas fa-info-circle me-1"></i>{% if lang == 'en' %}Purchase Methods{% elif lang == 'ja' %}購入方法{% elif lang == 'zh' %}购买方式{% else %}구매 방법{% endif %}
+                        </h6>
+                        {% for method in purchase_methods %}
+                        <span class="badge bg-info text-dark me-1">{{ method }}</span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- 기존 문의 버튼들 -->
                     <div class="d-grid gap-2">
                         <button onclick="sendInquiryEmail('{{ performance.contact_email }}', '{{ performance.title }}')" 
                                 class="btn btn-primary">
@@ -292,6 +315,107 @@ document.addEventListener('click', function(e) {
         closeModal();
     }
 });
+
+// 예매처 옵션 표시
+function showBookingOptions() {
+    var ticketUrl = '{{ performance.ticket_url }}';
+    var bookingPhone = '{{ performance.booking_phone }}';
+    var bookingWebsite = '{{ performance.booking_website }}';
+    
+    var modal = document.createElement('div');
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    
+    var bookingOptions = [];
+    
+    // KOPIS 예매처 시스템 (NHN티켓링크, 네이버N예약, 인터파크)
+    if (ticketUrl) {
+        bookingOptions.push({
+            name: 'NHN티켓링크',
+            url: ticketUrl,
+            icon: 'fas fa-ticket-alt'
+        });
+    }
+    
+    if (bookingWebsite) {
+        bookingOptions.push({
+            name: '네이버N예약',
+            url: bookingWebsite,
+            icon: 'fas fa-calendar-check'
+        });
+    }
+    
+    if (bookingPhone) {
+        bookingOptions.push({
+            name: '인터파크',
+            url: 'tel:' + bookingPhone,
+            icon: 'fas fa-phone'
+        });
+    }
+    
+    // 기본 예매처 옵션들
+    if (bookingOptions.length === 0) {
+        bookingOptions = [
+            { name: 'NHN티켓링크', url: 'https://ticketlink.co.kr', icon: 'fas fa-ticket-alt' },
+            { name: '네이버N예약', url: 'https://booking.naver.com', icon: 'fas fa-calendar-check' },
+            { name: '인터파크', url: 'https://tickets.interpark.com', icon: 'fas fa-ticket-alt' }
+        ];
+    }
+    
+    var optionsHtml = '';
+    bookingOptions.forEach(function(option) {
+        optionsHtml += `
+            <button onclick="openBookingSite('${option.url}')" class="btn btn-outline-primary w-100 mb-2">
+                <i class="${option.icon} me-2"></i>${option.name}
+                <i class="fas fa-chevron-right ms-auto"></i>
+            </button>
+        `;
+    });
+    
+    modal.innerHTML = `
+        <div style="
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        ">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h4 style="margin: 0;">
+                    <i class="fas fa-ticket-alt text-primary me-2"></i>예매처 바로가기
+                </h4>
+                <button onclick="closeModal()" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="d-grid gap-2">
+                ${optionsHtml}
+            </div>
+            <div class="mt-3">
+                <small class="text-muted">※ 가나다 순 정렬</small>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+}
+
+// 예매처 사이트 열기
+function openBookingSite(url) {
+    window.open(url, '_blank');
+    closeModal();
+}
 </script>
 
 <!-- 카카오맵 API -->
