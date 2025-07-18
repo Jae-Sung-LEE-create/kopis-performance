@@ -167,25 +167,46 @@
                         <i class="fas fa-won-sign me-1"></i>
                         {% if lang == 'en' %}Price Range{% elif lang == 'ja' %}価格範囲{% elif lang == 'zh' %}价格范围{% else %}가격 범위{% endif %}
                     </label>
-                    <div class="price-range-container">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <input type="number" id="priceMin" class="form-control form-control-sm" 
-                                   placeholder="0" min="0" max="2000000" step="10000" 
-                                   value="{{ price_min or '' }}" style="width: 100px;">
-                            <span class="text-muted">~</span>
-                            <input type="number" id="priceMax" class="form-control form-control-sm" 
-                                   placeholder="2000000" min="0" max="2000000" step="10000" 
-                                   value="{{ price_max or '' }}" style="width: 100px;">
-                            <span class="text-muted">원</span>
-                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="applyPriceRange()">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                        <div class="price-slider-container">
-                            <div id="priceSlider" class="price-slider"></div>
-                            <div class="d-flex justify-content-between mt-1">
-                                <small class="text-muted">0원</small>
-                                <small class="text-muted">200만원</small>
+                    <div class="price-filter-container">
+                        <!-- 가격 필터 토글 버튼 -->
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="togglePriceFilter()">
+                            <i class="fas fa-sliders-h me-2"></i>
+                            {% if price_min or price_max %}
+                                {% if lang == 'en' %}Price Filter Active{% elif lang == 'ja' %}価格フィルター有効{% elif lang == 'zh' %}价格筛选已启用{% else %}가격 필터 활성화됨{% endif %}
+                                {% if price_min and price_max %}
+                                    (₩{{ price_min }} ~ ₩{{ price_max }})
+                                {% elif price_min %}
+                                    (₩{{ price_min }} 이상)
+                                {% elif price_max %}
+                                    (₩{{ price_max }} 이하)
+                                {% endif %}
+                            {% else %}
+                                {% if lang == 'en' %}Set Price Range{% elif lang == 'ja' %}価格範囲設定{% elif lang == 'zh' %}设置价格范围{% else %}가격 범위 설정{% endif %}
+                            {% endif %}
+                            <i class="fas fa-chevron-down ms-2" id="priceFilterIcon"></i>
+                        </button>
+                        
+                        <!-- 가격 범위 컨테이너 (기본적으로 숨김) -->
+                        <div class="price-range-container mt-2" id="priceRangeContainer" style="display: none;">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <input type="number" id="priceMin" class="form-control form-control-sm" 
+                                       placeholder="0" min="0" max="2000000" step="10000" 
+                                       value="{{ price_min or '' }}" style="width: 100px;">
+                                <span class="text-muted">~</span>
+                                <input type="number" id="priceMax" class="form-control form-control-sm" 
+                                       placeholder="2000000" min="0" max="2000000" step="10000" 
+                                       value="{{ price_max or '' }}" style="width: 100px;">
+                                <span class="text-muted">원</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="applyPriceRange()">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div class="price-slider-container">
+                                <div id="priceSlider" class="price-slider"></div>
+                                <div class="d-flex justify-content-between mt-1">
+                                    <small class="text-muted">0원</small>
+                                    <small class="text-muted">200만원</small>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -378,12 +399,48 @@
 </div>
 
 <style>
+/* 가격 필터 컨테이너 스타일 */
+.price-filter-container {
+    position: relative;
+}
+
 /* 가격 범위 슬라이더 스타일 */
 .price-range-container {
     background: #f8f9fa;
     padding: 15px;
     border-radius: 8px;
     border: 1px solid #dee2e6;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 토글 버튼 스타일 */
+.price-filter-container .btn {
+    transition: all 0.3s ease;
+}
+
+.price-filter-container .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 아이콘 회전 애니메이션 */
+.price-filter-container .fa-chevron-down {
+    transition: transform 0.3s ease;
+}
+
+.price-filter-container .fa-chevron-down.rotated {
+    transform: rotate(180deg);
 }
 
 .price-slider {
@@ -437,6 +494,20 @@
 <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
 <script>
+// 가격 필터 토글 함수
+function togglePriceFilter() {
+    const container = document.getElementById('priceRangeContainer');
+    const icon = document.getElementById('priceFilterIcon');
+    
+    if (container.style.display === 'none') {
+        container.style.display = 'block';
+        icon.classList.add('rotated');
+    } else {
+        container.style.display = 'none';
+        icon.classList.remove('rotated');
+    }
+}
+
 // 필터 적용 함수
 function applyFilter(filterType, value) {
     const urlParams = new URLSearchParams(window.location.search);
@@ -474,17 +545,30 @@ function applyPriceRange() {
 
 // 가격 슬라이더 초기화
 document.addEventListener('DOMContentLoaded', function() {
+    // 가격 필터가 활성화되어 있으면 자동으로 열기
+    const priceMin = '{{ price_min or "" }}';
+    const priceMax = '{{ price_max or "" }}';
+    
+    if (priceMin || priceMax) {
+        const container = document.getElementById('priceRangeContainer');
+        const icon = document.getElementById('priceFilterIcon');
+        if (container && icon) {
+            container.style.display = 'block';
+            icon.classList.add('rotated');
+        }
+    }
+    
     // jQuery UI 슬라이더 초기화
     if ($.fn.slider) {
-        const priceMin = parseInt('{{ price_min or 0 }}');
-        const priceMax = parseInt('{{ price_max or 2000000 }}');
+        const priceMinValue = parseInt('{{ price_min or 0 }}');
+        const priceMaxValue = parseInt('{{ price_max or 2000000 }}');
         
         $('#priceSlider').slider({
             range: true,
             min: 0,
             max: 2000000,
             step: 10000,
-            values: [priceMin, priceMax],
+            values: [priceMinValue, priceMaxValue],
             slide: function(event, ui) {
                 $('#priceMin').val(ui.values[0]);
                 $('#priceMax').val(ui.values[1]);
