@@ -1025,6 +1025,8 @@ def home():
         date_filter = request.args.get('date_filter', '')
         location = request.args.get('location', '')
         price_filter = request.args.get('price_filter', '')
+        price_min = request.args.get('price_min', '')
+        price_max = request.args.get('price_max', '')
         
         logger.info(f"Filters - Main Category: {main_category}, Category: {category}, Search: {search}, Date: {date_filter}, Location: {location}, Price: {price_filter}")
         
@@ -1174,10 +1176,49 @@ def home():
                     )
                 logger.info(f"Price filter '{price_filter}' applied")
             
-            # 최종 결과 가져오기 (지역 필터가 적용되지 않은 경우)
-            if not location:
-                approved_performances = query.order_by(Performance.created_at.desc()).all()
-                logger.info(f"Final result: {len(approved_performances)} performances")
+            # 가격 범위 필터 - Python에서 처리 (가격 문자열 파싱 필요)
+            if price_min or price_max:
+                def filter_by_price_range(performance):
+                    if not performance.price:
+                        return False
+                    
+                    # 가격에서 숫자만 추출
+                    import re
+                    price_str = performance.price.replace(',', '').replace('원', '').replace('₩', '').strip()
+                    
+                    # 무료인 경우
+                    if '무료' in performance.price.lower() or 'free' in performance.price.lower():
+                        price_num = 0
+                    else:
+                        # 숫자만 추출
+                        numbers = re.findall(r'\d+', price_str)
+                        if not numbers:
+                            return False
+                        price_num = int(numbers[0])
+                    
+                    # 범위 체크
+                    if price_min and price_num < int(price_min):
+                        return False
+                    if price_max and price_num > int(price_max):
+                        return False
+                    
+                    return True
+                
+                # 현재까지의 결과에 가격 범위 필터 적용
+                if location:
+                    # 지역 필터가 이미 적용된 경우
+                    approved_performances = [p for p in approved_performances if filter_by_price_range(p)]
+                else:
+                    # 지역 필터가 없는 경우
+                    all_performances = query.order_by(Performance.created_at.desc()).all()
+                    approved_performances = [p for p in all_performances if filter_by_price_range(p)]
+                
+                logger.info(f"Price range filter: {price_min or '0'} ~ {price_max or '∞'} applied, found {len(approved_performances)} performances")
+            else:
+                # 가격 범위 필터가 없는 경우
+                if not location:
+                    approved_performances = query.order_by(Performance.created_at.desc()).all()
+                    logger.info(f"Final result: {len(approved_performances)} performances")
             
             # 템플릿 렌더링
             return render_template("index.html", 
@@ -1187,7 +1228,9 @@ def home():
                                  search=search,
                                  date_filter=date_filter,
                                  location=location,
-                                 price_filter=price_filter)
+                                 price_filter=price_filter,
+                                 price_min=price_min,
+                                 price_max=price_max)
                 
         except Exception as db_error:
             logger.error(f"Database error: {db_error}")
