@@ -153,6 +153,12 @@
                         <option value="전라남도" {% if location == '전라남도' %}selected{% endif %}>{% if lang == 'en' %}Jeollanam-do{% elif lang == 'ja' %}全羅南道{% elif lang == 'zh' %}全罗南道{% else %}전라남도{% endif %}</option>
                         <option value="제주도" {% if location == '제주도' %}selected{% endif %}>{% if lang == 'en' %}Jeju-do{% elif lang == 'ja' %}済州道{% elif lang == 'zh' %}济州道{% else %}제주도{% endif %}</option>
                     </select>
+                    {% if location %}
+                    <small class="form-text text-info">
+                        <i class="fas fa-info-circle me-1"></i>
+                        {% if lang == 'en' %}Filtering by address region{% elif lang == 'ja' %}住所地域でフィルタリング{% elif lang == 'zh' %}按地址地区筛选{% else %}주소 지역으로 필터링 중{% endif %}
+                    </small>
+                    {% endif %}
                 </div>
                 
                 <!-- 가격별 필터 -->
