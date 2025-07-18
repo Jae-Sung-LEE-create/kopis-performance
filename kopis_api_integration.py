@@ -153,14 +153,43 @@ class KOPISAPIClient:
     
     def _parse_xml_response(self, xml_text: str) -> List[Dict]:
         """XML 응답을 파싱하여 딕셔너리 리스트로 변환"""
-        # 간단한 XML 파싱 (실제로는 xml.etree.ElementTree 사용 권장)
         try:
-            # 실제 구현에서는 더 정교한 XML 파싱 필요
-            # 여기서는 예시 데이터 반환
-            return []
+            root = ET.fromstring(xml_text)
+            performances = []
+            
+            # 공연 목록 파싱
+            for db in root.findall('.//db'):
+                perf_data = {}
+                
+                # 기본 정보 추출
+                perf_data['kopis_id'] = self._get_text(db, 'mt20id')
+                perf_data['title'] = self._get_text(db, 'prfnm')
+                perf_data['group_name'] = self._get_text(db, 'prfpdfrom')
+                perf_data['date'] = self._get_text(db, 'prfpdfrom')
+                perf_data['end_date'] = self._get_text(db, 'prfpdto')
+                perf_data['location'] = self._get_text(db, 'fcltynm')
+                perf_data['address'] = self._get_text(db, 'adres')
+                perf_data['category'] = self._get_text(db, 'genrenm')
+                perf_data['price'] = self._get_text(db, 'pcseguidance')
+                perf_data['image_url'] = self._get_text(db, 'poster')
+                perf_data['description'] = self._get_text(db, 'sty')
+                perf_data['time'] = self._get_text(db, 'dtguidance')
+                
+                # 필수 필드가 있는 경우만 추가
+                if perf_data['title'] and perf_data['kopis_id']:
+                    performances.append(perf_data)
+            
+            self.logger.info(f"XML 파싱 완료: {len(performances)}개의 공연 데이터 추출")
+            return performances
+            
         except Exception as e:
             self.logger.error(f"XML 파싱 실패: {e}")
             return []
+    
+    def _get_text(self, element, tag: str) -> str:
+        """XML 요소에서 텍스트 추출"""
+        child = element.find(tag)
+        return child.text if child is not None else ''
 
 class PerformanceAnalytics:
     """공연 데이터 분석 클래스"""
@@ -263,19 +292,27 @@ class KOPISDataImporter:
         self.db_session = db_session
         self.kopis_client = KOPISAPIClient()
         self.logger = logging.getLogger(__name__)
+        
+        # Performance 모델 import
+        try:
+            from main import Performance
+            self.Performance = Performance
+        except ImportError:
+            self.logger.error("Performance 모델을 import할 수 없습니다.")
+            self.Performance = None
     
     def import_performances(self, start_date: str = None, end_date: str = None) -> int:
         """KOPIS 데이터를 로컬 데이터베이스로 임포트"""
         try:
             # 실제 KOPIS API 호출
-            performances = self.kopis_client.get_performances(start_date, end_date)
+            performances = self.kopis_client.get_performance_list(start_date, end_date)
             self.logger.info(f"KOPIS API에서 {len(performances)}개의 공연 데이터를 가져왔습니다.")
             
             imported_count = 0
             for perf_data in performances:
                 try:
                     # 중복 확인 (제목으로 체크)
-                    existing = self.db_session.query(Performance).filter_by(
+                    existing = self.db_session.query(self.Performance).filter_by(
                         title=perf_data.get('title', '')
                     ).first()
                     
@@ -284,7 +321,7 @@ class KOPISDataImporter:
                         continue
                     
                     # 새로운 공연 데이터 생성
-                    performance = Performance(
+                    performance = self.Performance(
                         title=perf_data.get('title', ''),
                         group_name=perf_data.get('group_name', ''),
                         description=perf_data.get('description', ''),
