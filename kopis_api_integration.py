@@ -200,7 +200,7 @@ class PerformanceAnalytics:
         """가격 분석"""
         try:
             # 가격 데이터 정제 (숫자만 추출)
-            df['price_numeric'] = df['price'].str.extract('(\d+)').astype(float)
+            df['price_numeric'] = df['price'].str.extract(r'(\d+)').astype(float)
             
             return {
                 'average_price': df['price_numeric'].mean(),
