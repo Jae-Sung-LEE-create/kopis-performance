@@ -1025,6 +1025,7 @@ def home():
         date_filter = request.args.get('date_filter', '')
         location = request.args.get('location', '')
         price_filter = request.args.get('price_filter', '')
+        price_range = request.args.get('price_range', '')
         price_min = request.args.get('price_min', '')
         price_max = request.args.get('price_max', '')
         
@@ -1176,6 +1177,21 @@ def home():
                     )
                 logger.info(f"Price filter '{price_filter}' applied")
             
+            # 가격 범위 필터 - price_range 파라미터 처리
+            if price_range:
+                if price_range == 'custom':
+                    # 사용자 지정 범위는 price_min, price_max로 처리됨
+                    pass
+                else:
+                    # 미리 정의된 범위 파싱
+                    try:
+                        range_min, range_max = price_range.split('-')
+                        price_min = range_min
+                        price_max = range_max
+                    except ValueError:
+                        logger.warning(f"Invalid price_range format: {price_range}")
+                        price_range = ''
+            
             # 가격 범위 필터 - Python에서 처리 (가격 문자열 파싱 필요)
             if price_min or price_max:
                 def filter_by_price_range(performance):
@@ -1229,6 +1245,7 @@ def home():
                                  date_filter=date_filter,
                                  location=location,
                                  price_filter=price_filter,
+                                 price_range=price_range,
                                  price_min=price_min,
                                  price_max=price_max)
                 
