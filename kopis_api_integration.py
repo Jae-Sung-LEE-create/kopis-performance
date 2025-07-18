@@ -12,6 +12,7 @@ import logging
 from typing import Dict, List, Optional
 import os
 from dotenv import load_dotenv
+import xml.etree.ElementTree as ET
 
 load_dotenv()
 
