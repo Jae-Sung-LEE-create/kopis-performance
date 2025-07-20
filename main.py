@@ -1253,17 +1253,72 @@ def home():
                 from datetime import datetime, timedelta
                 today = datetime.now().date()
                 
+                def parse_performance_date(date_str):
+                    """공연 날짜 문자열을 파싱하여 날짜 객체로 변환"""
+                    if not date_str:
+                        return None
+                    
+                    # 다양한 날짜 형식 처리
+                    date_formats = [
+                        '%Y-%m-%d',      # 2024-12-15
+                        '%Y.%m.%d',      # 2024.12.15
+                        '%Y/%m/%d',      # 2024/12/15
+                        '%Y년 %m월 %d일', # 2024년 12월 15일
+                        '%Y년%m월%d일',   # 2024년12월15일
+                        '%Y-%m-%d ~ %Y-%m-%d',  # 2024-12-15 ~ 2024-12-20
+                        '%Y.%m.%d ~ %Y.%m.%d',  # 2024.12.15 ~ 2024.12.20
+                    ]
+                    
+                    # 범위 형식 처리 (시작일만 추출)
+                    if ' ~ ' in date_str:
+                        date_str = date_str.split(' ~ ')[0].strip()
+                    
+                    for fmt in date_formats:
+                        try:
+                            return datetime.strptime(date_str, fmt).date()
+                        except ValueError:
+                            continue
+                    
+                    # 숫자만 추출해서 시도
+                    import re
+                    numbers = re.findall(r'\d+', date_str)
+                    if len(numbers) >= 3:
+                        try:
+                            year = int(numbers[0])
+                            month = int(numbers[1])
+                            day = int(numbers[2])
+                            if 1900 <= year <= 2100 and 1 <= month <= 12 and 1 <= day <= 31:
+                                return datetime(year, month, day).date()
+                        except ValueError:
+                            pass
+                    
+                    return None
+                
+                def is_date_in_range(performance_date, start_date, end_date):
+                    """공연 날짜가 지정된 범위 내에 있는지 확인"""
+                    if not performance_date:
+                        return False
+                    
+                    # 공연 날짜가 범위 내에 있는지 확인
+                    return start_date <= performance_date <= end_date
+                
                 if date_filter == 'this_week':
                     # 이번 주 (월요일부터 일요일까지)
                     days_since_monday = today.weekday()
                     monday = today - timedelta(days=days_since_monday)
                     sunday = monday + timedelta(days=6)
-                    query = query.filter(
-                        db.and_(
-                            Performance.date >= monday.strftime('%Y-%m-%d'),
-                            Performance.date <= sunday.strftime('%Y-%m-%d')
-                        )
-                    )
+                    
+                    # Python에서 필터링 (날짜 파싱 필요)
+                    all_performances = query.order_by(Performance.created_at.desc()).all()
+                    approved_performances = []
+                    
+                    for performance in all_performances:
+                        perf_date = parse_performance_date(performance.date)
+                        if perf_date and is_date_in_range(perf_date, monday, sunday):
+                            approved_performances.append(performance)
+                    
+                    logger.info(f"This week filter applied: {monday} ~ {sunday}, found {len(approved_performances)} performances")
+                    
                 elif date_filter == 'this_month':
                     # 이번 달
                     first_day = today.replace(day=1)
@@ -1271,12 +1326,18 @@ def home():
                         last_day = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
                     else:
                         last_day = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
-                    query = query.filter(
-                        db.and_(
-                            Performance.date >= first_day.strftime('%Y-%m-%d'),
-                            Performance.date <= last_day.strftime('%Y-%m-%d')
-                        )
-                    )
+                    
+                    # Python에서 필터링
+                    all_performances = query.order_by(Performance.created_at.desc()).all()
+                    approved_performances = []
+                    
+                    for performance in all_performances:
+                        perf_date = parse_performance_date(performance.date)
+                        if perf_date and is_date_in_range(perf_date, first_day, last_day):
+                            approved_performances.append(performance)
+                    
+                    logger.info(f"This month filter applied: {first_day} ~ {last_day}, found {len(approved_performances)} performances")
+                    
                 elif date_filter == 'next_month':
                     # 다음 달
                     if today.month == 12:
@@ -1288,16 +1349,28 @@ def home():
                             last_day = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
                         else:
                             last_day = today.replace(month=today.month + 2, day=1) - timedelta(days=1)
-                    query = query.filter(
-                        db.and_(
-                            Performance.date >= first_day.strftime('%Y-%m-%d'),
-                            Performance.date <= last_day.strftime('%Y-%m-%d')
-                        )
-                    )
+                    
+                    # Python에서 필터링
+                    all_performances = query.order_by(Performance.created_at.desc()).all()
+                    approved_performances = []
+                    
+                    for performance in all_performances:
+                        perf_date = parse_performance_date(performance.date)
+                        if perf_date and is_date_in_range(perf_date, first_day, last_day):
+                            approved_performances.append(performance)
+                    
+                    logger.info(f"Next month filter applied: {first_day} ~ {last_day}, found {len(approved_performances)} performances")
+                
+                else:
+                    # 날짜 필터가 적용되지 않은 경우 기본 쿼리 사용
+                    approved_performances = query.order_by(Performance.created_at.desc()).all()
+            else:
+                # 날짜 필터가 없는 경우 기본 쿼리 사용
+                approved_performances = query.order_by(Performance.created_at.desc()).all()
             
             # 지역 필터 - 주소에서 지역 감지하여 필터링
             if location:
-                # 지역별 키워드 매핑을 데이터베이스 쿼리로 처리
+                # 지역별 키워드 매핑
                 region_keywords = {
                     '서울특별시': ['서울특별시', '서울시', '서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
                     '경기도': ['경기도', '경기', '수원시', '성남시', '의정부시', '안양시', '부천시', '광명시', '평택시', '동두천시', '안산시', '고양시', '과천시', '구리시', '남양주시', '오산시', '시흥시', '군포시', '의왕시', '하남시', '용인시', '파주시', '이천시', '안성시', '김포시', '화성시', '광주시', '여주시'],
@@ -1321,49 +1394,40 @@ def home():
                 if location in region_keywords:
                     # 해당 지역의 키워드들로 주소 필터링
                     keywords = region_keywords[location]
-                    keyword_conditions = []
-                    for keyword in keywords:
-                        keyword_conditions.append(Performance.address.ilike(f'%{keyword}%'))
+                    filtered_performances = []
                     
-                    query = query.filter(db.or_(*keyword_conditions))
-                    logger.info(f"Region filter '{location}' applied with {len(keywords)} keywords")
-                
-                # 필터링된 결과 가져오기
-                approved_performances = query.order_by(Performance.created_at.desc()).all()
-                logger.info(f"Found {len(approved_performances)} performances for region '{location}'")
-            else:
-                # 지역 필터가 없으면 기존 쿼리 결과 사용
-                approved_performances = query.order_by(Performance.created_at.desc()).all()
-                logger.info(f"No region filter, found {len(approved_performances)} performances")
+                    for performance in approved_performances:
+                        address = performance.address or ''
+                        location_name = performance.location or ''
+                        
+                        # 주소나 장소명에 키워드가 포함되어 있는지 확인
+                        for keyword in keywords:
+                            if keyword in address or keyword in location_name:
+                                filtered_performances.append(performance)
+                                break
+                    
+                    approved_performances = filtered_performances
+                    logger.info(f"Region filter '{location}' applied, found {len(approved_performances)} performances")
             
-            # 가격 필터 - 데이터베이스 레벨에서 처리
+            # 가격 필터 - Python에서 처리
             if price_filter:
-                if price_filter == 'free':
-                    query = query.filter(
-                        db.or_(
-                            Performance.price.ilike('%무료%'),
-                            Performance.price.ilike('%free%'),
-                            Performance.price == '무료'
-                        )
-                    )
-                elif price_filter == 'paid':
-                    query = query.filter(
-                        db.and_(
-                            ~Performance.price.ilike('%무료%'),
-                            ~Performance.price.ilike('%free%'),
-                            Performance.price != '무료'
-                        )
-                    )
-                elif price_filter == 'discount':
-                    query = query.filter(
-                        db.or_(
-                            Performance.price.ilike('%할인%'),
-                            Performance.price.ilike('%discount%'),
-                            Performance.price.ilike('%학생%'),
-                            Performance.price.ilike('%student%')
-                        )
-                    )
-                logger.info(f"Price filter '{price_filter}' applied")
+                filtered_performances = []
+                
+                for performance in approved_performances:
+                    price = performance.price or ''
+                    
+                    if price_filter == 'free':
+                        if '무료' in price.lower() or 'free' in price.lower() or price == '무료':
+                            filtered_performances.append(performance)
+                    elif price_filter == 'paid':
+                        if not ('무료' in price.lower() or 'free' in price.lower()) and price != '무료':
+                            filtered_performances.append(performance)
+                    elif price_filter == 'discount':
+                        if any(keyword in price.lower() for keyword in ['할인', 'discount', '학생', 'student']):
+                            filtered_performances.append(performance)
+                
+                approved_performances = filtered_performances
+                logger.info(f"Price filter '{price_filter}' applied, found {len(approved_performances)} performances")
             
             # 가격 범위 필터 - price_range 파라미터 처리
             if price_range:
@@ -1409,20 +1473,12 @@ def home():
                     return True
                 
                 # 현재까지의 결과에 가격 범위 필터 적용
-                if location:
-                    # 지역 필터가 이미 적용된 경우
-                    approved_performances = [p for p in approved_performances if filter_by_price_range(p)]
-                else:
-                    # 지역 필터가 없는 경우
-                    all_performances = query.order_by(Performance.created_at.desc()).all()
-                    approved_performances = [p for p in all_performances if filter_by_price_range(p)]
+                filtered_performances = [p for p in approved_performances if filter_by_price_range(p)]
+                approved_performances = filtered_performances
                 
                 logger.info(f"Price range filter: {price_min or '0'} ~ {price_max or '∞'} applied, found {len(approved_performances)} performances")
-            else:
-                # 가격 범위 필터가 없는 경우
-                if not location:
-                    approved_performances = query.order_by(Performance.created_at.desc()).all()
-                    logger.info(f"Final result: {len(approved_performances)} performances")
+            
+            logger.info(f"Final result: {len(approved_performances)} performances after all filters")
             
             # 템플릿 렌더링
             return render_template("index.html", 
