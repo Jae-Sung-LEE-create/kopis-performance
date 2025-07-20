@@ -236,10 +236,16 @@
                                     <td>{{ performance.created_at.strftime('%Y-%m-%d') }}</td>
                                     <td>
                                         <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-info btn-sm" 
-                                                    data-bs-toggle="modal" data-bs-target="#detailModal{{ performance.id }}">
-                                                <i class="fas fa-eye me-1"></i>{% if lang == 'en' %}Detail{% elif lang == 'ja' %}詳細{% elif lang == 'zh' %}详情{% else %}상세{% endif %}
-                                            </button>
+                                            <a href="{{ url_for('performance_detail', performance_id=performance.id) }}" 
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% if performance.is_kopis_synced %}
+                                            <a href="{{ performance.kopis_url }}" target="_blank" 
+                                               class="btn btn-sm btn-outline-info" title="KOPIS에서 보기">
+                                                <i class="fas fa-external-link-alt"></i>
+                                            </a>
+                                            {% endif %}
                                             <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
                                                 <button type="submit" class="btn btn-success btn-sm">
                                                     <i class="fas fa-check me-1"></i>{% if lang == 'en' %}Approve{% elif lang == 'ja' %}承認{% elif lang == 'zh' %}批准{% else %}승인{% endif %}

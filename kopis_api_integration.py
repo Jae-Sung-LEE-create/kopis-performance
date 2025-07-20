@@ -472,7 +472,7 @@ class KOPISDataImporter:
                     
                     self.db_session.add(performance)
                     imported_count += 1
-                    self.logger.info(f"새로운 공연 추가: {perf_data.get('title', '')} (예매처: {', '.join(purchase_methods)})")
+                    self.logger.info(f"새로운 공연 추가: {perf_data.get('title', '')} (KOPIS ID: {perf_data.get('kopis_id', '')}, 예매처: {', '.join(purchase_methods)})")
                     
                 except Exception as e:
                     self.logger.error(f"공연 데이터 임포트 실패: {e}")

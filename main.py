@@ -169,6 +169,16 @@ class Performance(db.Model):
     kopis_synced_at = db.Column(db.DateTime)  # KOPIS 동기화 시간
 
     user = db.relationship('User', backref='performances')
+    
+    @property
+    def kopis_url(self):
+        """KOPIS 공연 페이지 URL"""
+        return generate_kopis_url(self.kopis_id)
+    
+    @property
+    def is_kopis_synced(self):
+        """KOPIS에서 동기화된 공연인지 확인"""
+        return bool(self.kopis_id and self.kopis_synced_at)
 
 # 사용자별 좋아요 정보
 class UserLike(db.Model):
@@ -2691,6 +2701,13 @@ def kopis_sync():
         logger.error(f"KOPIS sync error: {e}")
         flash('KOPIS 동기화 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
+
+# KOPIS URL 생성 함수 추가
+def generate_kopis_url(kopis_id):
+    """KOPIS 공연 페이지 URL 생성"""
+    if not kopis_id:
+        return None
+    return f"https://www.kopis.or.kr/por/db/pblprfr/pblprfrView.do?mt20id={kopis_id}"
 
 if __name__ == "__main__":
     try:
