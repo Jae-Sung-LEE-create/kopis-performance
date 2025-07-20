@@ -408,15 +408,18 @@ class KOPISDataImporter:
             self.logger.error("Performance 모델을 import할 수 없습니다.")
             self.Performance = None
     
-    def import_performances(self, start_date: str = None, end_date: str = None) -> int:
-        """KOPIS 데이터를 로컬 데이터베이스로 임포트"""
+    def import_performances(self, start_date: str = None, end_date: str = None, 
+                          fetch_details: bool = False, batch_size: int = 50) -> int:
+        """KOPIS 데이터를 로컬 데이터베이스로 임포트 (성능 최적화)"""
         try:
             # 실제 KOPIS API 호출
             performances = self.kopis_client.get_performance_list(start_date, end_date)
             self.logger.info(f"KOPIS API에서 {len(performances)}개의 공연 데이터를 가져왔습니다.")
             
             imported_count = 0
-            for perf_data in performances:
+            batch_count = 0
+            
+            for i, perf_data in enumerate(performances):
                 try:
                     # 중복 확인 (제목으로 체크)
                     existing = self.db_session.query(self.Performance).filter_by(
@@ -424,27 +427,24 @@ class KOPISDataImporter:
                     ).first()
                     
                     if existing:
-                        self.logger.info(f"이미 존재하는 공연: {perf_data.get('title', '')}")
+                        self.logger.debug(f"이미 존재하는 공연: {perf_data.get('title', '')}")
                         continue
                     
-                    # 공연 상세 정보 가져오기 (예매처 정보 포함)
-                    if perf_data.get('kopis_id'):
-                        detail_data = self.kopis_client.get_performance_detail(perf_data['kopis_id'])
-                        if detail_data:
-                            # 상세 정보에서 예매처 정보 업데이트
-                            perf_data['ticket_url'] = detail_data.get('ticket_url', perf_data.get('ticket_url', ''))
-                            perf_data['booking_phone'] = detail_data.get('booking_phone', '')
-                            perf_data['booking_website'] = detail_data.get('booking_website', '')
-                            perf_data['contact_email'] = detail_data.get('contact_email', '')
+                    # 상세 정보 가져오기 (선택적, 성능 향상을 위해 기본적으로 비활성화)
+                    if fetch_details and perf_data.get('kopis_id'):
+                        try:
+                            detail_data = self.kopis_client.get_performance_detail(perf_data['kopis_id'])
+                            if detail_data:
+                                # 상세 정보에서 예매처 정보 업데이트
+                                perf_data['ticket_url'] = detail_data.get('ticket_url', perf_data.get('ticket_url', ''))
+                                perf_data['booking_phone'] = detail_data.get('booking_phone', '')
+                                perf_data['booking_website'] = detail_data.get('booking_website', '')
+                                perf_data['contact_email'] = detail_data.get('contact_email', '')
+                        except Exception as e:
+                            self.logger.warning(f"상세 정보 조회 실패 (ID: {perf_data.get('kopis_id', '')}): {e}")
                     
-                    # 구매 방법 설정 (예매처 정보 기반)
-                    purchase_methods = []
-                    if perf_data.get('ticket_url'):
-                        purchase_methods.append('사이트구매')
-                    if perf_data.get('booking_phone'):
-                        purchase_methods.append('전화구매')
-                    if not purchase_methods:
-                        purchase_methods.append('현장구매')
+                    # 구매 방법 설정 (기본값)
+                    purchase_methods = ['현장구매']  # 기본값
                     
                     # 새로운 공연 데이터 생성
                     performance = self.Performance(
@@ -472,13 +472,23 @@ class KOPISDataImporter:
                     
                     self.db_session.add(performance)
                     imported_count += 1
-                    self.logger.info(f"새로운 공연 추가: {perf_data.get('title', '')} (KOPIS ID: {perf_data.get('kopis_id', '')}, 예매처: {', '.join(purchase_methods)})")
+                    batch_count += 1
+                    
+                    # 배치 커밋 (성능 향상)
+                    if batch_count >= batch_size:
+                        self.db_session.commit()
+                        self.logger.info(f"배치 커밋 완료: {batch_count}개 공연 처리됨 (총 {imported_count}개)")
+                        batch_count = 0
                     
                 except Exception as e:
                     self.logger.error(f"공연 데이터 임포트 실패: {e}")
                     continue
             
-            self.db_session.commit()
+            # 남은 배치 커밋
+            if batch_count > 0:
+                self.db_session.commit()
+                self.logger.info(f"최종 배치 커밋 완료: {batch_count}개 공연 처리됨")
+            
             self.logger.info(f"총 {imported_count}개의 새로운 공연이 성공적으로 임포트되었습니다.")
             return imported_count
             

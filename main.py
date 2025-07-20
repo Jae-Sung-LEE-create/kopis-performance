@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, jsonify, session, g, send_file
+from flask import Flask, request, render_template, redirect, url_for, flash, send_from_directory, jsonify, session, g, send_file, make_response
 from io import BytesIO
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -1481,7 +1481,7 @@ def home():
             logger.info(f"Final result: {len(approved_performances)} performances after all filters")
             
             # 템플릿 렌더링
-            return render_template("index.html", 
+            response = make_response(render_template("index.html", 
                                  performances=approved_performances, 
                                  selected_main_category=main_category,
                                  selected_category=category,
@@ -1491,7 +1491,13 @@ def home():
                                  price_filter=price_filter,
                                  price_range=price_range,
                                  price_min=price_min,
-                                 price_max=price_max)
+                                 price_max=price_max))
+            
+            # 캐시 무효화 헤더 추가 (뒤로가기 문제 해결)
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
+            return response
                 
         except Exception as db_error:
             logger.error(f"Database error: {db_error}")
@@ -1779,16 +1785,22 @@ def admin_panel():
     monthly_chart_data = get_monthly_chart_data(start_date, end_date, category_filter)
     category_chart_data = get_category_chart_data(start_date, end_date, category_filter)
     
-    return render_template("admin.html", 
+    # 템플릿 렌더링
+    response = make_response(render_template("admin.html", 
                          pending_performances=pending_performances,
                          approved_performances=approved_performances,
-                         users=User.query.all(),
                          filtered_pending_count=filtered_pending_count,
                          filtered_approved_count=filtered_approved_count,
                          filtered_rejected_count=filtered_rejected_count,
                          filtered_total_count=filtered_total_count,
                          monthly_chart_data=monthly_chart_data,
-                         category_chart_data=category_chart_data)
+                         category_chart_data=category_chart_data))
+    
+    # 캐시 무효화 헤더 추가
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 def get_monthly_chart_data(start_date=None, end_date=None, category_filter=None):
     """월별 공연 등록 차트 데이터 (필터 적용)"""
@@ -2736,18 +2748,26 @@ def kopis_sync():
         from kopis_api_integration import KOPISDataImporter
         from datetime import datetime
         
-        # KOPIS 데이터 임포트
+        # 성능 최적화된 동기화 (상세 정보 조회 비활성화)
         importer = KOPISDataImporter(db.session)
-        imported_count = importer.import_performances()
+        imported_count = importer.import_performances(
+            fetch_details=False,  # 성능 향상을 위해 상세 정보 조회 비활성화
+            batch_size=50         # 배치 크기 설정
+        )
         
         if imported_count > 0:
-            flash(f'KOPIS 데이터 {imported_count}개가 성공적으로 동기화되었습니다.', 'success')
+            flash(f'KOPIS 데이터 {imported_count}개가 성공적으로 동기화되었습니다. (성능 최적화 모드)', 'success')
             logger.info(f'KOPIS 동기화 완료: {imported_count}개 공연 추가')
         else:
             flash('동기화할 새로운 KOPIS 데이터가 없습니다. (이미 모든 데이터가 동기화되어 있습니다)', 'info')
             logger.info('KOPIS 동기화: 새로운 데이터 없음')
         
-        return redirect(url_for('admin_panel'))
+        # 동기화 후 홈페이지로 리다이렉션 (캐시 무효화)
+        response = redirect(url_for('home'))
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
         
     except ImportError as e:
         logger.error(f"KOPIS module import error: {e}")

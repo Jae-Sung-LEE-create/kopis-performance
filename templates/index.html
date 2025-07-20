@@ -462,6 +462,19 @@
 <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
 
 <script>
+// 뒤로가기 방지 및 캐시 무효화
+window.addEventListener('pageshow', function(event) {
+    if (event.persisted) {
+        // 뒤로가기로 인한 페이지 로드 시 새로고침
+        window.location.reload();
+    }
+});
+
+// 브라우저 캐시 무효화
+if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
+    window.location.reload();
+}
+
 // 가격 필터 적용 함수
 function applyPriceFilter(value) {
     if (value === 'custom') {
