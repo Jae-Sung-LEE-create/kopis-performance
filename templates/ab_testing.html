@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}A/B 테스트 관리 - 관리자 패널{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-flask me-2"></i>A/B 테스트 관리
+            </h2>
+        </div>
+    </div>
+
+    <!-- 새 테스트 생성 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-plus me-2"></i>새 A/B 테스트 생성
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="abTestForm">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="testName" class="form-label">테스트명</label>
+                                    <input type="text" class="form-control" id="testName" name="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="testDescription" class="form-label">설명</label>
+                                    <textarea class="form-control" id="testDescription" name="description" rows="3"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="testType" class="form-label">테스트 유형</label>
+                                    <select class="form-select" id="testType" name="test_type" required>
+                                        <option value="">선택하세요</option>
+                                        <option value="title">제목</option>
+                                        <option value="image">이미지</option>
+                                        <option value="description">설명</option>
+                                        <option value="price">가격</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="versionA" class="form-label">A 버전</label>
+                                    <textarea class="form-control" id="versionA" name="version_a" rows="3" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="versionB" class="form-label">B 버전</label>
+                                    <textarea class="form-control" id="versionB" name="version_b" rows="3" required></textarea>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="startDate" class="form-label">시작일</label>
+                                            <input type="datetime-local" class="form-control" id="startDate" name="start_date" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="endDate" class="form-label">종료일</label>
+                                            <input type="datetime-local" class="form-control" id="endDate" name="end_date" required>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>테스트 생성
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 진행 중인 테스트 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-play me-2"></i>진행 중인 테스트 ({{ data.active_tests|length }}개)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if data.active_tests %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>테스트명</th>
+                                    <th>유형</th>
+                                    <th>참여자 수</th>
+                                    <th>전환율</th>
+                                    <th>개선도</th>
+                                    <th>상태</th>
+                                    <th>작업</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for test in data.test_results %}
+                                <tr>
+                                    <td>{{ test.name }}</td>
+                                    <td>
+                                        <span class="badge bg-info">{{ test.type }}</span>
+                                    </td>
+                                    <td>
+                                        <small>A: {{ test.participants_a }}명</small><br>
+                                        <small>B: {{ test.participants_b }}명</small>
+                                    </td>
+                                    <td>
+                                        <small>A: {{ test.conversion_rate_a }}%</small><br>
+                                        <small>B: {{ test.conversion_rate_b }}%</small>
+                                    </td>
+                                    <td>
+                                        {% if test.improvement > 0 %}
+                                        <span class="text-success">+{{ test.improvement }}%</span>
+                                        {% else %}
+                                        <span class="text-danger">{{ test.improvement }}%</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">진행중</span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewTestDetails({{ test.id }})">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-flask fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">진행 중인 테스트가 없습니다.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 테스트 결과 요약 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>전환율 비교
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="conversionChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>승리 버전 분석
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <h4 class="text-primary">A 버전</h4>
+                                <h2 class="text-primary">45%</h2>
+                                <small class="text-muted">승리율</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <h4 class="text-success">B 버전</h4>
+                                <h2 class="text-success">55%</h2>
+                                <small class="text-muted">승리율</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <h6><i class="fas fa-info-circle me-2"></i>분석 결과</h6>
+                        <p class="mb-0">B 버전이 평균적으로 12% 더 높은 전환율을 보여주고 있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- A/B 테스트 가이드 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-question-circle me-2"></i>A/B 테스트 가이드
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-lightbulb me-2"></i>테스트 아이디어</h6>
+                            <ul class="list-unstyled">
+                                <li>• 공연 제목의 감정적 호소력</li>
+                                <li>• 이미지의 시각적 임팩트</li>
+                                <li>• 가격 표시 방식</li>
+                                <li>• CTA 버튼 색상</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-chart-line me-2"></i>성공 지표</h6>
+                            <ul class="list-unstyled">
+                                <li>• 클릭률 (CTR)</li>
+                                <li>• 전환율 (CVR)</li>
+                                <li>• 체류 시간</li>
+                                <li>• 재방문율</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6><i class="fas fa-clock me-2"></i>테스트 기간</h6>
+                            <ul class="list-unstyled">
+                                <li>• 최소 2주 이상</li>
+                                <li>• 통계적 유의성 확보</li>
+                                <li>• 계절성 고려</li>
+                                <li>• 충분한 샘플 크기</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// A/B 테스트 폼 제출
+document.getElementById('abTestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch('/admin/create-ab-test', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('A/B 테스트가 성공적으로 생성되었습니다!');
+            location.reload();
+        } else {
+            alert('오류: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('테스트 생성 중 오류가 발생했습니다.');
+    });
+});
+
+// 전환율 비교 차트
+const conversionCtx = document.getElementById('conversionChart').getContext('2d');
+const conversionChart = new Chart(conversionCtx, {
+    type: 'bar',
+    data: {
+        labels: ['A 버전', 'B 버전'],
+        datasets: [{
+            label: '전환율 (%)',
+            data: [3.2, 4.1],
+            backgroundColor: [
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 99, 132, 0.8)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: 'A/B 버전 전환율 비교'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 10
+            }
+        }
+    }
+});
+
+// 테스트 상세 보기
+function viewTestDetails(testId) {
+    // 테스트 상세 정보 모달 또는 페이지로 이동
+    alert('테스트 ID: ' + testId + '의 상세 정보를 확인합니다.');
+}
+</script>
+{% endblock %} 

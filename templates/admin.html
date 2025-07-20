@@ -120,7 +120,54 @@
         </div>
     </div>
 
-    <!-- 새로운 기능 메뉴 -->
+    <!-- 데이터 분석 및 인사이트 메뉴 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <h4 class="mb-0">
+                        <i class="fas fa-chart-pie me-2"></i>{% if lang == 'en' %}Data Analytics & Insights{% elif lang == 'ja' %}データ分析・インサイト{% elif lang == 'zh' %}数据分析与洞察{% else %}데이터 분석 및 인사이트{% endif %}
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-2 mb-3">
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-tachometer-alt me-2"></i>{% if lang == 'en' %}Dashboard{% elif lang == 'ja' %}ダッシュボード{% elif lang == 'zh' %}仪表板{% else %}실시간 대시보드{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <a href="{{ url_for('audience_analysis') }}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-users me-2"></i>{% if lang == 'en' %}Audience{% elif lang == 'ja' %}観客{% elif lang == 'zh' %}观众{% else %}관객 분석{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <a href="{{ url_for('trend_prediction') }}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-chart-line me-2"></i>{% if lang == 'en' %}Trends{% elif lang == 'ja' %}トレンド{% elif lang == 'zh' %}趋势{% else %}트렌드 예측{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <a href="{{ url_for('ab_testing') }}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-flask me-2"></i>{% if lang == 'en' %}A/B Test{% elif lang == 'ja' %}A/Bテスト{% elif lang == 'zh' %}A/B测试{% else %}A/B 테스트{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <a href="{{ url_for('performance_analytics') }}" class="btn btn-outline-danger w-100">
+                                <i class="fas fa-chart-bar me-2"></i>{% if lang == 'en' %}Performance{% elif lang == 'ja' %}パフォーマンス{% elif lang == 'zh' %}性能{% else %}성과 분석{% endif %}
+                            </a>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary w-100">
+                                <i class="fas fa-file-alt me-2"></i>{% if lang == 'en' %}Reports{% elif lang == 'ja' %}レポート{% elif lang == 'zh' %}报告{% else %}리포트{% endif %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 기존 기능 메뉴 -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">

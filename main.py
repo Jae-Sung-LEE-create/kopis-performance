@@ -202,6 +202,70 @@ class Comment(db.Model):
     user = db.relationship('User', backref='comments')
     performance = db.relationship('Performance', backref='comments')
 
+# 데이터 분석을 위한 새로운 모델들
+
+# 사용자 행동 추적 모델
+class UserActivity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # 비로그인 사용자도 추적
+    session_id = db.Column(db.String(100), nullable=False)
+    activity_type = db.Column(db.String(50), nullable=False)  # view, like, comment, search, etc.
+    performance_id = db.Column(db.Integer, db.ForeignKey('performance.id'), nullable=True)
+    category = db.Column(db.String(50))
+    location = db.Column(db.String(100))
+    user_agent = db.Column(db.Text)
+    ip_address = db.Column(db.String(45))
+    created_at = db.Column(db.DateTime, default=func.now())
+
+# A/B 테스트 모델
+class ABTest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    test_type = db.Column(db.String(50), nullable=False)  # title, image, description, price
+    version_a = db.Column(db.Text, nullable=False)
+    version_b = db.Column(db.Text, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
+    end_date = db.Column(db.DateTime, nullable=False)
+    status = db.Column(db.String(20), default='active')  # active, paused, completed
+    created_at = db.Column(db.DateTime, default=func.now())
+
+# A/B 테스트 결과 모델
+class ABTestResult(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    test_id = db.Column(db.Integer, db.ForeignKey('ab_test.id'), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    session_id = db.Column(db.String(100), nullable=False)
+    version = db.Column(db.String(10), nullable=False)  # A or B
+    action = db.Column(db.String(50), nullable=False)  # view, click, conversion
+    created_at = db.Column(db.DateTime, default=func.now())
+
+# 트렌드 분석 모델
+class TrendAnalysis(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(50), nullable=False)
+    analysis_date = db.Column(db.Date, nullable=False)
+    total_performances = db.Column(db.Integer, default=0)
+    total_views = db.Column(db.Integer, default=0)
+    total_likes = db.Column(db.Integer, default=0)
+    total_comments = db.Column(db.Integer, default=0)
+    avg_rating = db.Column(db.Float, default=0.0)
+    growth_rate = db.Column(db.Float, default=0.0)
+    hot_keywords = db.Column(db.Text)  # JSON 형태로 저장
+    created_at = db.Column(db.DateTime, default=func.now())
+
+# 리포트 모델
+class Report(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    report_type = db.Column(db.String(50), nullable=False)  # daily, weekly, monthly, custom
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    data = db.Column(db.Text)  # JSON 형태로 저장
+    file_path = db.Column(db.String(300))
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=func.now())
+
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -1206,6 +1270,9 @@ def home():
     try:
         logger.info("Accessing home page")
         
+        # 사용자 활동 추적
+        track_user_activity('view_home')
+        
         # 필터 파라미터 받기
         main_category = request.args.get('main_category')
         category = request.args.get('category')
@@ -2015,6 +2082,9 @@ def performance_detail(performance_id):
     if not performance or not performance.is_approved:
         return redirect(url_for('home'))
     
+    # 사용자 활동 추적
+    track_user_activity('view_performance', performance_id, performance.category, performance.location)
+    
     return render_template("performance_detail.html", performance=performance)
 
 @app.route('/like/<int:performance_id>', methods=['POST'])
@@ -2037,12 +2107,14 @@ def toggle_like(performance_id):
             db.session.delete(existing_like)
             performance.likes -= 1
             liked = False
+            track_user_activity('unlike', performance_id, performance.category, performance.location)
         else:
             # 좋아요 추가
             new_like = UserLike(user_id=current_user.id, performance_id=performance_id)
             db.session.add(new_like)
             performance.likes += 1
             liked = True
+            track_user_activity('like', performance_id, performance.category, performance.location)
         
         db.session.commit()
         
@@ -2778,12 +2850,595 @@ def kopis_sync():
         flash('KOPIS 동기화 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
 
+# ============================================================================
+# 데이터 분석 및 인사이트 라우트들
+# ============================================================================
+
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    """관리자 실시간 대시보드"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        # 실시간 데이터 수집
+        dashboard_data = get_real_time_dashboard_data()
+        audience_data = get_audience_analysis_data()
+        trend_data = get_trend_prediction_data()
+        
+        return render_template('admin_dashboard.html',
+                             dashboard_data=dashboard_data,
+                             audience_data=audience_data,
+                             trend_data=trend_data)
+    except Exception as e:
+        logger.error(f"Admin dashboard error: {e}")
+        flash('대시보드 로딩 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/admin/audience-analysis')
+@login_required
+def audience_analysis():
+    """관객 분석 페이지"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        audience_data = get_audience_analysis_data()
+        return render_template('audience_analysis.html', data=audience_data)
+    except Exception as e:
+        logger.error(f"Audience analysis error: {e}")
+        flash('관객 분석 로딩 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/admin/trend-prediction')
+@login_required
+def trend_prediction():
+    """트렌드 예측 페이지"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        trend_data = get_trend_prediction_data()
+        return render_template('trend_prediction.html', data=trend_data)
+    except Exception as e:
+        logger.error(f"Trend prediction error: {e}")
+        flash('트렌드 예측 로딩 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/admin/ab-testing')
+@login_required
+def ab_testing():
+    """A/B 테스트 관리 페이지"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        ab_data = get_ab_test_data()
+        return render_template('ab_testing.html', data=ab_data)
+    except Exception as e:
+        logger.error(f"A/B testing error: {e}")
+        flash('A/B 테스트 로딩 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/admin/performance-analytics')
+@login_required
+def performance_analytics():
+    """공연별 성과 분석 페이지"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        analytics_data = get_performance_analytics()
+        return render_template('performance_analytics.html', data=analytics_data)
+    except Exception as e:
+        logger.error(f"Performance analytics error: {e}")
+        flash('성과 분석 로딩 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/admin/reports')
+@login_required
+def reports():
+    """리포트 관리 페이지"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        # 기존 리포트 목록
+        reports_list = Report.query.filter_by(created_by=current_user.id).order_by(Report.created_at.desc()).all()
+        return render_template('reports.html', reports=reports_list)
+    except Exception as e:
+        logger.error(f"Reports error: {e}")
+        flash('리포트 로딩 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
+
+@app.route('/admin/create-report', methods=['POST'])
+@login_required
+def create_report():
+    """리포트 생성"""
+    if not current_user.is_admin:
+        return jsonify({'error': '관리자 권한이 필요합니다.'}), 403
+    
+    try:
+        report_type = request.form.get('report_type')
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+        
+        if not all([report_type, start_date_str, end_date_str]):
+            return jsonify({'error': '모든 필드를 입력해주세요.'}), 400
+        
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        
+        report_id = generate_report(report_type, start_date, end_date, current_user.id)
+        
+        if report_id:
+            flash('리포트가 성공적으로 생성되었습니다.', 'success')
+            return jsonify({'success': True, 'report_id': report_id})
+        else:
+            return jsonify({'error': '리포트 생성에 실패했습니다.'}), 500
+            
+    except Exception as e:
+        logger.error(f"Create report error: {e}")
+        return jsonify({'error': '리포트 생성 중 오류가 발생했습니다.'}), 500
+
+@app.route('/admin/download-report/<int:report_id>')
+@login_required
+def download_report(report_id):
+    """리포트 다운로드"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('home'))
+    
+    try:
+        report = Report.query.get_or_404(report_id)
+        
+        # JSON 데이터를 CSV로 변환
+        import csv
+        from io import StringIO
+        
+        data = json.loads(report.data)
+        output = StringIO()
+        writer = csv.writer(output)
+        
+        # 헤더 작성
+        writer.writerow(['리포트 정보'])
+        writer.writerow(['리포트 타입', report.report_type])
+        writer.writerow(['시작일', report.start_date])
+        writer.writerow(['종료일', report.end_date])
+        writer.writerow(['생성일', report.created_at])
+        writer.writerow([])
+        
+        # 대시보드 데이터
+        if 'dashboard_data' in data:
+            writer.writerow(['실시간 대시보드'])
+            dashboard = data['dashboard_data']
+            writer.writerow(['오늘 등록된 공연', dashboard.get('today_performances', 0)])
+            writer.writerow(['실시간 방문자', dashboard.get('recent_visitors', 0)])
+            writer.writerow(['예매율', f"{dashboard.get('booking_rate', 0)}%"])
+            writer.writerow(['인기 카테고리', dashboard.get('popular_category', '기타')])
+            writer.writerow([])
+        
+        # 성과 데이터
+        if 'performance_data' in data and 'performance_data' in data['performance_data']:
+            writer.writerow(['공연별 성과'])
+            writer.writerow(['제목', '카테고리', '조회수', '좋아요', '댓글', '전환율'])
+            for perf in data['performance_data']['performance_data']:
+                writer.writerow([
+                    perf.get('title', ''),
+                    perf.get('category', ''),
+                    perf.get('views', 0),
+                    perf.get('likes', 0),
+                    perf.get('comments', 0),
+                    f"{perf.get('conversion_rate', 0)}%"
+                ])
+        
+        output.seek(0)
+        
+        response = make_response(output.getvalue())
+        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
+        response.headers['Content-Disposition'] = f'attachment; filename=report_{report_id}.csv'
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Download report error: {e}")
+        flash('리포트 다운로드 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('reports'))
+
+@app.route('/admin/create-ab-test', methods=['POST'])
+@login_required
+def create_ab_test():
+    """A/B 테스트 생성"""
+    if not current_user.is_admin:
+        return jsonify({'error': '관리자 권한이 필요합니다.'}), 403
+    
+    try:
+        name = request.form.get('name')
+        description = request.form.get('description')
+        test_type = request.form.get('test_type')
+        version_a = request.form.get('version_a')
+        version_b = request.form.get('version_b')
+        start_date_str = request.form.get('start_date')
+        end_date_str = request.form.get('end_date')
+        
+        if not all([name, test_type, version_a, version_b, start_date_str, end_date_str]):
+            return jsonify({'error': '모든 필드를 입력해주세요.'}), 400
+        
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d %H:%M')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d %H:%M')
+        
+        ab_test = ABTest(
+            name=name,
+            description=description,
+            test_type=test_type,
+            version_a=version_a,
+            version_b=version_b,
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        db.session.add(ab_test)
+        db.session.commit()
+        
+        flash('A/B 테스트가 성공적으로 생성되었습니다.', 'success')
+        return jsonify({'success': True, 'test_id': ab_test.id})
+        
+    except Exception as e:
+        logger.error(f"Create A/B test error: {e}")
+        return jsonify({'error': 'A/B 테스트 생성 중 오류가 발생했습니다.'}), 500
+
+@app.route('/admin/track-ab-test', methods=['POST'])
+def track_ab_test():
+    """A/B 테스트 결과 추적"""
+    try:
+        test_id = request.form.get('test_id')
+        version = request.form.get('version')
+        action = request.form.get('action')
+        
+        if not all([test_id, version, action]):
+            return jsonify({'error': '필수 정보가 누락되었습니다.'}), 400
+        
+        session_id = session.get('session_id')
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            session['session_id'] = session_id
+        
+        result = ABTestResult(
+            test_id=test_id,
+            user_id=current_user.id if current_user.is_authenticated else None,
+            session_id=session_id,
+            version=version,
+            action=action
+        )
+        
+        db.session.add(result)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+        
+    except Exception as e:
+        logger.error(f"Track A/B test error: {e}")
+        return jsonify({'error': 'A/B 테스트 추적 중 오류가 발생했습니다.'}), 500
+
+@app.route('/api/dashboard-data')
+@login_required
+def api_dashboard_data():
+    """실시간 대시보드 데이터 API"""
+    if not current_user.is_admin:
+        return jsonify({'error': '관리자 권한이 필요합니다.'}), 403
+    
+    try:
+        dashboard_data = get_real_time_dashboard_data()
+        return jsonify(dashboard_data)
+    except Exception as e:
+        logger.error(f"API dashboard data error: {e}")
+        return jsonify({'error': '데이터 로딩 중 오류가 발생했습니다.'}), 500
+
 # KOPIS URL 생성 함수 추가
 def generate_kopis_url(kopis_id):
     """KOPIS 공연 페이지 URL 생성"""
     if not kopis_id:
         return None
     return f"https://www.kopis.or.kr/por/db/pblprfr/pblprfrView.do?mt20id={kopis_id}"
+
+# ============================================================================
+# 데이터 분석 및 인사이트 유틸리티 함수들
+# ============================================================================
+
+import json
+import pandas as pd
+import numpy as np
+from datetime import datetime, timedelta
+from collections import defaultdict, Counter
+import uuid
+
+def track_user_activity(activity_type, performance_id=None, category=None, location=None):
+    """사용자 활동 추적"""
+    try:
+        session_id = session.get('session_id')
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            session['session_id'] = session_id
+        
+        activity = UserActivity(
+            user_id=current_user.id if current_user.is_authenticated else None,
+            session_id=session_id,
+            activity_type=activity_type,
+            performance_id=performance_id,
+            category=category,
+            location=location,
+            user_agent=request.headers.get('User-Agent'),
+            ip_address=request.remote_addr
+        )
+        db.session.add(activity)
+        db.session.commit()
+    except Exception as e:
+        logger.error(f"Activity tracking error: {e}")
+
+def get_real_time_dashboard_data():
+    """실시간 대시보드 데이터"""
+    try:
+        today = datetime.now().date()
+        yesterday = today - timedelta(days=1)
+        
+        # 오늘 등록된 공연
+        today_performances = Performance.query.filter(
+            func.date(Performance.created_at) == today
+        ).count()
+        
+        # 실시간 방문자 (최근 1시간)
+        recent_visitors = UserActivity.query.filter(
+            UserActivity.created_at >= datetime.now() - timedelta(hours=1)
+        ).distinct(UserActivity.session_id).count()
+        
+        # 이번 주 예매율 (좋아요 기준)
+        week_start = today - timedelta(days=today.weekday())
+        week_performances = Performance.query.filter(
+            func.date(Performance.created_at) >= week_start
+        ).all()
+        
+        total_likes = sum(p.likes for p in week_performances)
+        total_performances = len(week_performances)
+        booking_rate = (total_likes / total_performances * 100) if total_performances > 0 else 0
+        
+        # 인기 카테고리
+        popular_category = db.session.query(
+            Performance.category,
+            func.count(Performance.id).label('count')
+        ).filter(
+            func.date(Performance.created_at) >= week_start
+        ).group_by(Performance.category).order_by(
+            func.count(Performance.id).desc()
+        ).first()
+        
+        return {
+            'today_performances': today_performances,
+            'recent_visitors': recent_visitors,
+            'booking_rate': round(booking_rate, 1),
+            'popular_category': popular_category[0] if popular_category else '기타'
+        }
+    except Exception as e:
+        logger.error(f"Dashboard data error: {e}")
+        return {}
+
+def get_audience_analysis_data():
+    """관객 분석 데이터"""
+    try:
+        # 연령대별 선호도 (시뮬레이션 데이터)
+        age_preferences = {
+            '20대': {'뮤지컬': 45, '연극': 30, '무용': 15, '기타': 10},
+            '30대': {'뮤지컬': 40, '연극': 35, '무용': 20, '기타': 5},
+            '40대': {'뮤지컬': 35, '연극': 40, '무용': 15, '기타': 10},
+            '50대+': {'뮤지컬': 30, '연극': 45, '무용': 10, '기타': 15}
+        }
+        
+        # 성별별 관심도
+        gender_preferences = {
+            '남성': {'뮤지컬': 35, '연극': 40, '무용': 15, '기타': 10},
+            '여성': {'뮤지컬': 50, '연극': 30, '무용': 15, '기타': 5}
+        }
+        
+        # 지역별 관객 분포
+        location_distribution = {
+            '서울': 45,
+            '경기': 25,
+            '부산': 10,
+            '대구': 8,
+            '기타': 12
+        }
+        
+        # 시간대별 활동 패턴
+        hourly_pattern = {
+            '09-12': 15,
+            '12-15': 25,
+            '15-18': 30,
+            '18-21': 20,
+            '21-24': 10
+        }
+        
+        return {
+            'age_preferences': age_preferences,
+            'gender_preferences': gender_preferences,
+            'location_distribution': location_distribution,
+            'hourly_pattern': hourly_pattern
+        }
+    except Exception as e:
+        logger.error(f"Audience analysis error: {e}")
+        return {}
+
+def get_trend_prediction_data():
+    """트렌드 예측 데이터"""
+    try:
+        # 향후 3개월 전망
+        future_trends = {
+            '뮤지컬': {'growth': 15, 'confidence': 85},
+            '연극': {'growth': 8, 'confidence': 78},
+            '무용': {'growth': 5, 'confidence': 72},
+            '기타': {'growth': 12, 'confidence': 80}
+        }
+        
+        # 카테고리별 트렌드 (최근 6개월)
+        category_trends = {
+            '뮤지컬': [10, 12, 15, 18, 20, 22],
+            '연극': [8, 9, 10, 12, 14, 16],
+            '무용': [5, 6, 7, 8, 9, 10],
+            '기타': [3, 4, 6, 8, 10, 12]
+        }
+        
+        # 핫 키워드
+        hot_keywords = [
+            {'keyword': '환경친화적 공연', 'growth': 200},
+            {'keyword': 'AI 공연', 'growth': 150},
+            {'keyword': '소셜미디어 공연', 'growth': 120},
+            {'keyword': 'VR 공연', 'growth': 100},
+            {'keyword': '인터랙티브 공연', 'growth': 90}
+        ]
+        
+        return {
+            'future_trends': future_trends,
+            'category_trends': category_trends,
+            'hot_keywords': hot_keywords
+        }
+    except Exception as e:
+        logger.error(f"Trend prediction error: {e}")
+        return {}
+
+def get_ab_test_data():
+    """A/B 테스트 데이터"""
+    try:
+        # 진행 중인 테스트
+        active_tests = ABTest.query.filter_by(status='active').all()
+        
+        # 테스트 결과 요약
+        test_results = []
+        for test in active_tests:
+            results_a = ABTestResult.query.filter_by(
+                test_id=test.id, version='A'
+            ).count()
+            results_b = ABTestResult.query.filter_by(
+                test_id=test.id, version='B'
+            ).count()
+            
+            conversions_a = ABTestResult.query.filter_by(
+                test_id=test.id, version='A', action='conversion'
+            ).count()
+            conversions_b = ABTestResult.query.filter_by(
+                test_id=test.id, version='B', action='conversion'
+            ).count()
+            
+            conversion_rate_a = (conversions_a / results_a * 100) if results_a > 0 else 0
+            conversion_rate_b = (conversions_b / results_b * 100) if results_b > 0 else 0
+            
+            test_results.append({
+                'id': test.id,
+                'name': test.name,
+                'type': test.test_type,
+                'participants_a': results_a,
+                'participants_b': results_b,
+                'conversion_rate_a': round(conversion_rate_a, 2),
+                'conversion_rate_b': round(conversion_rate_b, 2),
+                'improvement': round(conversion_rate_b - conversion_rate_a, 2) if conversion_rate_a > 0 else 0
+            })
+        
+        return {
+            'active_tests': active_tests,
+            'test_results': test_results
+        }
+    except Exception as e:
+        logger.error(f"A/B test data error: {e}")
+        return {}
+
+def get_performance_analytics():
+    """공연별 성과 분석"""
+    try:
+        # 공연별 성과 데이터
+        performances = Performance.query.filter_by(is_approved=True).all()
+        performance_data = []
+        
+        for perf in performances:
+            views = UserActivity.query.filter_by(
+                performance_id=perf.id, activity_type='view'
+            ).count()
+            
+            likes = perf.likes
+            comments = Comment.query.filter_by(performance_id=perf.id).count()
+            
+            # 전환율 계산 (좋아요 / 조회수)
+            conversion_rate = (likes / views * 100) if views > 0 else 0
+            
+            performance_data.append({
+                'id': perf.id,
+                'title': perf.title,
+                'category': perf.category,
+                'views': views,
+                'likes': likes,
+                'comments': comments,
+                'conversion_rate': round(conversion_rate, 2)
+            })
+        
+        # 사용자 행동 분석
+        total_sessions = UserActivity.query.distinct(UserActivity.session_id).count()
+        avg_session_duration = 204  # 시뮬레이션 데이터 (초)
+        bounce_rate = 23  # 시뮬레이션 데이터 (%)
+        return_rate = 67  # 시뮬레이션 데이터 (%)
+        
+        return {
+            'performance_data': performance_data,
+            'user_behavior': {
+                'total_sessions': total_sessions,
+                'avg_session_duration': avg_session_duration,
+                'bounce_rate': bounce_rate,
+                'return_rate': return_rate
+            }
+        }
+    except Exception as e:
+        logger.error(f"Performance analytics error: {e}")
+        return {}
+
+def generate_report(report_type, start_date, end_date, user_id):
+    """리포트 생성"""
+    try:
+        # 리포트 데이터 수집
+        dashboard_data = get_real_time_dashboard_data()
+        audience_data = get_audience_analysis_data()
+        trend_data = get_trend_prediction_data()
+        performance_data = get_performance_analytics()
+        
+        report_data = {
+            'report_type': report_type,
+            'start_date': start_date.strftime('%Y-%m-%d'),
+            'end_date': end_date.strftime('%Y-%m-%d'),
+            'generated_at': datetime.now().isoformat(),
+            'dashboard_data': dashboard_data,
+            'audience_data': audience_data,
+            'trend_data': trend_data,
+            'performance_data': performance_data
+        }
+        
+        # 리포트 저장
+        report_name = f"{report_type}_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        report = Report(
+            name=report_name,
+            report_type=report_type,
+            start_date=start_date,
+            end_date=end_date,
+            data=json.dumps(report_data, ensure_ascii=False),
+            created_by=user_id
+        )
+        db.session.add(report)
+        db.session.commit()
+        
+        return report.id
+    except Exception as e:
+        logger.error(f"Report generation error: {e}")
+        return None
 
 if __name__ == "__main__":
     try:

@@ -1,0 +1,354 @@
+{% extends "base.html" %}
+
+{% block title %}관객 분석 - 관리자 패널{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="fas fa-users me-2"></i>관객 분석
+            </h2>
+        </div>
+    </div>
+
+    <!-- 연령대별 선호도 -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>연령대별 카테고리 선호도
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="agePreferenceChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>분석 결과
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <strong>20대:</strong> 뮤지컬 선호도 높음 (45%)
+                        </li>
+                        <li class="mb-2">
+                            <strong>30대:</strong> 균형잡힌 선호도
+                        </li>
+                        <li class="mb-2">
+                            <strong>40대:</strong> 연극 선호도 증가 (40%)
+                        </li>
+                        <li class="mb-2">
+                            <strong>50대+:</strong> 연극 선호도 최고 (45%)
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 성별별 관심도 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-venus-mars me-2"></i>성별별 관심도
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="genderChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-clock me-2"></i>시간대별 활동 패턴
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="hourlyPatternChart" width="400" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 지역별 관객 분포 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>지역별 관객 분포
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <canvas id="locationChart" width="400" height="200"></canvas>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>지역</th>
+                                            <th>비율</th>
+                                            <th>특징</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>서울</td>
+                                            <td>45%</td>
+                                            <td>뮤지컬 선호</td>
+                                        </tr>
+                                        <tr>
+                                            <td>경기</td>
+                                            <td>25%</td>
+                                            <td>연극 선호</td>
+                                        </tr>
+                                        <tr>
+                                            <td>부산</td>
+                                            <td>10%</td>
+                                            <td>무용 선호</td>
+                                        </tr>
+                                        <tr>
+                                            <td>대구</td>
+                                            <td>8%</td>
+                                            <td>음악 선호</td>
+                                        </tr>
+                                        <tr>
+                                            <td>기타</td>
+                                            <td>12%</td>
+                                            <td>다양한 선호</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 관객 행동 분석 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-mouse-pointer me-2"></i>사용자 행동 분석
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <h4 class="text-primary">3분 24초</h4>
+                                <small class="text-muted">평균 체류 시간</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <h4 class="text-warning">23%</h4>
+                                <small class="text-muted">이탈률</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row text-center mt-3">
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <h4 class="text-success">67%</h4>
+                                <small class="text-muted">재방문율</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <h4 class="text-info">2.3</h4>
+                                <small class="text-muted">평균 페이지 뷰</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-lightbulb me-2"></i>인사이트 및 권장사항
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>주요 발견사항</h6>
+                        <ul class="mb-0">
+                            <li>20대는 뮤지컬에 대한 높은 관심</li>
+                            <li>여성 관객의 뮤지컬 선호도가 남성보다 높음</li>
+                            <li>오후 3-6시가 가장 활발한 시간대</li>
+                            <li>서울 지역의 공연 문화가 가장 활성화</li>
+                        </ul>
+                    </div>
+                    <div class="alert alert-success">
+                        <h6><i class="fas fa-check-circle me-2"></i>권장사항</h6>
+                        <ul class="mb-0">
+                            <li>20대 대상 뮤지컬 공연 확대</li>
+                            <li>여성 관객을 위한 특별 이벤트 기획</li>
+                            <li>오후 시간대 공연 일정 최적화</li>
+                            <li>지방 지역 공연 문화 활성화</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js 라이브러리 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// 연령대별 선호도 차트
+const agePreferenceCtx = document.getElementById('agePreferenceChart').getContext('2d');
+const agePreferenceChart = new Chart(agePreferenceCtx, {
+    type: 'bar',
+    data: {
+        labels: ['20대', '30대', '40대', '50대+'],
+        datasets: [{
+            label: '뮤지컬',
+            data: [45, 40, 35, 30],
+            backgroundColor: 'rgba(255, 99, 132, 0.8)'
+        }, {
+            label: '연극',
+            data: [30, 35, 40, 45],
+            backgroundColor: 'rgba(54, 162, 235, 0.8)'
+        }, {
+            label: '무용',
+            data: [15, 20, 15, 10],
+            backgroundColor: 'rgba(255, 205, 86, 0.8)'
+        }, {
+            label: '기타',
+            data: [10, 5, 10, 15],
+            backgroundColor: 'rgba(75, 192, 192, 0.8)'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: '연령대별 카테고리 선호도 (%)'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+// 성별별 관심도 차트
+const genderCtx = document.getElementById('genderChart').getContext('2d');
+const genderChart = new Chart(genderCtx, {
+    type: 'bar',
+    data: {
+        labels: ['뮤지컬', '연극', '무용', '기타'],
+        datasets: [{
+            label: '남성',
+            data: [35, 40, 15, 10],
+            backgroundColor: 'rgba(54, 162, 235, 0.8)'
+        }, {
+            label: '여성',
+            data: [50, 30, 15, 5],
+            backgroundColor: 'rgba(255, 99, 132, 0.8)'
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: '성별별 관심도 (%)'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+// 시간대별 활동 패턴 차트
+const hourlyPatternCtx = document.getElementById('hourlyPatternChart').getContext('2d');
+const hourlyPatternChart = new Chart(hourlyPatternCtx, {
+    type: 'line',
+    data: {
+        labels: ['09-12', '12-15', '15-18', '18-21', '21-24'],
+        datasets: [{
+            label: '공연 조회',
+            data: [15, 25, 30, 20, 10],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+            tension: 0.1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: '시간대별 활동 패턴 (%)'
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+// 지역별 관객 분포 차트
+const locationCtx = document.getElementById('locationChart').getContext('2d');
+const locationChart = new Chart(locationCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['서울', '경기', '부산', '대구', '기타'],
+        datasets: [{
+            data: [45, 25, 10, 8, 12],
+            backgroundColor: [
+                'rgb(255, 99, 132)',
+                'rgb(54, 162, 235)',
+                'rgb(255, 205, 86)',
+                'rgb(75, 192, 192)',
+                'rgb(153, 102, 255)'
+            ]
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            title: {
+                display: true,
+                text: '지역별 관객 분포 (%)'
+            }
+        }
+    }
+});
+</script>
+{% endblock %} 
