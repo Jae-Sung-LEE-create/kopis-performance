@@ -3440,6 +3440,451 @@ def generate_report(report_type, start_date, end_date, user_id):
         logger.error(f"Report generation error: {e}")
         return None
 
+# ============================================================================
+# 모바일 앱용 API 엔드포인트
+# ============================================================================
+
+@app.route('/api/mobile/performances', methods=['GET'])
+def api_performances():
+    """모바일용 공연 목록 API"""
+    try:
+        # 필터 파라미터 받기
+        category = request.args.get('category')
+        location = request.args.get('location')
+        search = request.args.get('search', '').strip()
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        
+        # 기본 쿼리 (승인된 공연만)
+        query = Performance.query.filter_by(is_approved=True)
+        
+        # 카테고리 필터
+        if category and category != '전체':
+            query = query.filter_by(category=category)
+        
+        # 지역 필터
+        if location and location != '전체':
+            query = query.filter_by(location=location)
+        
+        # 검색 필터
+        if search:
+            search_term = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    Performance.title.ilike(search_term),
+                    Performance.group_name.ilike(search_term)
+                )
+            )
+        
+        # 페이지네이션
+        performances = query.order_by(Performance.created_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+        
+        # 응답 데이터 구성
+        performances_data = []
+        for perf in performances.items:
+            performances_data.append({
+                'id': perf.id,
+                'title': perf.title,
+                'group_name': perf.group_name,
+                'category': perf.category,
+                'location': perf.location,
+                'date': perf.date,
+                'time': perf.time,
+                'price': perf.price,
+                'image_url': perf.image_url,
+                'description': perf.description[:100] + '...' if len(perf.description) > 100 else perf.description,
+                'likes': perf.likes,
+                'created_at': perf.created_at.isoformat() if perf.created_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'performances': performances_data,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': performances.total,
+                'pages': performances.pages,
+                'has_next': performances.has_next,
+                'has_prev': performances.has_prev
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"API performances error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/performances/<int:performance_id>', methods=['GET'])
+def api_performance_detail(performance_id):
+    """모바일용 공연 상세 API"""
+    try:
+        performance = Performance.query.get_or_404(performance_id)
+        
+        # 조회수 증가 (사용자 활동 추적)
+        track_user_activity('view', performance_id, performance.category, performance.location)
+        
+        # 구매방법 파싱
+        try:
+            purchase_methods = json.loads(performance.purchase_methods) if performance.purchase_methods else []
+        except:
+            purchase_methods = ['현장구매']
+        
+        performance_data = {
+            'id': performance.id,
+            'title': performance.title,
+            'group_name': performance.group_name,
+            'category': performance.category,
+            'location': performance.location,
+            'address': performance.address,
+            'date': performance.date,
+            'time': performance.time,
+            'price': performance.price,
+            'image_url': performance.image_url,
+            'description': performance.description,
+            'contact_email': performance.contact_email,
+            'purchase_methods': purchase_methods,
+            'video_url': performance.video_url,
+            'ticket_url': performance.ticket_url,
+            'booking_phone': performance.booking_phone,
+            'booking_website': performance.booking_website,
+            'likes': performance.likes,
+            'created_at': performance.created_at.isoformat() if performance.created_at else None,
+            'is_kopis_synced': performance.is_kopis_synced
+        }
+        
+        return jsonify({'success': True, 'performance': performance_data})
+        
+    except Exception as e:
+        logger.error(f"API performance detail error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/auth/login', methods=['POST'])
+def api_login():
+    """모바일용 로그인 API"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'success': False, 'error': '사용자명과 비밀번호를 입력해주세요.'}), 400
+        
+        # 사용자 찾기
+        user = User.query.filter_by(username=username).first()
+        
+        if user and check_password_hash(user.password_hash, password):
+            # 로그인 성공
+            login_user(user)
+            
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'name': user.name,
+                    'email': user.email,
+                    'phone': user.phone,
+                    'is_admin': user.is_admin
+                },
+                'message': '로그인되었습니다!'
+            })
+        else:
+            return jsonify({'success': False, 'error': '사용자명 또는 비밀번호가 올바르지 않습니다.'}), 401
+            
+    except Exception as e:
+        logger.error(f"API login error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/auth/register', methods=['POST'])
+def api_register():
+    """모바일용 회원가입 API"""
+    try:
+        data = request.get_json()
+        username = data.get('username')
+        password = data.get('password')
+        name = data.get('name')
+        email = data.get('email')
+        phone = data.get('phone', '')
+        
+        if not all([username, password, name, email]):
+            return jsonify({'success': False, 'error': '모든 필수 필드를 입력해주세요.'}), 400
+        
+        # 중복 사용자 확인
+        if User.query.filter_by(username=username).first():
+            return jsonify({'success': False, 'error': '이미 사용 중인 사용자명입니다.'}), 400
+        
+        if User.query.filter_by(email=email).first():
+            return jsonify({'success': False, 'error': '이미 사용 중인 이메일입니다.'}), 400
+        
+        # 새 사용자 생성
+        user = User(
+            username=username,
+            name=name,
+            email=email,
+            phone=phone,
+            password_hash=generate_password_hash(password)
+        )
+        
+        db.session.add(user)
+        db.session.commit()
+        
+        # 자동 로그인
+        login_user(user)
+        
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': user.id,
+                'username': user.username,
+                'name': user.name,
+                'email': user.email,
+                'phone': user.phone,
+                'is_admin': user.is_admin
+            },
+            'message': '회원가입이 완료되었습니다!'
+        })
+        
+    except Exception as e:
+        logger.error(f"API register error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/user/profile', methods=['GET'])
+@login_required
+def api_user_profile():
+    """모바일용 사용자 프로필 API"""
+    try:
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': current_user.id,
+                'username': current_user.username,
+                'name': current_user.name,
+                'email': current_user.email,
+                'phone': current_user.phone,
+                'is_admin': current_user.is_admin,
+                'created_at': current_user.created_at.isoformat() if current_user.created_at else None
+            }
+        })
+    except Exception as e:
+        logger.error(f"API user profile error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/user/performances', methods=['GET'])
+@login_required
+def api_user_performances():
+    """모바일용 내 공연 목록 API"""
+    try:
+        performances = Performance.query.filter_by(user_id=current_user.id).order_by(Performance.created_at.desc()).all()
+        
+        performances_data = []
+        for perf in performances:
+            performances_data.append({
+                'id': perf.id,
+                'title': perf.title,
+                'group_name': perf.group_name,
+                'category': perf.category,
+                'location': perf.location,
+                'date': perf.date,
+                'time': perf.time,
+                'price': perf.price,
+                'image_url': perf.image_url,
+                'is_approved': perf.is_approved,
+                'likes': perf.likes,
+                'created_at': perf.created_at.isoformat() if perf.created_at else None
+            })
+        
+        return jsonify({
+            'success': True,
+            'performances': performances_data,
+            'total': len(performances_data)
+        })
+        
+    except Exception as e:
+        logger.error(f"API user performances error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/performances', methods=['POST'])
+@login_required
+def api_create_performance():
+    """모바일용 공연 신청 API"""
+    try:
+        data = request.get_json()
+        
+        # 필수 필드 확인
+        required_fields = ['title', 'group_name', 'description', 'location', 'date', 'time', 'price']
+        for field in required_fields:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'{field} 필드는 필수입니다.'}), 400
+        
+        # 이미지 URL 처리 (모바일에서는 이미지 URL을 받음)
+        image_url = data.get('image_url')
+        
+        # 구매방법 처리
+        purchase_methods = data.get('purchase_methods', ['현장구매'])
+        if isinstance(purchase_methods, list):
+            purchase_methods_json = json.dumps(purchase_methods, ensure_ascii=False)
+        else:
+            purchase_methods_json = json.dumps(['현장구매'], ensure_ascii=False)
+        
+        # 새 공연 생성
+        performance = Performance(
+            title=data['title'],
+            group_name=data['group_name'],
+            description=data['description'],
+            location=data['location'],
+            address=data.get('address', ''),
+            price=data['price'],
+            date=data['date'],
+            time=data['time'],
+            contact_email=data.get('contact_email', ''),
+            video_url=data.get('video_url', ''),
+            image_url=image_url,
+            main_category=data.get('main_category', '공연'),
+            category=data.get('category', '기타'),
+            ticket_url=data.get('ticket_url', ''),
+            booking_phone=data.get('booking_phone', ''),
+            booking_website=data.get('booking_website', ''),
+            purchase_methods=purchase_methods_json,
+            user_id=current_user.id,
+            is_approved=False
+        )
+        
+        db.session.add(performance)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'performance': {
+                'id': performance.id,
+                'title': performance.title,
+                'is_approved': performance.is_approved
+            },
+            'message': '공연이 성공적으로 신청되었습니다. 관리자 승인 후 게시됩니다.'
+        })
+        
+    except Exception as e:
+        logger.error(f"API create performance error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/performances/<int:performance_id>/like', methods=['POST'])
+@login_required
+def api_toggle_like(performance_id):
+    """모바일용 좋아요 토글 API"""
+    try:
+        performance = Performance.query.get_or_404(performance_id)
+        
+        # 이미 좋아요를 눌렀는지 확인
+        existing_like = UserLike.query.filter_by(
+            user_id=current_user.id, 
+            performance_id=performance_id
+        ).first()
+        
+        if existing_like:
+            # 좋아요 취소
+            db.session.delete(existing_like)
+            performance.likes = max(0, performance.likes - 1)
+            is_liked = False
+            message = '좋아요가 취소되었습니다.'
+        else:
+            # 좋아요 추가
+            new_like = UserLike(user_id=current_user.id, performance_id=performance_id)
+            db.session.add(new_like)
+            performance.likes += 1
+            is_liked = True
+            message = '좋아요가 추가되었습니다.'
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'is_liked': is_liked,
+            'likes_count': performance.likes,
+            'message': message
+        })
+        
+    except Exception as e:
+        logger.error(f"API toggle like error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/categories', methods=['GET'])
+def api_categories():
+    """모바일용 카테고리 목록 API"""
+    try:
+        # 데이터베이스에서 고유한 카테고리 가져오기
+        categories = db.session.query(Performance.category).filter(
+            Performance.category.isnot(None),
+            Performance.category != '',
+            Performance.is_approved == True
+        ).distinct().all()
+        
+        category_list = [cat[0] for cat in categories if cat[0]]
+        
+        return jsonify({
+            'success': True,
+            'categories': category_list
+        })
+        
+    except Exception as e:
+        logger.error(f"API categories error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/mobile/locations', methods=['GET'])
+def api_locations():
+    """모바일용 지역 목록 API"""
+    try:
+        # 데이터베이스에서 고유한 지역 가져오기
+        locations = db.session.query(Performance.location).filter(
+            Performance.location.isnot(None),
+            Performance.location != '',
+            Performance.is_approved == True
+        ).distinct().all()
+        
+        location_list = [loc[0] for loc in locations if loc[0]]
+        
+        return jsonify({
+            'success': True,
+            'locations': location_list
+        })
+        
+    except Exception as e:
+        logger.error(f"API locations error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/qr-code')
+def generate_qr_code():
+    """앱 다운로드 QR 코드 생성"""
+    try:
+        import qrcode
+        from io import BytesIO
+        import base64
+        
+        # 앱 다운로드 링크 (실제 앱스토어 링크로 변경 필요)
+        app_download_url = "https://play.google.com/store/apps/details?id=com.kopis.mobile"
+        
+        # QR 코드 생성
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(app_download_url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        # 이미지를 base64로 인코딩
+        buffer = BytesIO()
+        img.save(buffer, format='PNG')
+        img_str = base64.b64encode(buffer.getvalue()).decode()
+        
+        return jsonify({
+            'success': True,
+            'qr_code': img_str,
+            'download_url': app_download_url
+        })
+        
+    except Exception as e:
+        logger.error(f"QR code generation error: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 if __name__ == "__main__":
     try:
         # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
