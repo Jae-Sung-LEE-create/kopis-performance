@@ -2527,7 +2527,7 @@ def generate_market_report():
         flash('시장 리포트 생성 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
 
-@app.route('/kopis-sync')
+@app.route('/kopis-sync', methods=['GET', 'POST'])
 @login_required
 def kopis_sync():
     """KOPIS 데이터 동기화"""
