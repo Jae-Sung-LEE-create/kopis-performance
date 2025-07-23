@@ -6,7 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, text
 import os
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import uuid
 import traceback
@@ -15,6 +15,7 @@ import cloudinary.uploader
 import requests
 import time
 import xml.etree.ElementTree as ET
+import json
 
 from flask_babel import Babel
 
@@ -201,70 +202,6 @@ class Comment(db.Model):
     
     user = db.relationship('User', backref='comments')
     performance = db.relationship('Performance', backref='comments')
-
-# 데이터 분석을 위한 새로운 모델들
-
-# 사용자 행동 추적 모델
-class UserActivity(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # 비로그인 사용자도 추적
-    session_id = db.Column(db.String(100), nullable=False)
-    activity_type = db.Column(db.String(50), nullable=False)  # view, like, comment, search, etc.
-    performance_id = db.Column(db.Integer, db.ForeignKey('performance.id'), nullable=True)
-    category = db.Column(db.String(50))
-    location = db.Column(db.String(100))
-    user_agent = db.Column(db.Text)
-    ip_address = db.Column(db.String(45))
-    created_at = db.Column(db.DateTime, default=func.now())
-
-# A/B 테스트 모델
-class ABTest(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.Text)
-    test_type = db.Column(db.String(50), nullable=False)  # title, image, description, price
-    version_a = db.Column(db.Text, nullable=False)
-    version_b = db.Column(db.Text, nullable=False)
-    start_date = db.Column(db.DateTime, nullable=False)
-    end_date = db.Column(db.DateTime, nullable=False)
-    status = db.Column(db.String(20), default='active')  # active, paused, completed
-    created_at = db.Column(db.DateTime, default=func.now())
-
-# A/B 테스트 결과 모델
-class ABTestResult(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    test_id = db.Column(db.Integer, db.ForeignKey('ab_test.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    session_id = db.Column(db.String(100), nullable=False)
-    version = db.Column(db.String(10), nullable=False)  # A or B
-    action = db.Column(db.String(50), nullable=False)  # view, click, conversion
-    created_at = db.Column(db.DateTime, default=func.now())
-
-# 트렌드 분석 모델
-class TrendAnalysis(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    category = db.Column(db.String(50), nullable=False)
-    analysis_date = db.Column(db.Date, nullable=False)
-    total_performances = db.Column(db.Integer, default=0)
-    total_views = db.Column(db.Integer, default=0)
-    total_likes = db.Column(db.Integer, default=0)
-    total_comments = db.Column(db.Integer, default=0)
-    avg_rating = db.Column(db.Float, default=0.0)
-    growth_rate = db.Column(db.Float, default=0.0)
-    hot_keywords = db.Column(db.Text)  # JSON 형태로 저장
-    created_at = db.Column(db.DateTime, default=func.now())
-
-# 리포트 모델
-class Report(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    report_type = db.Column(db.String(50), nullable=False)  # daily, weekly, monthly, custom
-    start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date, nullable=False)
-    data = db.Column(db.Text)  # JSON 형태로 저장
-    file_path = db.Column(db.String(300))
-    created_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=func.now())
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -1266,314 +1203,74 @@ cloudinary.config(
 # 기본 라우트들
 @app.route('/')
 def home():
-    """홈페이지"""
+    """홈페이지 - 승인된 공연 목록"""
     try:
-        logger.info("Accessing home page")
-        
-        # 사용자 활동 추적
-        track_user_activity('view_home')
+        # 사용자 이벤트 추적 (로그인한 사용자만)
+        if current_user.is_authenticated:
+            track_user_event(
+                user_id=current_user.id,
+                event_type='view',
+                metadata={'page': 'home'}
+            )
         
         # 필터 파라미터 받기
-        main_category = request.args.get('main_category')
-        category = request.args.get('category')
-        search = request.args.get('search', '').strip()
-        date_filter = request.args.get('date_filter', '')
-        location = request.args.get('location', '')
-        price_filter = request.args.get('price_filter', '')
-        price_range = request.args.get('price_range', '')
-        price_min = request.args.get('price_min', '')
-        price_max = request.args.get('price_max', '')
+        category_filter = request.args.get('category_filter', '전체기간')
         
-        logger.info(f"Filters - Main Category: {main_category}, Category: {category}, Search: {search}, Date: {date_filter}, Location: {location}, Price: {price_filter}")
+        # 기본 쿼리 (승인된 공연만)
+        query = Performance.query.filter_by(is_approved=True)
         
-        # 추천 시스템 파라미터
-        recommendation_type = request.args.get('recommendation', '')
-        
-        # KOPIS 데이터 연동 파라미터
-        kopis_sync = request.args.get('kopis_sync', 'false').lower() == 'true'
-        
-        # 데이터베이스 연결 확인 (간소화)
-        try:
-            # 기본 쿼리 (승인된 공연만)
-            query = Performance.query.filter_by(is_approved=True)
-            
-            # 메인 카테고리 필터
-            if main_category and main_category != '전체':
-                query = query.filter_by(main_category=main_category)
-            
-            # 세부 카테고리 필터
-            if category and category != '전체':
-                query = query.filter_by(category=category)
-            
-            # 검색 필터 (제목 또는 팀명)
-            if search:
-                search_term = f"%{search}%"
-                query = query.filter(
-                    db.or_(
-                        Performance.title.ilike(search_term),
-                        Performance.group_name.ilike(search_term)
-                    )
-                )
-            
-            # 날짜 필터
-            if date_filter:
-                from datetime import datetime, timedelta
+        # 카테고리 필터 적용
+        if category_filter and category_filter != '전체기간':
+            if category_filter == '이번주':
+                # 이번 주 공연 필터링
                 today = datetime.now().date()
-                
-                def parse_performance_date(date_str):
-                    """공연 날짜 문자열을 파싱하여 날짜 객체로 변환"""
-                    if not date_str:
-                        return None
-                    
-                    # 다양한 날짜 형식 처리
-                    date_formats = [
-                        '%Y-%m-%d',      # 2024-12-15
-                        '%Y.%m.%d',      # 2024.12.15
-                        '%Y/%m/%d',      # 2024/12/15
-                        '%Y년 %m월 %d일', # 2024년 12월 15일
-                        '%Y년%m월%d일',   # 2024년12월15일
-                        '%Y-%m-%d ~ %Y-%m-%d',  # 2024-12-15 ~ 2024-12-20
-                        '%Y.%m.%d ~ %Y.%m.%d',  # 2024.12.15 ~ 2024.12.20
-                    ]
-                    
-                    # 범위 형식 처리 (시작일만 추출)
-                    if ' ~ ' in date_str:
-                        date_str = date_str.split(' ~ ')[0].strip()
-                    
-                    for fmt in date_formats:
-                        try:
-                            return datetime.strptime(date_str, fmt).date()
-                        except ValueError:
-                            continue
-                    
-                    # 숫자만 추출해서 시도
-                    import re
-                    numbers = re.findall(r'\d+', date_str)
-                    if len(numbers) >= 3:
-                        try:
-                            year = int(numbers[0])
-                            month = int(numbers[1])
-                            day = int(numbers[2])
-                            if 1900 <= year <= 2100 and 1 <= month <= 12 and 1 <= day <= 31:
-                                return datetime(year, month, day).date()
-                        except ValueError:
-                            pass
-                    
-                    return None
-                
-                def is_date_in_range(performance_date, start_date, end_date):
-                    """공연 날짜가 지정된 범위 내에 있는지 확인"""
-                    if not performance_date:
-                        return False
-                    
-                    # 공연 날짜가 범위 내에 있는지 확인
-                    return start_date <= performance_date <= end_date
-                
-                if date_filter == 'this_week':
-                    # 이번 주 (월요일부터 일요일까지)
-                    days_since_monday = today.weekday()
-                    monday = today - timedelta(days=days_since_monday)
-                    sunday = monday + timedelta(days=6)
-                    
-                    # Python에서 필터링 (날짜 파싱 필요)
-                    all_performances = query.order_by(Performance.created_at.desc()).all()
-                    approved_performances = []
-                    
-                    for performance in all_performances:
-                        perf_date = parse_performance_date(performance.date)
-                        if perf_date and is_date_in_range(perf_date, monday, sunday):
-                            approved_performances.append(performance)
-                    
-                    logger.info(f"This week filter applied: {monday} ~ {sunday}, found {len(approved_performances)} performances")
-                    
-                elif date_filter == 'this_month':
-                    # 이번 달
-                    first_day = today.replace(day=1)
-                    if today.month == 12:
-                        last_day = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
-                    else:
-                        last_day = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
-                    
-                    # Python에서 필터링
-                    all_performances = query.order_by(Performance.created_at.desc()).all()
-                    approved_performances = []
-                    
-                    for performance in all_performances:
-                        perf_date = parse_performance_date(performance.date)
-                        if perf_date and is_date_in_range(perf_date, first_day, last_day):
-                            approved_performances.append(performance)
-                    
-                    logger.info(f"This month filter applied: {first_day} ~ {last_day}, found {len(approved_performances)} performances")
-                    
-                elif date_filter == 'next_month':
-                    # 다음 달
-                    if today.month == 12:
-                        first_day = today.replace(year=today.year + 1, month=1, day=1)
-                        last_day = today.replace(year=today.year + 1, month=2, day=1) - timedelta(days=1)
-                    else:
-                        first_day = today.replace(month=today.month + 1, day=1)
-                        if today.month == 11:
-                            last_day = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
-                        else:
-                            last_day = today.replace(month=today.month + 2, day=1) - timedelta(days=1)
-                    
-                    # Python에서 필터링
-                    all_performances = query.order_by(Performance.created_at.desc()).all()
-                    approved_performances = []
-                    
-                    for performance in all_performances:
-                        perf_date = parse_performance_date(performance.date)
-                        if perf_date and is_date_in_range(perf_date, first_day, last_day):
-                            approved_performances.append(performance)
-                    
-                    logger.info(f"Next month filter applied: {first_day} ~ {last_day}, found {len(approved_performances)} performances")
-                
+                week_start = today - timedelta(days=today.weekday())
+                week_end = week_start + timedelta(days=6)
+                query = query.filter(Performance.date >= week_start, Performance.date <= week_end)
+            elif category_filter == '이번달':
+                # 이번 달 공연 필터링
+                today = datetime.now().date()
+                month_start = today.replace(day=1)
+                if today.month == 12:
+                    month_end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
                 else:
-                    # 날짜 필터가 적용되지 않은 경우 기본 쿼리 사용
-                    approved_performances = query.order_by(Performance.created_at.desc()).all()
+                    month_end = today.replace(month=today.month + 1, day=1) - timedelta(days=1)
+                query = query.filter(Performance.date >= month_start, Performance.date <= month_end)
+            elif category_filter == '다음달':
+                # 다음 달 공연 필터링
+                today = datetime.now().date()
+                if today.month == 12:
+                    next_month_start = today.replace(year=today.year + 1, month=1, day=1)
+                    next_month_end = today.replace(year=today.year + 1, month=2, day=1) - timedelta(days=1)
+                else:
+                    next_month_start = today.replace(month=today.month + 1, day=1)
+                    if today.month == 11:
+                        next_month_end = today.replace(year=today.year + 1, month=1, day=1) - timedelta(days=1)
+                    else:
+                        next_month_end = today.replace(month=today.month + 2, day=1) - timedelta(days=1)
+                query = query.filter(Performance.date >= next_month_start, Performance.date <= next_month_end)
             else:
-                # 날짜 필터가 없는 경우 기본 쿼리 사용
-                approved_performances = query.order_by(Performance.created_at.desc()).all()
-            
-            # 지역 필터 - 주소에서 지역 감지하여 필터링
-            if location:
-                # 지역별 키워드 매핑
-                region_keywords = {
-                    '서울특별시': ['서울특별시', '서울시', '서울', '강남구', '강동구', '강북구', '강서구', '관악구', '광진구', '구로구', '금천구', '노원구', '도봉구', '동대문구', '동작구', '마포구', '서대문구', '서초구', '성동구', '성북구', '송파구', '양천구', '영등포구', '용산구', '은평구', '종로구', '중구', '중랑구'],
-                    '경기도': ['경기도', '경기', '수원시', '성남시', '의정부시', '안양시', '부천시', '광명시', '평택시', '동두천시', '안산시', '고양시', '과천시', '구리시', '남양주시', '오산시', '시흥시', '군포시', '의왕시', '하남시', '용인시', '파주시', '이천시', '안성시', '김포시', '화성시', '광주시', '여주시'],
-                    '강원도': ['강원도', '강원', '춘천시', '원주시', '강릉시', '동해시', '태백시', '속초시', '삼척시'],
-                    '인천광역시': ['인천광역시', '인천시', '인천'],
-                    '충청남도': ['충청남도', '충남', '천안시', '공주시', '보령시', '아산시', '서산시', '논산시', '계룡시', '당진시'],
-                    '충청북도': ['충청북도', '충북', '청주시', '충주시', '제천시'],
-                    '세종특별자치시': ['세종특별자치시', '세종시', '세종'],
-                    '대전광역시': ['대전광역시', '대전시', '대전'],
-                    '경상북도': ['경상북도', '경북', '포항시', '경주시', '김천시', '안동시', '구미시', '영주시', '영천시', '상주시', '문경시', '경산시'],
-                    '대구광역시': ['대구광역시', '대구시', '대구'],
-                    '전라북도': ['전라북도', '전북', '전주시', '군산시', '익산시', '정읍시', '남원시', '김제시'],
-                    '경상남도': ['경상남도', '경남', '창원시', '진주시', '통영시', '사천시', '김해시', '밀양시', '거제시', '양산시'],
-                    '울산광역시': ['울산광역시', '울산시', '울산'],
-                    '부산광역시': ['부산광역시', '부산시', '부산'],
-                    '광주광역시': ['광주광역시', '광주시', '광주'],
-                    '전라남도': ['전라남도', '전남', '목포시', '여수시', '순천시', '나주시', '광양시'],
-                    '제주도': ['제주도', '제주특별자치도', '제주시', '제주', '서귀포시']
-                }
-                
-                if location in region_keywords:
-                    # 해당 지역의 키워드들로 주소 필터링
-                    keywords = region_keywords[location]
-                    filtered_performances = []
-                    
-                    for performance in approved_performances:
-                        address = performance.address or ''
-                        location_name = performance.location or ''
-                        
-                        # 주소나 장소명에 키워드가 포함되어 있는지 확인
-                        for keyword in keywords:
-                            if keyword in address or keyword in location_name:
-                                filtered_performances.append(performance)
-                                break
-                    
-                    approved_performances = filtered_performances
-                    logger.info(f"Region filter '{location}' applied, found {len(approved_performances)} performances")
-            
-            # 가격 필터 - Python에서 처리
-            if price_filter:
-                filtered_performances = []
-                
-                for performance in approved_performances:
-                    price = performance.price or ''
-                    
-                    if price_filter == 'free':
-                        if '무료' in price.lower() or 'free' in price.lower() or price == '무료':
-                            filtered_performances.append(performance)
-                    elif price_filter == 'paid':
-                        if not ('무료' in price.lower() or 'free' in price.lower()) and price != '무료':
-                            filtered_performances.append(performance)
-                    elif price_filter == 'discount':
-                        if any(keyword in price.lower() for keyword in ['할인', 'discount', '학생', 'student']):
-                            filtered_performances.append(performance)
-                
-                approved_performances = filtered_performances
-                logger.info(f"Price filter '{price_filter}' applied, found {len(approved_performances)} performances")
-            
-            # 가격 범위 필터 - price_range 파라미터 처리
-            if price_range:
-                if price_range == 'custom':
-                    # 사용자 지정 범위는 price_min, price_max로 처리됨
-                    pass
-                else:
-                    # 미리 정의된 범위 파싱
-                    try:
-                        range_min, range_max = price_range.split('-')
-                        price_min = range_min
-                        price_max = range_max
-                    except ValueError:
-                        logger.warning(f"Invalid price_range format: {price_range}")
-                        price_range = ''
-            
-            # 가격 범위 필터 - Python에서 처리 (가격 문자열 파싱 필요)
-            if price_min or price_max:
-                def filter_by_price_range(performance):
-                    if not performance.price:
-                        return False
-                    
-                    # 가격에서 숫자만 추출
-                    import re
-                    price_str = performance.price.replace(',', '').replace('원', '').replace('₩', '').strip()
-                    
-                    # 무료인 경우
-                    if '무료' in performance.price.lower() or 'free' in performance.price.lower():
-                        price_num = 0
-                    else:
-                        # 숫자만 추출
-                        numbers = re.findall(r'\d+', price_str)
-                        if not numbers:
-                            return False
-                        price_num = int(numbers[0])
-                    
-                    # 범위 체크
-                    if price_min and price_num < int(price_min):
-                        return False
-                    if price_max and price_num > int(price_max):
-                        return False
-                    
-                    return True
-                
-                # 현재까지의 결과에 가격 범위 필터 적용
-                filtered_performances = [p for p in approved_performances if filter_by_price_range(p)]
-                approved_performances = filtered_performances
-                
-                logger.info(f"Price range filter: {price_min or '0'} ~ {price_max or '∞'} applied, found {len(approved_performances)} performances")
-            
-            logger.info(f"Final result: {len(approved_performances)} performances after all filters")
-            
-            # 템플릿 렌더링
-            response = make_response(render_template("index.html", 
-                                 performances=approved_performances, 
-                                 selected_main_category=main_category,
-                                 selected_category=category,
-                                 search=search,
-                                 date_filter=date_filter,
-                                 location=location,
-                                 price_filter=price_filter,
-                                 price_range=price_range,
-                                 price_min=price_min,
-                                 price_max=price_max))
-            
-            # 캐시 무효화 헤더 추가 (뒤로가기 문제 해결)
-            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
-            return response
-                
-        except Exception as db_error:
-            logger.error(f"Database error: {db_error}")
-            # 데이터베이스 오류 시 기본 페이지 반환
-            return create_error_page("데이터베이스 연결 오류", "잠시 후 다시 시도해주세요.")
-            
+                # 일반 카테고리 필터링
+                query = query.filter_by(category=category_filter)
+        
+        # 최신순으로 정렬
+        performances = query.order_by(Performance.created_at.desc()).all()
+        
+        # 템플릿 렌더링
+        response = make_response(render_template("index.html", 
+                             performances=performances, 
+                             selected_category=category_filter))
+        
+        # 캐시 무효화 헤더 추가
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+        
     except Exception as e:
-        logger.error(f"Unexpected error in home route: {e}")
-        return create_error_page("서버 오류", "잠시 후 다시 시도해주세요.")
+        logger.error(f"홈페이지 오류: {e}")
+        flash('홈페이지를 불러오는 중 오류가 발생했습니다.', 'error')
+        return render_template("index.html", performances=[], selected_category='전체기간')
 
 @app.route('/home')
 def home_redirect():
@@ -1809,65 +1506,81 @@ def logout():
 
 @app.route('/admin')
 def admin_panel():
-    """관리자 패널 - 승인 대기 중인 공연 관리"""
+    """관리자 패널 - 승인 대기 중인 공연 관리 및 데이터 분석"""
     # 관리자 권한 확인
     if not current_user.is_authenticated or not current_user.is_admin:
         flash('관리자 권한이 필요합니다.', 'error')
         return redirect(url_for('login'))
     
-    # 필터 파라미터 받기
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    category_filter = request.args.get('category_filter')
-    
-    # 기본 쿼리
-    pending_query = Performance.query.filter_by(is_approved=False)
-    approved_query = Performance.query.filter_by(is_approved=True)
-    
-    # 날짜 필터 적용
-    if start_date:
-        pending_query = pending_query.filter(Performance.date >= start_date)
-        approved_query = approved_query.filter(Performance.date >= start_date)
-    
-    if end_date:
-        pending_query = pending_query.filter(Performance.date <= end_date)
-        approved_query = approved_query.filter(Performance.date <= end_date)
-    
-    # 카테고리 필터 적용
-    if category_filter:
-        pending_query = pending_query.filter_by(category=category_filter)
-        approved_query = approved_query.filter_by(category=category_filter)
-    
-    # 필터링된 결과 가져오기
-    pending_performances = pending_query.all()
-    approved_performances = approved_query.all()
-    
-    # 필터링된 통계 계산
-    filtered_pending_count = len(pending_performances)
-    filtered_approved_count = len(approved_performances)
-    filtered_rejected_count = 0  # 거절된 공연은 DB에서 삭제되므로 0
-    filtered_total_count = filtered_pending_count + filtered_approved_count + filtered_rejected_count
-    
-    # 차트 데이터 생성 (필터 적용)
-    monthly_chart_data = get_monthly_chart_data(start_date, end_date, category_filter)
-    category_chart_data = get_category_chart_data(start_date, end_date, category_filter)
-    
-    # 템플릿 렌더링
-    response = make_response(render_template("admin.html", 
-                         pending_performances=pending_performances,
-                         approved_performances=approved_performances,
-                         filtered_pending_count=filtered_pending_count,
-                         filtered_approved_count=filtered_approved_count,
-                         filtered_rejected_count=filtered_rejected_count,
-                         filtered_total_count=filtered_total_count,
-                         monthly_chart_data=monthly_chart_data,
-                         category_chart_data=category_chart_data))
-    
-    # 캐시 무효화 헤더 추가
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
+    try:
+        # 필터 파라미터 받기
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        category_filter = request.args.get('category_filter')
+        
+        # 기본 쿼리
+        pending_query = Performance.query.filter_by(is_approved=False)
+        approved_query = Performance.query.filter_by(is_approved=True)
+        
+        # 날짜 필터 적용
+        if start_date:
+            pending_query = pending_query.filter(Performance.date >= start_date)
+            approved_query = approved_query.filter(Performance.date >= start_date)
+        
+        if end_date:
+            pending_query = pending_query.filter(Performance.date <= end_date)
+            approved_query = approved_query.filter(Performance.date <= end_date)
+        
+        # 카테고리 필터 적용
+        if category_filter:
+            pending_query = pending_query.filter_by(category=category_filter)
+            approved_query = approved_query.filter_by(category=category_filter)
+        
+        # 필터링된 결과 가져오기
+        pending_performances = pending_query.all()
+        approved_performances = approved_query.all()
+        
+        # 필터링된 통계 계산
+        filtered_pending_count = len(pending_performances)
+        filtered_approved_count = len(approved_performances)
+        filtered_rejected_count = 0  # 거절된 공연은 DB에서 삭제되므로 0
+        filtered_total_count = filtered_pending_count + filtered_approved_count + filtered_rejected_count
+        
+        # 차트 데이터 생성 (필터 적용)
+        monthly_chart_data = get_monthly_chart_data(start_date, end_date, category_filter)
+        category_chart_data = get_category_chart_data(start_date, end_date, category_filter)
+        
+        # 데이터 분석 데이터 가져오기
+        real_time_stats = get_real_time_stats()
+        audience_analysis = get_audience_analysis()
+        trend_prediction = get_trend_prediction()
+        ab_test_results = get_ab_test_results()
+        
+        # 템플릿 렌더링
+        response = make_response(render_template("admin.html", 
+                             pending_performances=pending_performances,
+                             approved_performances=approved_performances,
+                             filtered_pending_count=filtered_pending_count,
+                             filtered_approved_count=filtered_approved_count,
+                             filtered_rejected_count=filtered_rejected_count,
+                             filtered_total_count=filtered_total_count,
+                             monthly_chart_data=monthly_chart_data,
+                             category_chart_data=category_chart_data,
+                             real_time_stats=real_time_stats,
+                             audience_analysis=audience_analysis,
+                             trend_prediction=trend_prediction,
+                             ab_test_results=ab_test_results))
+        
+        # 캐시 무효화 헤더 추가
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+        
+    except Exception as e:
+        logger.error(f"관리자 패널 오류: {e}")
+        flash('관리자 패널을 불러오는 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('home'))
 
 def get_monthly_chart_data(start_date=None, end_date=None, category_filter=None):
     """월별 공연 등록 차트 데이터 (필터 적용)"""
@@ -2077,15 +1790,23 @@ def submit_performance():
 @app.route('/performance/<int:performance_id>')
 def performance_detail(performance_id):
     """공연 상세 페이지"""
-    performance = Performance.query.get(performance_id)
-    
-    if not performance or not performance.is_approved:
+    try:
+        performance = Performance.query.get_or_404(performance_id)
+        
+        # 사용자 이벤트 추적 (로그인한 사용자만)
+        if current_user.is_authenticated:
+            track_user_event(
+                user_id=current_user.id,
+                event_type='view',
+                performance_id=performance_id,
+                metadata={'page': 'performance_detail'}
+            )
+        
+        return render_template('performance_detail.html', performance=performance)
+    except Exception as e:
+        logger.error(f"공연 상세 페이지 오류: {e}")
+        flash('공연 정보를 불러오는 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('home'))
-    
-    # 사용자 활동 추적
-    track_user_activity('view_performance', performance_id, performance.category, performance.location)
-    
-    return render_template("performance_detail.html", performance=performance)
 
 @app.route('/like/<int:performance_id>', methods=['POST'])
 @login_required
@@ -2107,14 +1828,12 @@ def toggle_like(performance_id):
             db.session.delete(existing_like)
             performance.likes -= 1
             liked = False
-            track_user_activity('unlike', performance_id, performance.category, performance.location)
         else:
             # 좋아요 추가
             new_like = UserLike(user_id=current_user.id, performance_id=performance_id)
             db.session.add(new_like)
             performance.likes += 1
             liked = True
-            track_user_activity('like', performance_id, performance.category, performance.location)
         
         db.session.commit()
         
@@ -2850,297 +2569,6 @@ def kopis_sync():
         flash('KOPIS 동기화 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
 
-# ============================================================================
-# 데이터 분석 및 인사이트 라우트들
-# ============================================================================
-
-@app.route('/admin/dashboard')
-@login_required
-def admin_dashboard():
-    """관리자 실시간 대시보드"""
-    if not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.', 'error')
-        return redirect(url_for('home'))
-    
-    try:
-        # 실시간 데이터 수집
-        dashboard_data = get_real_time_dashboard_data()
-        audience_data = get_audience_analysis_data()
-        trend_data = get_trend_prediction_data()
-        
-        return render_template('admin_dashboard.html',
-                             dashboard_data=dashboard_data,
-                             audience_data=audience_data,
-                             trend_data=trend_data)
-    except Exception as e:
-        logger.error(f"Admin dashboard error: {e}")
-        flash('대시보드 로딩 중 오류가 발생했습니다.', 'error')
-        return redirect(url_for('admin_panel'))
-
-@app.route('/admin/audience-analysis')
-@login_required
-def audience_analysis():
-    """관객 분석 페이지"""
-    if not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.', 'error')
-        return redirect(url_for('home'))
-    
-    try:
-        audience_data = get_audience_analysis_data()
-        return render_template('audience_analysis.html', data=audience_data)
-    except Exception as e:
-        logger.error(f"Audience analysis error: {e}")
-        flash('관객 분석 로딩 중 오류가 발생했습니다.', 'error')
-        return redirect(url_for('admin_panel'))
-
-@app.route('/admin/trend-prediction')
-@login_required
-def trend_prediction():
-    """트렌드 예측 페이지"""
-    if not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.', 'error')
-        return redirect(url_for('home'))
-    
-    try:
-        trend_data = get_trend_prediction_data()
-        return render_template('trend_prediction.html', data=trend_data)
-    except Exception as e:
-        logger.error(f"Trend prediction error: {e}")
-        flash('트렌드 예측 로딩 중 오류가 발생했습니다.', 'error')
-        return redirect(url_for('admin_panel'))
-
-@app.route('/admin/ab-testing')
-@login_required
-def ab_testing():
-    """A/B 테스트 관리 페이지"""
-    if not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.', 'error')
-        return redirect(url_for('home'))
-    
-    try:
-        ab_data = get_ab_test_data()
-        return render_template('ab_testing.html', data=ab_data)
-    except Exception as e:
-        logger.error(f"A/B testing error: {e}")
-        flash('A/B 테스트 로딩 중 오류가 발생했습니다.', 'error')
-        return redirect(url_for('admin_panel'))
-
-@app.route('/admin/performance-analytics')
-@login_required
-def performance_analytics():
-    """공연별 성과 분석 페이지"""
-    if not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.', 'error')
-        return redirect(url_for('home'))
-    
-    try:
-        analytics_data = get_performance_analytics()
-        return render_template('performance_analytics.html', data=analytics_data)
-    except Exception as e:
-        logger.error(f"Performance analytics error: {e}")
-        flash('성과 분석 로딩 중 오류가 발생했습니다.', 'error')
-        return redirect(url_for('admin_panel'))
-
-@app.route('/admin/reports')
-@login_required
-def reports():
-    """리포트 관리 페이지"""
-    if not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.', 'error')
-        return redirect(url_for('home'))
-    
-    try:
-        # 기존 리포트 목록
-        reports_list = Report.query.filter_by(created_by=current_user.id).order_by(Report.created_at.desc()).all()
-        return render_template('reports.html', reports=reports_list)
-    except Exception as e:
-        logger.error(f"Reports error: {e}")
-        flash('리포트 로딩 중 오류가 발생했습니다.', 'error')
-        return redirect(url_for('admin_panel'))
-
-@app.route('/admin/create-report', methods=['POST'])
-@login_required
-def create_report():
-    """리포트 생성"""
-    if not current_user.is_admin:
-        return jsonify({'error': '관리자 권한이 필요합니다.'}), 403
-    
-    try:
-        report_type = request.form.get('report_type')
-        start_date_str = request.form.get('start_date')
-        end_date_str = request.form.get('end_date')
-        
-        if not all([report_type, start_date_str, end_date_str]):
-            return jsonify({'error': '모든 필드를 입력해주세요.'}), 400
-        
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
-        
-        report_id = generate_report(report_type, start_date, end_date, current_user.id)
-        
-        if report_id:
-            flash('리포트가 성공적으로 생성되었습니다.', 'success')
-            return jsonify({'success': True, 'report_id': report_id})
-        else:
-            return jsonify({'error': '리포트 생성에 실패했습니다.'}), 500
-            
-    except Exception as e:
-        logger.error(f"Create report error: {e}")
-        return jsonify({'error': '리포트 생성 중 오류가 발생했습니다.'}), 500
-
-@app.route('/admin/download-report/<int:report_id>')
-@login_required
-def download_report(report_id):
-    """리포트 다운로드"""
-    if not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.', 'error')
-        return redirect(url_for('home'))
-    
-    try:
-        report = Report.query.get_or_404(report_id)
-        
-        # JSON 데이터를 CSV로 변환
-        import csv
-        from io import StringIO
-        
-        data = json.loads(report.data)
-        output = StringIO()
-        writer = csv.writer(output)
-        
-        # 헤더 작성
-        writer.writerow(['리포트 정보'])
-        writer.writerow(['리포트 타입', report.report_type])
-        writer.writerow(['시작일', report.start_date])
-        writer.writerow(['종료일', report.end_date])
-        writer.writerow(['생성일', report.created_at])
-        writer.writerow([])
-        
-        # 대시보드 데이터
-        if 'dashboard_data' in data:
-            writer.writerow(['실시간 대시보드'])
-            dashboard = data['dashboard_data']
-            writer.writerow(['오늘 등록된 공연', dashboard.get('today_performances', 0)])
-            writer.writerow(['실시간 방문자', dashboard.get('recent_visitors', 0)])
-            writer.writerow(['예매율', f"{dashboard.get('booking_rate', 0)}%"])
-            writer.writerow(['인기 카테고리', dashboard.get('popular_category', '기타')])
-            writer.writerow([])
-        
-        # 성과 데이터
-        if 'performance_data' in data and 'performance_data' in data['performance_data']:
-            writer.writerow(['공연별 성과'])
-            writer.writerow(['제목', '카테고리', '조회수', '좋아요', '댓글', '전환율'])
-            for perf in data['performance_data']['performance_data']:
-                writer.writerow([
-                    perf.get('title', ''),
-                    perf.get('category', ''),
-                    perf.get('views', 0),
-                    perf.get('likes', 0),
-                    perf.get('comments', 0),
-                    f"{perf.get('conversion_rate', 0)}%"
-                ])
-        
-        output.seek(0)
-        
-        response = make_response(output.getvalue())
-        response.headers['Content-Type'] = 'text/csv; charset=utf-8'
-        response.headers['Content-Disposition'] = f'attachment; filename=report_{report_id}.csv'
-        
-        return response
-        
-    except Exception as e:
-        logger.error(f"Download report error: {e}")
-        flash('리포트 다운로드 중 오류가 발생했습니다.', 'error')
-        return redirect(url_for('reports'))
-
-@app.route('/admin/create-ab-test', methods=['POST'])
-@login_required
-def create_ab_test():
-    """A/B 테스트 생성"""
-    if not current_user.is_admin:
-        return jsonify({'error': '관리자 권한이 필요합니다.'}), 403
-    
-    try:
-        name = request.form.get('name')
-        description = request.form.get('description')
-        test_type = request.form.get('test_type')
-        version_a = request.form.get('version_a')
-        version_b = request.form.get('version_b')
-        start_date_str = request.form.get('start_date')
-        end_date_str = request.form.get('end_date')
-        
-        if not all([name, test_type, version_a, version_b, start_date_str, end_date_str]):
-            return jsonify({'error': '모든 필드를 입력해주세요.'}), 400
-        
-        start_date = datetime.strptime(start_date_str, '%Y-%m-%d %H:%M')
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d %H:%M')
-        
-        ab_test = ABTest(
-            name=name,
-            description=description,
-            test_type=test_type,
-            version_a=version_a,
-            version_b=version_b,
-            start_date=start_date,
-            end_date=end_date
-        )
-        
-        db.session.add(ab_test)
-        db.session.commit()
-        
-        flash('A/B 테스트가 성공적으로 생성되었습니다.', 'success')
-        return jsonify({'success': True, 'test_id': ab_test.id})
-        
-    except Exception as e:
-        logger.error(f"Create A/B test error: {e}")
-        return jsonify({'error': 'A/B 테스트 생성 중 오류가 발생했습니다.'}), 500
-
-@app.route('/admin/track-ab-test', methods=['POST'])
-def track_ab_test():
-    """A/B 테스트 결과 추적"""
-    try:
-        test_id = request.form.get('test_id')
-        version = request.form.get('version')
-        action = request.form.get('action')
-        
-        if not all([test_id, version, action]):
-            return jsonify({'error': '필수 정보가 누락되었습니다.'}), 400
-        
-        session_id = session.get('session_id')
-        if not session_id:
-            session_id = str(uuid.uuid4())
-            session['session_id'] = session_id
-        
-        result = ABTestResult(
-            test_id=test_id,
-            user_id=current_user.id if current_user.is_authenticated else None,
-            session_id=session_id,
-            version=version,
-            action=action
-        )
-        
-        db.session.add(result)
-        db.session.commit()
-        
-        return jsonify({'success': True})
-        
-    except Exception as e:
-        logger.error(f"Track A/B test error: {e}")
-        return jsonify({'error': 'A/B 테스트 추적 중 오류가 발생했습니다.'}), 500
-
-@app.route('/api/dashboard-data')
-@login_required
-def api_dashboard_data():
-    """실시간 대시보드 데이터 API"""
-    if not current_user.is_admin:
-        return jsonify({'error': '관리자 권한이 필요합니다.'}), 403
-    
-    try:
-        dashboard_data = get_real_time_dashboard_data()
-        return jsonify(dashboard_data)
-    except Exception as e:
-        logger.error(f"API dashboard data error: {e}")
-        return jsonify({'error': '데이터 로딩 중 오류가 발생했습니다.'}), 500
-
 # KOPIS URL 생성 함수 추가
 def generate_kopis_url(kopis_id):
     """KOPIS 공연 페이지 URL 생성"""
@@ -3148,148 +2576,176 @@ def generate_kopis_url(kopis_id):
         return None
     return f"https://www.kopis.or.kr/por/db/pblprfr/pblprfrView.do?mt20id={kopis_id}"
 
-# ============================================================================
-# 데이터 분석 및 인사이트 유틸리티 함수들
-# ============================================================================
+# 데이터 분석을 위한 모델들
+class UserEvent(db.Model):
+    """사용자 행동 추적"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    event_type = db.Column(db.String(50))  # 'view', 'like', 'comment', 'purchase'
+    performance_id = db.Column(db.Integer, db.ForeignKey('performance.id'))
+    timestamp = db.Column(db.DateTime, default=func.now())
+    event_data = db.Column(db.Text)  # JSON 형태의 추가 데이터
+    
+    user = db.relationship('User', backref='events')
+    performance = db.relationship('Performance', backref='events')
 
-import json
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from collections import defaultdict, Counter
-import uuid
+class ABTest(db.Model):
+    """A/B 테스트 관리"""
+    id = db.Column(db.Integer, primary_key=True)
+    test_name = db.Column(db.String(100), nullable=False)
+    test_type = db.Column(db.String(50))  # 'title', 'image', 'description', 'price'
+    variant_a = db.Column(db.Text)
+    variant_b = db.Column(db.Text)
+    start_date = db.Column(db.DateTime, default=func.now())
+    end_date = db.Column(db.DateTime)
+    status = db.Column(db.String(20), default='active')  # 'active', 'completed', 'paused'
+    created_at = db.Column(db.DateTime, default=func.now())
 
-def track_user_activity(activity_type, performance_id=None, category=None, location=None):
-    """사용자 활동 추적"""
+class ABTestResult(db.Model):
+    """A/B 테스트 결과"""
+    id = db.Column(db.Integer, primary_key=True)
+    test_id = db.Column(db.Integer, db.ForeignKey('ab_test.id'))
+    variant = db.Column(db.String(10))  # 'A' or 'B'
+    views = db.Column(db.Integer, default=0)
+    clicks = db.Column(db.Integer, default=0)
+    conversions = db.Column(db.Integer, default=0)
+    timestamp = db.Column(db.DateTime, default=func.now())
+    
+    test = db.relationship('ABTest', backref='results')
+
+class TrendData(db.Model):
+    """트렌드 분석 데이터"""
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.Date, nullable=False)
+    category = db.Column(db.String(50))
+    views = db.Column(db.Integer, default=0)
+    likes = db.Column(db.Integer, default=0)
+    comments = db.Column(db.Integer, default=0)
+    conversions = db.Column(db.Integer, default=0)
+    revenue = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=func.now())
+
+class UserProfile(db.Model):
+    """사용자 프로필 확장"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True)
+    age_group = db.Column(db.String(20))  # '10s', '20s', '30s', '40s', '50s+'
+    gender = db.Column(db.String(10))  # 'male', 'female', 'other'
+    region = db.Column(db.String(50))
+    interests = db.Column(db.Text)  # JSON 형태의 관심사
+    created_at = db.Column(db.DateTime, default=func.now())
+    
+    user = db.relationship('User', backref='profile', uselist=False)
+
+# 데이터 분석 유틸리티 함수들
+def track_user_event(user_id, event_type, performance_id=None, metadata=None):
+    """사용자 이벤트 추적"""
     try:
-        session_id = session.get('session_id')
-        if not session_id:
-            session_id = str(uuid.uuid4())
-            session['session_id'] = session_id
-        
-        activity = UserActivity(
-            user_id=current_user.id if current_user.is_authenticated else None,
-            session_id=session_id,
-            activity_type=activity_type,
+        event = UserEvent(
+            user_id=user_id,
+            event_type=event_type,
             performance_id=performance_id,
-            category=category,
-            location=location,
-            user_agent=request.headers.get('User-Agent'),
-            ip_address=request.remote_addr
+            event_data=json.dumps(metadata) if metadata else None
         )
-        db.session.add(activity)
+        db.session.add(event)
         db.session.commit()
+        return True
     except Exception as e:
-        logger.error(f"Activity tracking error: {e}")
+        logger.error(f"이벤트 추적 실패: {e}")
+        return False
 
-def get_real_time_dashboard_data():
-    """실시간 대시보드 데이터"""
+def get_real_time_stats():
+    """실시간 통계 데이터"""
     try:
         today = datetime.now().date()
-        yesterday = today - timedelta(days=1)
         
-        # 오늘 등록된 공연
+        # 오늘 등록된 공연 수
         today_performances = Performance.query.filter(
             func.date(Performance.created_at) == today
         ).count()
         
-        # 실시간 방문자 (최근 1시간)
-        recent_visitors = UserActivity.query.filter(
-            UserActivity.created_at >= datetime.now() - timedelta(hours=1)
-        ).distinct(UserActivity.session_id).count()
+        # 오늘 방문자 수 (고유 사용자)
+        today_visitors = db.session.query(func.count(func.distinct(UserEvent.user_id))).filter(
+            func.date(UserEvent.timestamp) == today,
+            UserEvent.event_type == 'view'
+        ).scalar() or 0
         
         # 이번 주 예매율 (좋아요 기준)
         week_start = today - timedelta(days=today.weekday())
         week_performances = Performance.query.filter(
             func.date(Performance.created_at) >= week_start
-        ).all()
+        ).count()
         
-        total_likes = sum(p.likes for p in week_performances)
-        total_performances = len(week_performances)
-        booking_rate = (total_likes / total_performances * 100) if total_performances > 0 else 0
+        week_likes = db.session.query(func.sum(UserEvent.id)).filter(
+            func.date(UserEvent.timestamp) >= week_start,
+            UserEvent.event_type == 'like'
+        ).scalar() or 0
+        
+        booking_rate = (week_likes / week_performances * 100) if week_performances > 0 else 0
         
         # 인기 카테고리
-        popular_category = db.session.query(
-            Performance.category,
-            func.count(Performance.id).label('count')
-        ).filter(
+        popular_category = db.session.query(Performance.category, func.count(Performance.id)).filter(
             func.date(Performance.created_at) >= week_start
-        ).group_by(Performance.category).order_by(
-            func.count(Performance.id).desc()
-        ).first()
+        ).group_by(Performance.category).order_by(func.count(Performance.id).desc()).first()
         
         return {
             'today_performances': today_performances,
-            'recent_visitors': recent_visitors,
+            'today_visitors': today_visitors,
             'booking_rate': round(booking_rate, 1),
-            'popular_category': popular_category[0] if popular_category else '기타'
+            'popular_category': popular_category[0] if popular_category else '없음'
         }
     except Exception as e:
-        logger.error(f"Dashboard data error: {e}")
-        return {}
+        logger.error(f"실시간 통계 조회 실패: {e}")
+        return {
+            'today_performances': 0,
+            'today_visitors': 0,
+            'booking_rate': 0,
+            'popular_category': '없음'
+        }
 
-def get_audience_analysis_data():
+def get_audience_analysis():
     """관객 분석 데이터"""
     try:
         # 연령대별 선호도 (시뮬레이션 데이터)
         age_preferences = {
-            '20대': {'뮤지컬': 45, '연극': 30, '무용': 15, '기타': 10},
-            '30대': {'뮤지컬': 40, '연극': 35, '무용': 20, '기타': 5},
-            '40대': {'뮤지컬': 35, '연극': 40, '무용': 15, '기타': 10},
-            '50대+': {'뮤지컬': 30, '연극': 45, '무용': 10, '기타': 15}
+            '20s': {'뮤지컬': 45, '연극': 30, '무용': 25},
+            '30s': {'연극': 40, '뮤지컬': 35, '클래식': 25},
+            '40s': {'클래식': 50, '연극': 30, '뮤지컬': 20},
+            '50s+': {'클래식': 60, '연극': 25, '뮤지컬': 15}
         }
         
         # 성별별 관심도
         gender_preferences = {
-            '남성': {'뮤지컬': 35, '연극': 40, '무용': 15, '기타': 10},
-            '여성': {'뮤지컬': 50, '연극': 30, '무용': 15, '기타': 5}
+            'female': {'뮤지컬': 55, '연극': 25, '무용': 20},
+            'male': {'연극': 45, '뮤지컬': 35, '클래식': 20}
         }
         
-        # 지역별 관객 분포
-        location_distribution = {
-            '서울': 45,
+        # 지역별 분포
+        region_distribution = {
+            '서울': 60,
             '경기': 25,
-            '부산': 10,
-            '대구': 8,
-            '기타': 12
-        }
-        
-        # 시간대별 활동 패턴
-        hourly_pattern = {
-            '09-12': 15,
-            '12-15': 25,
-            '15-18': 30,
-            '18-21': 20,
-            '21-24': 10
+            '부산': 8,
+            '기타': 7
         }
         
         return {
             'age_preferences': age_preferences,
             'gender_preferences': gender_preferences,
-            'location_distribution': location_distribution,
-            'hourly_pattern': hourly_pattern
+            'region_distribution': region_distribution
         }
     except Exception as e:
-        logger.error(f"Audience analysis error: {e}")
+        logger.error(f"관객 분석 조회 실패: {e}")
         return {}
 
-def get_trend_prediction_data():
+def get_trend_prediction():
     """트렌드 예측 데이터"""
     try:
         # 향후 3개월 전망
         future_trends = {
-            '뮤지컬': {'growth': 15, 'confidence': 85},
-            '연극': {'growth': 8, 'confidence': 78},
-            '무용': {'growth': 5, 'confidence': 72},
-            '기타': {'growth': 12, 'confidence': 80}
-        }
-        
-        # 카테고리별 트렌드 (최근 6개월)
-        category_trends = {
-            '뮤지컬': [10, 12, 15, 18, 20, 22],
-            '연극': [8, 9, 10, 12, 14, 16],
-            '무용': [5, 6, 7, 8, 9, 10],
-            '기타': [3, 4, 6, 8, 10, 12]
+            '뮤지컬': {'growth': 15, 'reason': '여름 휴가 시즌'},
+            '연극': {'growth': 8, 'reason': '가을 문화 시즌'},
+            '무용': {'growth': 5, 'reason': '안정적 성장'},
+            '클래식': {'growth': 12, 'reason': '겨울 시즌'}
         }
         
         # 핫 키워드
@@ -3297,593 +2753,129 @@ def get_trend_prediction_data():
             {'keyword': '환경친화적 공연', 'growth': 200},
             {'keyword': 'AI 공연', 'growth': 150},
             {'keyword': '소셜미디어 공연', 'growth': 120},
-            {'keyword': 'VR 공연', 'growth': 100},
-            {'keyword': '인터랙티브 공연', 'growth': 90}
+            {'keyword': 'VR 공연', 'growth': 100}
         ]
         
         return {
             'future_trends': future_trends,
-            'category_trends': category_trends,
             'hot_keywords': hot_keywords
         }
     except Exception as e:
-        logger.error(f"Trend prediction error: {e}")
+        logger.error(f"트렌드 예측 조회 실패: {e}")
         return {}
 
-def get_ab_test_data():
-    """A/B 테스트 데이터"""
+def get_ab_test_results():
+    """A/B 테스트 결과"""
     try:
-        # 진행 중인 테스트
         active_tests = ABTest.query.filter_by(status='active').all()
-        
-        # 테스트 결과 요약
-        test_results = []
-        for test in active_tests:
-            results_a = ABTestResult.query.filter_by(
-                test_id=test.id, version='A'
-            ).count()
-            results_b = ABTestResult.query.filter_by(
-                test_id=test.id, version='B'
-            ).count()
-            
-            conversions_a = ABTestResult.query.filter_by(
-                test_id=test.id, version='A', action='conversion'
-            ).count()
-            conversions_b = ABTestResult.query.filter_by(
-                test_id=test.id, version='B', action='conversion'
-            ).count()
-            
-            conversion_rate_a = (conversions_a / results_a * 100) if results_a > 0 else 0
-            conversion_rate_b = (conversions_b / results_b * 100) if results_b > 0 else 0
-            
-            test_results.append({
-                'id': test.id,
-                'name': test.name,
-                'type': test.test_type,
-                'participants_a': results_a,
-                'participants_b': results_b,
-                'conversion_rate_a': round(conversion_rate_a, 2),
-                'conversion_rate_b': round(conversion_rate_b, 2),
-                'improvement': round(conversion_rate_b - conversion_rate_a, 2) if conversion_rate_a > 0 else 0
-            })
+        completed_tests = ABTest.query.filter_by(status='completed').all()
         
         return {
             'active_tests': active_tests,
-            'test_results': test_results
+            'completed_tests': completed_tests
         }
     except Exception as e:
-        logger.error(f"A/B test data error: {e}")
-        return {}
+        logger.error(f"A/B 테스트 결과 조회 실패: {e}")
+        return {'active_tests': [], 'completed_tests': []}
 
-def get_performance_analytics():
-    """공연별 성과 분석"""
+@app.route('/admin/ab-test/create', methods=['POST'])
+@login_required
+def create_ab_test():
+    """A/B 테스트 생성"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('admin_panel'))
+    
     try:
-        # 공연별 성과 데이터
-        performances = Performance.query.filter_by(is_approved=True).all()
-        performance_data = []
+        test_name = request.form.get('test_name')
+        test_type = request.form.get('test_type')
+        variant_a = request.form.get('variant_a')
+        variant_b = request.form.get('variant_b')
+        end_date_str = request.form.get('end_date')
         
-        for perf in performances:
-            views = UserActivity.query.filter_by(
-                performance_id=perf.id, activity_type='view'
-            ).count()
-            
-            likes = perf.likes
-            comments = Comment.query.filter_by(performance_id=perf.id).count()
-            
-            # 전환율 계산 (좋아요 / 조회수)
-            conversion_rate = (likes / views * 100) if views > 0 else 0
-            
-            performance_data.append({
-                'id': perf.id,
-                'title': perf.title,
-                'category': perf.category,
-                'views': views,
-                'likes': likes,
-                'comments': comments,
-                'conversion_rate': round(conversion_rate, 2)
-            })
+        if not all([test_name, test_type, variant_a, variant_b]):
+            flash('모든 필드를 입력해주세요.', 'error')
+            return redirect(url_for('admin_panel'))
         
-        # 사용자 행동 분석
-        total_sessions = UserActivity.query.distinct(UserActivity.session_id).count()
-        avg_session_duration = 204  # 시뮬레이션 데이터 (초)
-        bounce_rate = 23  # 시뮬레이션 데이터 (%)
-        return_rate = 67  # 시뮬레이션 데이터 (%)
+        # 종료일 파싱
+        end_date = None
+        if end_date_str:
+            try:
+                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+            except ValueError:
+                flash('올바른 날짜 형식을 입력해주세요.', 'error')
+                return redirect(url_for('admin_panel'))
         
-        return {
-            'performance_data': performance_data,
-            'user_behavior': {
-                'total_sessions': total_sessions,
-                'avg_session_duration': avg_session_duration,
-                'bounce_rate': bounce_rate,
-                'return_rate': return_rate
-            }
-        }
-    except Exception as e:
-        logger.error(f"Performance analytics error: {e}")
-        return {}
-
-def generate_report(report_type, start_date, end_date, user_id):
-    """리포트 생성"""
-    try:
-        # 리포트 데이터 수집
-        dashboard_data = get_real_time_dashboard_data()
-        audience_data = get_audience_analysis_data()
-        trend_data = get_trend_prediction_data()
-        performance_data = get_performance_analytics()
-        
-        report_data = {
-            'report_type': report_type,
-            'start_date': start_date.strftime('%Y-%m-%d'),
-            'end_date': end_date.strftime('%Y-%m-%d'),
-            'generated_at': datetime.now().isoformat(),
-            'dashboard_data': dashboard_data,
-            'audience_data': audience_data,
-            'trend_data': trend_data,
-            'performance_data': performance_data
-        }
-        
-        # 리포트 저장
-        report_name = f"{report_type}_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-        report = Report(
-            name=report_name,
-            report_type=report_type,
-            start_date=start_date,
-            end_date=end_date,
-            data=json.dumps(report_data, ensure_ascii=False),
-            created_by=user_id
+        # A/B 테스트 생성
+        ab_test = ABTest(
+            test_name=test_name,
+            test_type=test_type,
+            variant_a=variant_a,
+            variant_b=variant_b,
+            end_date=end_date
         )
-        db.session.add(report)
+        
+        db.session.add(ab_test)
         db.session.commit()
         
-        return report.id
-    except Exception as e:
-        logger.error(f"Report generation error: {e}")
-        return None
-
-# ============================================================================
-# 모바일 앱용 API 엔드포인트
-# ============================================================================
-
-@app.route('/api/mobile/performances', methods=['GET'])
-def api_performances():
-    """모바일용 공연 목록 API"""
-    try:
-        # 필터 파라미터 받기
-        category = request.args.get('category')
-        location = request.args.get('location')
-        search = request.args.get('search', '').strip()
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 20))
-        
-        # 기본 쿼리 (승인된 공연만)
-        query = Performance.query.filter_by(is_approved=True)
-        
-        # 카테고리 필터
-        if category and category != '전체':
-            query = query.filter_by(category=category)
-        
-        # 지역 필터
-        if location and location != '전체':
-            query = query.filter_by(location=location)
-        
-        # 검색 필터
-        if search:
-            search_term = f"%{search}%"
-            query = query.filter(
-                db.or_(
-                    Performance.title.ilike(search_term),
-                    Performance.group_name.ilike(search_term)
-                )
-            )
-        
-        # 페이지네이션
-        performances = query.order_by(Performance.created_at.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
-        
-        # 응답 데이터 구성
-        performances_data = []
-        for perf in performances.items:
-            performances_data.append({
-                'id': perf.id,
-                'title': perf.title,
-                'group_name': perf.group_name,
-                'category': perf.category,
-                'location': perf.location,
-                'date': perf.date,
-                'time': perf.time,
-                'price': perf.price,
-                'image_url': perf.image_url,
-                'description': perf.description[:100] + '...' if len(perf.description) > 100 else perf.description,
-                'likes': perf.likes,
-                'created_at': perf.created_at.isoformat() if perf.created_at else None
-            })
-        
-        return jsonify({
-            'success': True,
-            'performances': performances_data,
-            'pagination': {
-                'page': page,
-                'per_page': per_page,
-                'total': performances.total,
-                'pages': performances.pages,
-                'has_next': performances.has_next,
-                'has_prev': performances.has_prev
-            }
-        })
+        flash(f'A/B 테스트 "{test_name}"이 성공적으로 생성되었습니다.', 'success')
+        logger.info(f'A/B 테스트 생성: {test_name}')
         
     except Exception as e:
-        logger.error(f"API performances error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logger.error(f"A/B 테스트 생성 실패: {e}")
+        flash('A/B 테스트 생성 중 오류가 발생했습니다.', 'error')
+        db.session.rollback()
+    
+    return redirect(url_for('admin_panel'))
 
-@app.route('/api/mobile/performances/<int:performance_id>', methods=['GET'])
-def api_performance_detail(performance_id):
-    """모바일용 공연 상세 API"""
+@app.route('/admin/ab-test/<int:test_id>/toggle', methods=['POST'])
+@login_required
+def toggle_ab_test(test_id):
+    """A/B 테스트 상태 변경"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('admin_panel'))
+    
     try:
-        performance = Performance.query.get_or_404(performance_id)
+        ab_test = ABTest.query.get_or_404(test_id)
         
-        # 조회수 증가 (사용자 활동 추적)
-        track_user_activity('view', performance_id, performance.category, performance.location)
-        
-        # 구매방법 파싱
-        try:
-            purchase_methods = json.loads(performance.purchase_methods) if performance.purchase_methods else []
-        except:
-            purchase_methods = ['현장구매']
-        
-        performance_data = {
-            'id': performance.id,
-            'title': performance.title,
-            'group_name': performance.group_name,
-            'category': performance.category,
-            'location': performance.location,
-            'address': performance.address,
-            'date': performance.date,
-            'time': performance.time,
-            'price': performance.price,
-            'image_url': performance.image_url,
-            'description': performance.description,
-            'contact_email': performance.contact_email,
-            'purchase_methods': purchase_methods,
-            'video_url': performance.video_url,
-            'ticket_url': performance.ticket_url,
-            'booking_phone': performance.booking_phone,
-            'booking_website': performance.booking_website,
-            'likes': performance.likes,
-            'created_at': performance.created_at.isoformat() if performance.created_at else None,
-            'is_kopis_synced': performance.is_kopis_synced
-        }
-        
-        return jsonify({'success': True, 'performance': performance_data})
-        
-    except Exception as e:
-        logger.error(f"API performance detail error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/mobile/auth/login', methods=['POST'])
-def api_login():
-    """모바일용 로그인 API"""
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        
-        if not username or not password:
-            return jsonify({'success': False, 'error': '사용자명과 비밀번호를 입력해주세요.'}), 400
-        
-        # 사용자 찾기
-        user = User.query.filter_by(username=username).first()
-        
-        if user and check_password_hash(user.password_hash, password):
-            # 로그인 성공
-            login_user(user)
-            
-            return jsonify({
-                'success': True,
-                'user': {
-                    'id': user.id,
-                    'username': user.username,
-                    'name': user.name,
-                    'email': user.email,
-                    'phone': user.phone,
-                    'is_admin': user.is_admin
-                },
-                'message': '로그인되었습니다!'
-            })
+        if ab_test.status == 'active':
+            ab_test.status = 'paused'
+            message = '일시정지'
         else:
-            return jsonify({'success': False, 'error': '사용자명 또는 비밀번호가 올바르지 않습니다.'}), 401
-            
-    except Exception as e:
-        logger.error(f"API login error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/mobile/auth/register', methods=['POST'])
-def api_register():
-    """모바일용 회원가입 API"""
-    try:
-        data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        name = data.get('name')
-        email = data.get('email')
-        phone = data.get('phone', '')
-        
-        if not all([username, password, name, email]):
-            return jsonify({'success': False, 'error': '모든 필수 필드를 입력해주세요.'}), 400
-        
-        # 중복 사용자 확인
-        if User.query.filter_by(username=username).first():
-            return jsonify({'success': False, 'error': '이미 사용 중인 사용자명입니다.'}), 400
-        
-        if User.query.filter_by(email=email).first():
-            return jsonify({'success': False, 'error': '이미 사용 중인 이메일입니다.'}), 400
-        
-        # 새 사용자 생성
-        user = User(
-            username=username,
-            name=name,
-            email=email,
-            phone=phone,
-            password_hash=generate_password_hash(password)
-        )
-        
-        db.session.add(user)
-        db.session.commit()
-        
-        # 자동 로그인
-        login_user(user)
-        
-        return jsonify({
-            'success': True,
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'name': user.name,
-                'email': user.email,
-                'phone': user.phone,
-                'is_admin': user.is_admin
-            },
-            'message': '회원가입이 완료되었습니다!'
-        })
-        
-    except Exception as e:
-        logger.error(f"API register error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/mobile/user/profile', methods=['GET'])
-@login_required
-def api_user_profile():
-    """모바일용 사용자 프로필 API"""
-    try:
-        return jsonify({
-            'success': True,
-            'user': {
-                'id': current_user.id,
-                'username': current_user.username,
-                'name': current_user.name,
-                'email': current_user.email,
-                'phone': current_user.phone,
-                'is_admin': current_user.is_admin,
-                'created_at': current_user.created_at.isoformat() if current_user.created_at else None
-            }
-        })
-    except Exception as e:
-        logger.error(f"API user profile error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/mobile/user/performances', methods=['GET'])
-@login_required
-def api_user_performances():
-    """모바일용 내 공연 목록 API"""
-    try:
-        performances = Performance.query.filter_by(user_id=current_user.id).order_by(Performance.created_at.desc()).all()
-        
-        performances_data = []
-        for perf in performances:
-            performances_data.append({
-                'id': perf.id,
-                'title': perf.title,
-                'group_name': perf.group_name,
-                'category': perf.category,
-                'location': perf.location,
-                'date': perf.date,
-                'time': perf.time,
-                'price': perf.price,
-                'image_url': perf.image_url,
-                'is_approved': perf.is_approved,
-                'likes': perf.likes,
-                'created_at': perf.created_at.isoformat() if perf.created_at else None
-            })
-        
-        return jsonify({
-            'success': True,
-            'performances': performances_data,
-            'total': len(performances_data)
-        })
-        
-    except Exception as e:
-        logger.error(f"API user performances error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/mobile/performances', methods=['POST'])
-@login_required
-def api_create_performance():
-    """모바일용 공연 신청 API"""
-    try:
-        data = request.get_json()
-        
-        # 필수 필드 확인
-        required_fields = ['title', 'group_name', 'description', 'location', 'date', 'time', 'price']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({'success': False, 'error': f'{field} 필드는 필수입니다.'}), 400
-        
-        # 이미지 URL 처리 (모바일에서는 이미지 URL을 받음)
-        image_url = data.get('image_url')
-        
-        # 구매방법 처리
-        purchase_methods = data.get('purchase_methods', ['현장구매'])
-        if isinstance(purchase_methods, list):
-            purchase_methods_json = json.dumps(purchase_methods, ensure_ascii=False)
-        else:
-            purchase_methods_json = json.dumps(['현장구매'], ensure_ascii=False)
-        
-        # 새 공연 생성
-        performance = Performance(
-            title=data['title'],
-            group_name=data['group_name'],
-            description=data['description'],
-            location=data['location'],
-            address=data.get('address', ''),
-            price=data['price'],
-            date=data['date'],
-            time=data['time'],
-            contact_email=data.get('contact_email', ''),
-            video_url=data.get('video_url', ''),
-            image_url=image_url,
-            main_category=data.get('main_category', '공연'),
-            category=data.get('category', '기타'),
-            ticket_url=data.get('ticket_url', ''),
-            booking_phone=data.get('booking_phone', ''),
-            booking_website=data.get('booking_website', ''),
-            purchase_methods=purchase_methods_json,
-            user_id=current_user.id,
-            is_approved=False
-        )
-        
-        db.session.add(performance)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'performance': {
-                'id': performance.id,
-                'title': performance.title,
-                'is_approved': performance.is_approved
-            },
-            'message': '공연이 성공적으로 신청되었습니다. 관리자 승인 후 게시됩니다.'
-        })
-        
-    except Exception as e:
-        logger.error(f"API create performance error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/mobile/performances/<int:performance_id>/like', methods=['POST'])
-@login_required
-def api_toggle_like(performance_id):
-    """모바일용 좋아요 토글 API"""
-    try:
-        performance = Performance.query.get_or_404(performance_id)
-        
-        # 이미 좋아요를 눌렀는지 확인
-        existing_like = UserLike.query.filter_by(
-            user_id=current_user.id, 
-            performance_id=performance_id
-        ).first()
-        
-        if existing_like:
-            # 좋아요 취소
-            db.session.delete(existing_like)
-            performance.likes = max(0, performance.likes - 1)
-            is_liked = False
-            message = '좋아요가 취소되었습니다.'
-        else:
-            # 좋아요 추가
-            new_like = UserLike(user_id=current_user.id, performance_id=performance_id)
-            db.session.add(new_like)
-            performance.likes += 1
-            is_liked = True
-            message = '좋아요가 추가되었습니다.'
+            ab_test.status = 'active'
+            message = '재시작'
         
         db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'is_liked': is_liked,
-            'likes_count': performance.likes,
-            'message': message
-        })
+        flash(f'A/B 테스트 "{ab_test.test_name}"이 {message}되었습니다.', 'success')
         
     except Exception as e:
-        logger.error(f"API toggle like error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logger.error(f"A/B 테스트 상태 변경 실패: {e}")
+        flash('A/B 테스트 상태 변경 중 오류가 발생했습니다.', 'error')
+    
+    return redirect(url_for('admin_panel'))
 
-@app.route('/api/mobile/categories', methods=['GET'])
-def api_categories():
-    """모바일용 카테고리 목록 API"""
+@app.route('/admin/ab-test/<int:test_id>/complete', methods=['POST'])
+@login_required
+def complete_ab_test(test_id):
+    """A/B 테스트 완료"""
+    if not current_user.is_admin:
+        flash('관리자 권한이 필요합니다.', 'error')
+        return redirect(url_for('admin_panel'))
+    
     try:
-        # 데이터베이스에서 고유한 카테고리 가져오기
-        categories = db.session.query(Performance.category).filter(
-            Performance.category.isnot(None),
-            Performance.category != '',
-            Performance.is_approved == True
-        ).distinct().all()
+        ab_test = ABTest.query.get_or_404(test_id)
+        ab_test.status = 'completed'
+        ab_test.end_date = datetime.now()
         
-        category_list = [cat[0] for cat in categories if cat[0]]
-        
-        return jsonify({
-            'success': True,
-            'categories': category_list
-        })
+        db.session.commit()
+        flash(f'A/B 테스트 "{ab_test.test_name}"이 완료되었습니다.', 'success')
         
     except Exception as e:
-        logger.error(f"API categories error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/mobile/locations', methods=['GET'])
-def api_locations():
-    """모바일용 지역 목록 API"""
-    try:
-        # 데이터베이스에서 고유한 지역 가져오기
-        locations = db.session.query(Performance.location).filter(
-            Performance.location.isnot(None),
-            Performance.location != '',
-            Performance.is_approved == True
-        ).distinct().all()
-        
-        location_list = [loc[0] for loc in locations if loc[0]]
-        
-        return jsonify({
-            'success': True,
-            'locations': location_list
-        })
-        
-    except Exception as e:
-        logger.error(f"API locations error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/qr-code')
-def generate_qr_code():
-    """앱 다운로드 QR 코드 생성"""
-    try:
-        import qrcode
-        from io import BytesIO
-        import base64
-        
-        # 앱 다운로드 링크 (실제 앱스토어 링크로 변경 필요)
-        app_download_url = "https://play.google.com/store/apps/details?id=com.kopis.mobile"
-        
-        # QR 코드 생성
-        qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(app_download_url)
-        qr.make(fit=True)
-        
-        img = qr.make_image(fill_color="black", back_color="white")
-        
-        # 이미지를 base64로 인코딩
-        buffer = BytesIO()
-        img.save(buffer, format='PNG')
-        img_str = base64.b64encode(buffer.getvalue()).decode()
-        
-        return jsonify({
-            'success': True,
-            'qr_code': img_str,
-            'download_url': app_download_url
-        })
-        
-    except Exception as e:
-        logger.error(f"QR code generation error: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logger.error(f"A/B 테스트 완료 실패: {e}")
+        flash('A/B 테스트 완료 중 오류가 발생했습니다.', 'error')
+    
+    return redirect(url_for('admin_panel'))
 
 if __name__ == "__main__":
     try:

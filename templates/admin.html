@@ -1,165 +1,43 @@
 {% extends "base.html" %}
 
-{% block title %}관리자 패널 - KOPIS 공연 홍보 플랫폼{% endblock %}
+{% block title %}관리자 패널{% endblock %}
 
 {% block content %}
-{% set lang = g.lang if g.lang else 'ko' %}
-<div class="container my-5">
-    <div class="row">
-        <div class="col-12">
-            <h2 class="mb-4">
-                <i class="fas fa-cog me-2"></i>{% if lang == 'en' %}Admin Panel{% elif lang == 'ja' %}管理者パネル{% elif lang == 'zh' %}管理员面板{% else %}관리자 패널{% endif %}
-            </h2>
-        </div>
-    </div>
-
-    <!-- 날짜 범위 필터 및 통계 -->
-    <div class="row mb-5">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-chart-bar me-2"></i>{% if lang == 'en' %}Performance Statistics & Filter{% elif lang == 'ja' %}公演統計・フィルター{% elif lang == 'zh' %}演出统计和筛选{% else %}공연 통계 및 필터{% endif %}
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <form method="GET" action="/admin" id="filterForm">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <label for="start_date" class="form-label">
-                                    {% if lang == 'en' %}Start Date{% elif lang == 'ja' %}開始日{% elif lang == 'zh' %}开始日期{% else %}시작일{% endif %}
-                                </label>
-                                <input type="date" class="form-control" id="start_date" name="start_date" 
-                                       value="{{ request.args.get('start_date', '') }}">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="end_date" class="form-label">
-                                    {% if lang == 'en' %}End Date{% elif lang == 'ja' %}終了日{% elif lang == 'zh' %}结束日期{% else %}종료일{% endif %}
-                                </label>
-                                <input type="date" class="form-control" id="end_date" name="end_date" 
-                                       value="{{ request.args.get('end_date', '') }}">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="category_filter" class="form-label">
-                                    {% if lang == 'en' %}Category{% elif lang == 'ja' %}カテゴリー{% elif lang == 'zh' %}类别{% else %}카테고리{% endif %}
-                                </label>
-                                <select class="form-select" id="category_filter" name="category_filter">
-                                    <option value="">{% if lang == 'en' %}All Categories{% elif lang == 'ja' %}全カテゴリー{% elif lang == 'zh' %}所有类别{% else %}전체 카테고리{% endif %}</option>
-                                    <option value="연극" {% if request.args.get('category_filter') == '연극' %}selected{% endif %}>연극</option>
-                                    <option value="뮤지컬" {% if request.args.get('category_filter') == '뮤지컬' %}selected{% endif %}>뮤지컬</option>
-                                    <option value="서양음악(클래식)" {% if request.args.get('category_filter') == '서양음악(클래식)' %}selected{% endif %}>서양음악(클래식)</option>
-                                    <option value="한국음악(국악)" {% if request.args.get('category_filter') == '한국음악(국악)' %}selected{% endif %}>한국음악(국악)</option>
-                                    <option value="대중음악" {% if request.args.get('category_filter') == '대중음악' %}selected{% endif %}>대중음악</option>
-                                    <option value="무용(서양/한국무용)" {% if request.args.get('category_filter') == '무용(서양/한국무용)' %}selected{% endif %}>무용(서양/한국무용)</option>
-                                    <option value="대중무용" {% if request.args.get('category_filter') == '대중무용' %}selected{% endif %}>대중무용</option>
-                                    <option value="서커스/마술" {% if request.args.get('category_filter') == '서커스/마술' %}selected{% endif %}>서커스/마술</option>
-                                    <option value="복합" {% if request.args.get('category_filter') == '복합' %}selected{% endif %}>복합</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">&nbsp;</label>
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-search me-1"></i>{% if lang == 'en' %}Filter{% elif lang == 'ja' %}フィルター{% elif lang == 'zh' %}筛选{% else %}필터{% endif %}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-
-                    <!-- 필터링된 통계 -->
-                    {% if request.args.get('start_date') or request.args.get('end_date') or request.args.get('category_filter') %}
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <h5 class="text-primary">
-                                <i class="fas fa-chart-pie me-2"></i>{% if lang == 'en' %}Filtered Statistics{% elif lang == 'ja' %}フィルター統計{% elif lang == 'zh' %}筛选统计{% else %}필터링된 통계{% endif %}
-                            </h5>
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <div class="card text-center border-primary">
-                                        <div class="card-body">
-                                            <i class="fas fa-clock fa-2x text-warning mb-2"></i>
-                                            <h6 class="card-title">{% if lang == 'en' %}Pending{% elif lang == 'ja' %}審査中{% elif lang == 'zh' %}审核中{% else %}대기 중{% endif %}</h6>
-                                            <h4 class="text-warning">{{ filtered_pending_count }}</h4>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="card text-center border-primary">
-                                        <div class="card-body">
-                                            <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
-                                            <h6 class="card-title">{% if lang == 'en' %}Approved{% elif lang == 'ja' %}承認済み{% elif lang == 'zh' %}已批准{% else %}승인됨{% endif %}</h6>
-                                            <h4 class="text-success">{{ filtered_approved_count }}</h4>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="card text-center border-primary">
-                                        <div class="card-body">
-                                            <i class="fas fa-times-circle fa-2x text-danger mb-2"></i>
-                                            <h6 class="card-title">{% if lang == 'en' %}Rejected{% elif lang == 'ja' %}拒否{% elif lang == 'zh' %}拒绝{% else %}거절됨{% endif %}</h6>
-                                            <h4 class="text-danger">{{ filtered_rejected_count }}</h4>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <div class="card text-center border-primary">
-                                        <div class="card-body">
-                                            <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
-                                            <h6 class="card-title">{% if lang == 'en' %}Total{% elif lang == 'ja' %}総数{% elif lang == 'zh' %}总计{% else %}총합{% endif %}</h6>
-                                            <h4 class="text-primary">{{ filtered_total_count }}</h4>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 데이터 분석 및 인사이트 메뉴 -->
+<div class="container mt-4">
+    <h1 class="mb-4">🎛️ 관리자 패널</h1>
+    
+    <!-- 실시간 대시보드 -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
-                <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <h4 class="mb-0">
-                        <i class="fas fa-chart-pie me-2"></i>{% if lang == 'en' %}Data Analytics & Insights{% elif lang == 'ja' %}データ分析・インサイト{% elif lang == 'zh' %}数据分析与洞察{% else %}데이터 분석 및 인사이트{% endif %}
-                    </h4>
+                <div class="card-header">
+                    <h5 class="mb-0">📊 실시간 대시보드</h5>
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-2 mb-3">
-                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-tachometer-alt me-2"></i>{% if lang == 'en' %}Dashboard{% elif lang == 'ja' %}ダッシュボード{% elif lang == 'zh' %}仪表板{% else %}실시간 대시보드{% endif %}
-                            </a>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-primary text-white">
+                                <h3>{{ real_time_stats.today_performances }}</h3>
+                                <p>오늘 등록된 공연</p>
+                            </div>
                         </div>
-                        <div class="col-md-2 mb-3">
-                            <a href="{{ url_for('audience_analysis') }}" class="btn btn-outline-info w-100">
-                                <i class="fas fa-users me-2"></i>{% if lang == 'en' %}Audience{% elif lang == 'ja' %}観客{% elif lang == 'zh' %}观众{% else %}관객 분석{% endif %}
-                            </a>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-success text-white">
+                                <h3>{{ real_time_stats.today_visitors }}</h3>
+                                <p>실시간 방문자</p>
+                            </div>
                         </div>
-                        <div class="col-md-2 mb-3">
-                            <a href="{{ url_for('trend_prediction') }}" class="btn btn-outline-success w-100">
-                                <i class="fas fa-chart-line me-2"></i>{% if lang == 'en' %}Trends{% elif lang == 'ja' %}トレンド{% elif lang == 'zh' %}趋势{% else %}트렌드 예측{% endif %}
-                            </a>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-info text-white">
+                                <h3>{{ real_time_stats.booking_rate }}%</h3>
+                                <p>이번 주 예매율</p>
+                            </div>
                         </div>
-                        <div class="col-md-2 mb-3">
-                            <a href="{{ url_for('ab_testing') }}" class="btn btn-outline-warning w-100">
-                                <i class="fas fa-flask me-2"></i>{% if lang == 'en' %}A/B Test{% elif lang == 'ja' %}A/Bテスト{% elif lang == 'zh' %}A/B测试{% else %}A/B 테스트{% endif %}
-                            </a>
-                        </div>
-                        <div class="col-md-2 mb-3">
-                            <a href="{{ url_for('performance_analytics') }}" class="btn btn-outline-danger w-100">
-                                <i class="fas fa-chart-bar me-2"></i>{% if lang == 'en' %}Performance{% elif lang == 'ja' %}パフォーマンス{% elif lang == 'zh' %}性能{% else %}성과 분석{% endif %}
-                            </a>
-                        </div>
-                        <div class="col-md-2 mb-3">
-                            <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary w-100">
-                                <i class="fas fa-file-alt me-2"></i>{% if lang == 'en' %}Reports{% elif lang == 'ja' %}レポート{% elif lang == 'zh' %}报告{% else %}리포트{% endif %}
-                            </a>
+                        <div class="col-md-3">
+                            <div class="stat-card bg-warning text-white">
+                                <h3>{{ real_time_stats.popular_category }}</h3>
+                                <p>인기 카테고리</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -167,340 +45,367 @@
         </div>
     </div>
 
-    <!-- 기존 기능 메뉴 -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-rocket me-2"></i>{% if lang == 'en' %}Advanced Features{% elif lang == 'ja' %}高度な機能{% elif lang == 'zh' %}高级功能{% else %}고급 기능{% endif %}
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3 mb-3">
-                            <a href="{{ url_for('analytics_dashboard') }}" class="btn btn-outline-info w-100">
-                                <i class="fas fa-chart-line me-2"></i>{% if lang == 'en' %}Market Analytics{% elif lang == 'ja' %}市場分析{% elif lang == 'zh' %}市场分析{% else %}시장 분석{% endif %}
-                            </a>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <a href="{{ url_for('get_recommendations') }}" class="btn btn-outline-success w-100">
-                                <i class="fas fa-magic me-2"></i>{% if lang == 'en' %}Recommendations{% elif lang == 'ja' %}おすすめ{% elif lang == 'zh' %}推荐{% else %}추천 시스템{% endif %}
-                            </a>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <a href="{{ url_for('generate_market_report') }}" class="btn btn-outline-warning w-100">
-                                <i class="fas fa-file-alt me-2"></i>{% if lang == 'en' %}Market Report{% elif lang == 'ja' %}市場レポート{% elif lang == 'zh' %}市场报告{% else %}시장 리포트{% endif %}
-                            </a>
-                        </div>
-                        <div class="col-md-3 mb-3">
-                            <a href="{{ url_for('kopis_sync') }}" class="btn btn-outline-primary w-100">
-                                <i class="fas fa-sync me-2"></i>{% if lang == 'en' %}Sync KOPIS{% elif lang == 'ja' %}KOPIS同期{% elif lang == 'zh' %}同步KOPIS{% else %}KOPIS 동기화{% endif %}
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- 데이터 분석 탭 -->
+    <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                ⏳ 승인 대기 ({{ filtered_pending_count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved" type="button" role="tab">
+                ✅ 승인된 공연 ({{ filtered_approved_count }})
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="analytics-tab" data-bs-toggle="tab" data-bs-target="#analytics" type="button" role="tab">
+                📈 데이터 분석
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="abtest-tab" data-bs-toggle="tab" data-bs-target="#abtest" type="button" role="tab">
+                🧪 A/B 테스트
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="kopis-tab" data-bs-toggle="tab" data-bs-target="#kopis" type="button" role="tab">
+                🔄 KOPIS 동기화
+            </button>
+        </li>
+    </ul>
 
-    <!-- 승인 대기 중인 공연 -->
-    <div class="row mb-5">
-        <div class="col-12">
+    <div class="tab-content" id="adminTabsContent">
+        <!-- 승인 대기 탭 -->
+        <div class="tab-pane fade show active" id="pending" role="tabpanel">
             <div class="card">
-                <div class="card-header bg-warning text-dark">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h4 class="mb-0">
-                            <i class="fas fa-clock me-2"></i>{% if lang == 'en' %}Pending Approvals ({{ pending_performances|length }}){% elif lang == 'ja' %}承認待ち ({{ pending_performances|length }}){% elif lang == 'zh' %}待审批 ({{ pending_performances|length }}){% else %}승인 대기 중 ({{ pending_performances|length }}건){% endif %}
-                        </h4>
-                        {% if pending_performances %}
-                        <div class="btn-group" role="group">
-                            <button type="button" class="btn btn-success btn-sm" onclick="bulkApprove()">
-                                <i class="fas fa-check me-1"></i>{% if lang == 'en' %}Bulk Approve{% elif lang == 'ja' %}一括承認{% elif lang == 'zh' %}批量批准{% else %}일괄 승인{% endif %}
-                            </button>
-                            <button type="button" class="btn btn-danger btn-sm" onclick="bulkReject()">
-                                <i class="fas fa-times me-1"></i>{% if lang == 'en' %}Bulk Reject{% elif lang == 'ja' %}一括拒否{% elif lang == 'zh' %}批量拒绝{% else %}일괄 거절{% endif %}
-                            </button>
-                        </div>
-                        {% endif %}
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">승인 대기 중인 공연</h5>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-success btn-sm" onclick="approveAll()">전체 승인</button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="rejectAll()">전체 거절</button>
                     </div>
                 </div>
                 <div class="card-body">
                     {% if pending_performances %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
-                                    </th>
-                                    <th>{% if lang == 'en' %}Image{% elif lang == 'ja' %}画像{% elif lang == 'zh' %}图片{% else %}이미지{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Title{% elif lang == 'ja' %}公演名{% elif lang == 'zh' %}演出名{% else %}공연명{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Team{% elif lang == 'ja' %}チーム名{% elif lang == 'zh' %}团队{% else %}팀명{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Applicant{% elif lang == 'ja' %}申請者{% elif lang == 'zh' %}申请人{% else %}신청자{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Venue{% elif lang == 'ja' %}会場{% elif lang == 'zh' %}场馆{% else %}장소{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Date{% elif lang == 'ja' %}日付{% elif lang == 'zh' %}日期{% else %}날짜{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Contact{% elif lang == 'ja' %}連絡先{% elif lang == 'zh' %}联系方式{% else %}연락처{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Applied At{% elif lang == 'ja' %}申請日{% elif lang == 'zh' %}申请日期{% else %}신청일{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Actions{% elif lang == 'ja' %}操作{% elif lang == 'zh' %}操作{% else %}작업{% endif %}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for performance in pending_performances %}
-                                <tr>
-                                    <td>
-                                        <input type="checkbox" class="performance-checkbox" value="{{ performance.id }}">
-                                    </td>
-                                    <td>
-                                        {% if performance.image_url %}
-                                            <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
-                                                 class="img-thumbnail zoomable-img" style="width: 60px; height: 60px; object-fit: cover; cursor: zoom-in;"
-                                                 onclick="openImgZoom('{{ performance.image_url }}', event)">
-                                        {% else %}
-                                            <div class="bg-light d-flex align-items-center justify-content-center" 
-                                                 style="width: 60px; height: 60px;">
-                                                <i class="fas fa-music text-muted"></i>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                                        <th>제목</th>
+                                        <th>카테고리</th>
+                                        <th>날짜</th>
+                                        <th>장소</th>
+                                        <th>등록자</th>
+                                        <th>등록일</th>
+                                        <th>작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for performance in pending_performances %}
+                                    <tr>
+                                        <td><input type="checkbox" name="selected" value="{{ performance.id }}"></td>
+                                        <td>{{ performance.title }}</td>
+                                        <td><span class="badge bg-secondary">{{ performance.category }}</span></td>
+                                        <td>{{ performance.date.strftime('%Y-%m-%d') if performance.date else '미정' }}</td>
+                                        <td>{{ performance.venue }}</td>
+                                        <td>{{ performance.user.username if performance.user else '알 수 없음' }}</td>
+                                        <td>{{ performance.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-success btn-sm" onclick="approvePerformance({{ performance.id }})">승인</button>
+                                                <button class="btn btn-danger btn-sm" onclick="rejectPerformance({{ performance.id }})">거절</button>
+                                                <a href="{{ url_for('performance_detail', performance_id=performance.id) }}" class="btn btn-info btn-sm">상세보기</a>
                                             </div>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <strong>{{ performance.title }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ performance.description[:50] }}...</small>
-                                    </td>
-                                    <td>{{ performance.group_name }}</td>
-                                    <td>
-                                        {% for user in users %}
-                                            {% if user.id == performance.user_id %}
-                                                <strong>{{ user.name }}</strong><br>
-                                                <small class="text-muted">{{ user.username }}</small>
-                                            {% endif %}
-                                        {% endfor %}
-                                    </td>
-                                    <td>{{ performance.location }}</td>
-                                    <td>{{ performance.date }} {{ performance.time }}</td>
-                                    <td>{{ performance.contact_email }}</td>
-                                    <td>{{ performance.created_at.strftime('%Y-%m-%d') }}</td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <a href="{{ url_for('performance_detail', performance_id=performance.id) }}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-eye"></i>
-                                            </a>
-                                            {% if performance.is_kopis_synced %}
-                                            <a href="{{ performance.kopis_url }}" target="_blank" 
-                                               class="btn btn-sm btn-outline-info" title="KOPIS에서 보기">
-                                                <i class="fas fa-external-link-alt"></i>
-                                            </a>
-                                            {% endif %}
-                                            <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
-                                                <button type="submit" class="btn btn-success btn-sm">
-                                                    <i class="fas fa-check me-1"></i>{% if lang == 'en' %}Approve{% elif lang == 'ja' %}承認{% elif lang == 'zh' %}批准{% else %}승인{% endif %}
-                                                </button>
-                                            </form>
-                                            <form method="POST" action="/admin/reject/{{ performance.id }}" style="display: inline;">
-                                                <button type="submit" class="btn btn-danger btn-sm ms-1" 
-                                                        onclick="return confirm('{% if lang == 'en' %}Are you sure you want to reject?{% elif lang == 'ja' %}本当に拒否しますか？{% elif lang == 'zh' %}确定要拒绝吗？{% else %}정말 거절하시겠습니까?{% endif %}')">
-                                                    <i class="fas fa-times me-1"></i>{% if lang == 'en' %}Reject{% elif lang == 'ja' %}拒否{% elif lang == 'zh' %}拒绝{% else %}거절{% endif %}
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                        <h5 class="text-success">
-                            {% if lang == 'en' %}No pending performances{% elif lang == 'ja' %}承認待ちの公演はありません{% elif lang == 'zh' %}暂无待审批演出{% else %}승인 대기 중인 공연이 없습니다{% endif %}
-                        </h5>
-                        <p class="text-muted">
-                            {% if lang == 'en' %}All applications have been processed.{% elif lang == 'ja' %}すべての申請が処理されました。{% elif lang == 'zh' %}所有申请已处理。{% else %}모든 신청이 처리되었습니다.{% endif %}
-                        </p>
-                    </div>
+                        <div class="text-center py-4">
+                            <p class="text-muted">승인 대기 중인 공연이 없습니다.</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 승인된 공연 -->
-    <div class="row">
-        <div class="col-12">
+        <!-- 승인된 공연 탭 -->
+        <div class="tab-pane fade" id="approved" role="tabpanel">
             <div class="card">
-                <div class="card-header bg-success text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-check-circle me-2"></i>{% if lang == 'en' %}Approved Performances ({{ approved_performances|length }}){% elif lang == 'ja' %}承認済み ({{ approved_performances|length }}){% elif lang == 'zh' %}已批准 ({{ approved_performances|length }}){% else %}승인된 공연 ({{ approved_performances|length }}건){% endif %}
-                    </h4>
+                <div class="card-header">
+                    <h5 class="mb-0">승인된 공연</h5>
                 </div>
                 <div class="card-body">
                     {% if approved_performances %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>{% if lang == 'en' %}Image{% elif lang == 'ja' %}画像{% elif lang == 'zh' %}图片{% else %}이미지{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Title{% elif lang == 'ja' %}公演名{% elif lang == 'zh' %}演出名{% else %}공연명{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Team{% elif lang == 'ja' %}チーム名{% elif lang == 'zh' %}团队{% else %}팀명{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Venue{% elif lang == 'ja' %}会場{% elif lang == 'zh' %}场馆{% else %}장소{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Date{% elif lang == 'ja' %}日付{% elif lang == 'zh' %}日期{% else %}날짜{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Price{% elif lang == 'ja' %}価格{% elif lang == 'zh' %}票价{% else %}가격{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Approved At{% elif lang == 'ja' %}承認日{% elif lang == 'zh' %}批准日期{% else %}승인일{% endif %}</th>
-                                    <th>{% if lang == 'en' %}View{% elif lang == 'ja' %}表示{% elif lang == 'zh' %}查看{% else %}보기{% endif %}</th>
-                                    <th>{% if lang == 'en' %}Delete{% elif lang == 'ja' %}削除{% elif lang == 'zh' %}删除{% else %}삭제{% endif %}</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for performance in approved_performances %}
-                                <tr>
-                                    <td>
-                                        {% if performance.image_url %}
-                                            <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
-                                                 class="img-thumbnail" style="width: 60px; height: 60px; object-fit: cover;">
-                                        {% else %}
-                                            <div class="bg-light d-flex align-items-center justify-content-center" 
-                                                 style="width: 60px; height: 60px;">
-                                                <i class="fas fa-music text-muted"></i>
-                                            </div>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <strong>{{ performance.title }}</strong>
-                                        <br>
-                                        <small class="text-muted">{{ performance.description[:50] }}...</small>
-                                    </td>
-                                    <td>{{ performance.group_name }}</td>
-                                    <td>{{ performance.location }}</td>
-                                    <td>{{ performance.date }} {{ performance.time }}</td>
-                                    <td><span class="badge bg-primary">₩{{ performance.price }}</span></td>
-                                    <td>{{ performance.created_at.strftime('%Y-%m-%d') }}</td>
-                                    <td>
-                                        <a href="/performance/{{ performance.id }}" class="btn btn-outline-primary btn-sm">
-                                            <i class="fas fa-eye me-1"></i>{% if lang == 'en' %}View{% elif lang == 'ja' %}表示{% elif lang == 'zh' %}查看{% else %}보기{% endif %}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        <form method="POST" action="/admin/delete/{{ performance.id }}" style="display:inline;">
-                                            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('{% if lang == 'en' %}Are you sure you want to delete?{% elif lang == 'ja' %}本当に削除しますか？{% elif lang == 'zh' %}确定要删除吗？{% else %}정말 삭제하시겠습니까?{% endif %}')">
-                                                <i class="fas fa-trash me-1"></i>{% if lang == 'en' %}Delete{% elif lang == 'ja' %}削除{% elif lang == 'zh' %}删除{% else %}삭제{% endif %}
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>제목</th>
+                                        <th>카테고리</th>
+                                        <th>날짜</th>
+                                        <th>장소</th>
+                                        <th>등록자</th>
+                                        <th>승인일</th>
+                                        <th>작업</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for performance in approved_performances %}
+                                    <tr>
+                                        <td>{{ performance.title }}</td>
+                                        <td><span class="badge bg-secondary">{{ performance.category }}</span></td>
+                                        <td>{{ performance.date.strftime('%Y-%m-%d') if performance.date else '미정' }}</td>
+                                        <td>{{ performance.venue }}</td>
+                                        <td>{{ performance.user.username if performance.user else '알 수 없음' }}</td>
+                                        <td>{{ performance.updated_at.strftime('%Y-%m-%d %H:%M') if performance.updated_at else '알 수 없음' }}</td>
+                                        <td>
+                                            <a href="{{ url_for('performance_detail', performance_id=performance.id) }}" class="btn btn-info btn-sm">상세보기</a>
+                                            {% if performance.kopis_id %}
+                                                <a href="{{ performance.kopis_url }}" target="_blank" class="btn btn-warning btn-sm">KOPIS 보기</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-music fa-3x text-muted mb-3"></i>
-                        <h5 class="text-muted">
-                            {% if lang == 'en' %}No approved performances yet{% elif lang == 'ja' %}まだ承認済みの公演がありません{% elif lang == 'zh' %}暂无已批准演出{% else %}아직 승인된 공연이 없습니다{% endif %}
-                        </h5>
-                        <p class="text-muted">
-                            {% if lang == 'en' %}Be the first to approve a performance!{% elif lang == 'ja' %}最初の公演を承認してください！{% elif lang == 'zh' %}快来批准第一个演出吧！{% else %}첫 번째 공연을 승인해보세요!{% endif %}
-                        </p>
-                    </div>
+                        <div class="text-center py-4">
+                            <p class="text-muted">승인된 공연이 없습니다.</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 통계 -->
-    <div class="row mt-4">
-        <div class="col-md-4">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-clock fa-2x text-warning mb-2"></i>
-                    <h5 class="card-title">
-                        {% if lang == 'en' %}Pending{% elif lang == 'ja' %}審査中{% elif lang == 'zh' %}审核中{% else %}대기 중{% endif %}
-                    </h5>
-                    <h3 class="text-warning">{{ filtered_pending_count }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
-                    <h5 class="card-title">
-                        {% if lang == 'en' %}Approved{% elif lang == 'ja' %}承認済み{% elif lang == 'zh' %}已批准{% else %}승인됨{% endif %}
-                    </h5>
-                    <h3 class="text-success">{{ filtered_approved_count }}</h3>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card text-center">
-                <div class="card-body">
-                    <i class="fas fa-chart-line fa-2x text-primary mb-2"></i>
-                    <h5 class="card-title">
-                        {% if lang == 'en' %}Total Applications{% elif lang == 'ja' %}総申請数{% elif lang == 'zh' %}总申请数{% else %}총 신청{% endif %}
-                    </h5>
-                    <h3 class="text-primary">{{ filtered_total_count }}</h3>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 대시보드 차트 -->
-    <div class="row mt-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-chart-area me-2"></i>{% if lang == 'en' %}Performance Analytics{% elif lang == 'ja' %}公演分析{% elif lang == 'zh' %}演出分析{% else %}공연 분석{% endif %}
-                    </h4>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h5 class="text-center mb-3">{% if lang == 'en' %}Monthly Performance Registration{% elif lang == 'ja' %}月別公演登録{% elif lang == 'zh' %}月度演出注册{% else %}월별 공연 등록{% endif %}</h5>
-                            <canvas id="monthlyChart" width="400" height="200"></canvas>
+        <!-- 데이터 분석 탭 -->
+        <div class="tab-pane fade" id="analytics" role="tabpanel">
+            <div class="row">
+                <!-- 관객 분석 -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">👥 관객 분석</h5>
                         </div>
-                        <div class="col-md-6">
-                            <h5 class="text-center mb-3">{% if lang == 'en' %}Performance by Category{% elif lang == 'ja' %}カテゴリー別公演{% elif lang == 'zh' %}类别演出{% else %}카테고리별 공연{% endif %}</h5>
-                            <canvas id="categoryChart" width="400" height="200"></canvas>
+                        <div class="card-body">
+                            <h6>연령대별 선호도</h6>
+                            <div class="mb-3">
+                                {% for age, preferences in audience_analysis.age_preferences.items() %}
+                                <div class="mb-2">
+                                    <strong>{{ age }}:</strong>
+                                    {% for category, percentage in preferences.items() %}
+                                        <span class="badge bg-primary me-1">{{ category }} {{ percentage }}%</span>
+                                    {% endfor %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <h6>성별별 관심도</h6>
+                            <div class="mb-3">
+                                {% for gender, preferences in audience_analysis.gender_preferences.items() %}
+                                <div class="mb-2">
+                                    <strong>{{ gender }}:</strong>
+                                    {% for category, percentage in preferences.items() %}
+                                        <span class="badge bg-success me-1">{{ category }} {{ percentage }}%</span>
+                                    {% endfor %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <h6>지역별 분포</h6>
+                            <div class="mb-3">
+                                {% for region, percentage in audience_analysis.region_distribution.items() %}
+                                <div class="mb-1">
+                                    <span class="badge bg-info me-1">{{ region }} {{ percentage }}%</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 트렌드 예측 -->
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">🔮 트렌드 예측</h5>
+                        </div>
+                        <div class="card-body">
+                            <h6>향후 3개월 전망</h6>
+                            <div class="mb-3">
+                                {% for category, data in trend_prediction.future_trends.items() %}
+                                <div class="mb-2">
+                                    <strong>{{ category }}:</strong>
+                                    <span class="text-success">+{{ data.growth }}%</span>
+                                    <small class="text-muted">({{ data.reason }})</small>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <h6>핫 키워드</h6>
+                            <div class="mb-3">
+                                {% for keyword_data in trend_prediction.hot_keywords %}
+                                <div class="mb-1">
+                                    <span class="badge bg-warning me-1">{{ keyword_data.keyword }} +{{ keyword_data.growth }}%</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 차트 -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">📊 통계 차트</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <canvas id="monthlyChart"></canvas>
+                                </div>
+                                <div class="col-md-6">
+                                    <canvas id="categoryChart"></canvas>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- 데이터 내보내기 -->
-    <div class="row mt-4">
-        <div class="col-12">
+        <!-- A/B 테스트 탭 -->
+        <div class="tab-pane fade" id="abtest" role="tabpanel">
+            <div class="row">
+                <!-- 새 테스트 생성 -->
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">🧪 새 A/B 테스트 생성</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="POST" action="{{ url_for('create_ab_test') }}">
+                                <div class="mb-3">
+                                    <label for="test_name" class="form-label">테스트명</label>
+                                    <input type="text" class="form-control" id="test_name" name="test_name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="test_type" class="form-label">테스트 유형</label>
+                                    <select class="form-select" id="test_type" name="test_type" required>
+                                        <option value="">선택하세요</option>
+                                        <option value="title">제목</option>
+                                        <option value="image">이미지</option>
+                                        <option value="description">설명</option>
+                                        <option value="price">가격</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="variant_a" class="form-label">A 버전</label>
+                                    <input type="text" class="form-control" id="variant_a" name="variant_a" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="variant_b" class="form-label">B 버전</label>
+                                    <input type="text" class="form-control" id="variant_b" name="variant_b" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="end_date" class="form-label">종료일 (선택사항)</label>
+                                    <input type="date" class="form-control" id="end_date" name="end_date">
+                                </div>
+                                <button type="submit" class="btn btn-primary">테스트 생성</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 진행 중인 테스트 -->
+                <div class="col-md-8 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">진행 중인 A/B 테스트</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if ab_test_results.active_tests %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>테스트명</th>
+                                                <th>유형</th>
+                                                <th>상태</th>
+                                                <th>시작일</th>
+                                                <th>작업</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for test in ab_test_results.active_tests %}
+                                            <tr>
+                                                <td>{{ test.test_name }}</td>
+                                                <td>{{ test.test_type }}</td>
+                                                <td>
+                                                    <span class="badge bg-{{ 'success' if test.status == 'active' else 'warning' }}">
+                                                        {{ '진행중' if test.status == 'active' else '일시정지' }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ test.start_date.strftime('%Y-%m-%d') }}</td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <form method="POST" action="{{ url_for('toggle_ab_test', test_id=test.id) }}" style="display: inline;">
+                                                            <button type="submit" class="btn btn-{{ 'warning' if test.status == 'active' else 'success' }} btn-sm">
+                                                                {{ '일시정지' if test.status == 'active' else '재시작' }}
+                                                            </button>
+                                                        </form>
+                                                        <form method="POST" action="{{ url_for('complete_ab_test', test_id=test.id) }}" style="display: inline;">
+                                                            <button type="submit" class="btn btn-info btn-sm">완료</button>
+                                                        </form>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <p class="text-muted">진행 중인 A/B 테스트가 없습니다.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- KOPIS 동기화 탭 -->
+        <div class="tab-pane fade" id="kopis" role="tabpanel">
             <div class="card">
-                <div class="card-header bg-secondary text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-download me-2"></i>{% if lang == 'en' %}Export Data{% elif lang == 'ja' %}データエクスポート{% elif lang == 'zh' %}数据导出{% else %}데이터 내보내기{% endif %}
-                    </h4>
+                <div class="card-header">
+                    <h5 class="mb-0">🔄 KOPIS 동기화</h5>
                 </div>
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>{% if lang == 'en' %}Export All Performances{% elif lang == 'ja' %}全公演エクスポート{% elif lang == 'zh' %}导出所有演出{% else %}전체 공연 내보내기{% endif %}</h6>
-                            <a href="/admin/export/excel" class="btn btn-success me-2">
-                                <i class="fas fa-file-excel me-1"></i>Excel
-                            </a>
-                            <a href="/admin/export/csv" class="btn btn-info">
-                                <i class="fas fa-file-csv me-1"></i>CSV
-                            </a>
+                    <p>KOPIS에서 최신 공연 정보를 가져와서 데이터베이스와 동기화합니다.</p>
+                    <p><strong>주의:</strong> 동기화는 약 1분 정도 소요될 수 있습니다.</p>
+                    
+                    <div class="alert alert-info">
+                        <h6>💡 KOPIS 링크 기능</h6>
+                        <p class="mb-0">동기화된 공연들은 원본 KOPIS 페이지로 연결되는 링크가 자동으로 추가됩니다.</p>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('kopis_sync') }}">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-sync-alt"></i> KOPIS 동기화 시작
+                        </button>
+                    </form>
+                    
+                    <div id="syncStatus" class="mt-3" style="display: none;">
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
                         </div>
-                        <div class="col-md-6">
-                            <h6>{% if lang == 'en' %}Export Filtered Data{% elif lang == 'ja' %}フィルター済みデータエクスポート{% elif lang == 'zh' %}导出筛选数据{% else %}필터링된 데이터 내보내기{% endif %}</h6>
-                            <a href="/admin/export/excel?{{ request.query_string.decode() }}" class="btn btn-success me-2">
-                                <i class="fas fa-file-excel me-1"></i>Excel
-                            </a>
-                            <a href="/admin/export/csv?{{ request.query_string.decode() }}" class="btn btn-info">
-                                <i class="fas fa-file-csv me-1"></i>CSV
-                            </a>
-                        </div>
+                        <p class="mt-2" id="syncMessage">동기화 중...</p>
                     </div>
                 </div>
             </div>
@@ -509,98 +414,34 @@
 </div>
 
 <style>
-.img-zoom-modal {
-  display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.8); justify-content: center; align-items: center;
+.stat-card {
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 15px;
 }
-.img-zoom-modal.active { display: flex; }
-.img-zoom-modal img { max-width: 90vw; max-height: 90vh; border-radius: 10px; box-shadow: 0 0 20px #000; }
-.img-zoom-modal .close-btn { position: absolute; top: 40px; right: 60px; font-size: 2.5rem; color: #fff; cursor: pointer; }
+
+.stat-card h3 {
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+.stat-card p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.nav-tabs .nav-link {
+    color: #495057;
+}
+
+.nav-tabs .nav-link.active {
+    color: #007bff;
+    font-weight: bold;
+}
 </style>
 
-<div id="imgZoomModal" class="img-zoom-modal" onclick="closeImgZoom()">
-  <span class="close-btn" onclick="closeImgZoom(event)">&times;</span>
-  <img id="imgZoomTarget" src="" alt="확대 이미지">
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-function openImgZoom(src, event) {
-  event.stopPropagation();
-  document.getElementById('imgZoomTarget').src = src;
-  document.getElementById('imgZoomModal').classList.add('active');
-}
-function closeImgZoom(e) {
-  if (e) e.stopPropagation();
-  document.getElementById('imgZoomModal').classList.remove('active');
-  document.getElementById('imgZoomTarget').src = '';
-}
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeImgZoom();
-});
-
-// 일괄 관리 기능
-function toggleSelectAll() {
-    const selectAll = document.getElementById('selectAll');
-    const checkboxes = document.querySelectorAll('.performance-checkbox');
-    checkboxes.forEach(checkbox => {
-        checkbox.checked = selectAll.checked;
-    });
-}
-
-function getSelectedPerformances() {
-    const checkboxes = document.querySelectorAll('.performance-checkbox:checked');
-    return Array.from(checkboxes).map(cb => cb.value);
-}
-
-function bulkApprove() {
-    const selectedIds = getSelectedPerformances();
-    if (selectedIds.length === 0) {
-        alert('선택된 공연이 없습니다.');
-        return;
-    }
-    if (confirm(`${selectedIds.length}개의 공연을 승인하시겠습니까?`)) {
-        fetch('/admin/bulk-approve', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({performance_ids: selectedIds})
-        }).then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('오류가 발생했습니다: ' + data.error);
-            }
-        });
-    }
-}
-
-function bulkReject() {
-    const selectedIds = getSelectedPerformances();
-    if (selectedIds.length === 0) {
-        alert('선택된 공연이 없습니다.');
-        return;
-    }
-    if (confirm(`${selectedIds.length}개의 공연을 거절하시겠습니까?`)) {
-        fetch('/admin/bulk-reject', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({performance_ids: selectedIds})
-        }).then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('오류가 발생했습니다: ' + data.error);
-            }
-        });
-    }
-}
-
 // 차트 데이터
 const monthlyData = {{ monthly_chart_data | tojson }};
 const categoryData = {{ category_chart_data | tojson }};
@@ -612,7 +453,7 @@ new Chart(monthlyCtx, {
     data: {
         labels: monthlyData.labels,
         datasets: [{
-            label: '공연 등록 수',
+            label: '공연 수',
             data: monthlyData.data,
             borderColor: 'rgb(75, 192, 192)',
             backgroundColor: 'rgba(75, 192, 192, 0.2)',
@@ -621,9 +462,10 @@ new Chart(monthlyCtx, {
     },
     options: {
         responsive: true,
-        scales: {
-            y: {
-                beginAtZero: true
+        plugins: {
+            title: {
+                display: true,
+                text: '월별 공연 등록 현황'
             }
         }
     }
@@ -638,119 +480,127 @@ new Chart(categoryCtx, {
         datasets: [{
             data: categoryData.data,
             backgroundColor: [
-                '#FF6384',
-                '#36A2EB',
-                '#FFCE56',
-                '#4BC0C0',
-                '#9966FF',
-                '#FF9F40',
-                '#FF6384',
-                '#C9CBCF',
-                '#4BC0C0'
+                'rgba(255, 99, 132, 0.8)',
+                'rgba(54, 162, 235, 0.8)',
+                'rgba(255, 205, 86, 0.8)',
+                'rgba(75, 192, 192, 0.8)',
+                'rgba(153, 102, 255, 0.8)'
             ]
         }]
     },
     options: {
         responsive: true,
         plugins: {
-            legend: {
-                position: 'bottom'
+            title: {
+                display: true,
+                text: '카테고리별 공연 분포'
             }
         }
     }
 });
-</script>
 
-<!-- 공연 상세 정보 모달들 -->
-{% for performance in pending_performances %}
-<div class="modal fade" id="detailModal{{ performance.id }}" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <i class="fas fa-info-circle me-2"></i>{{ performance.title }}
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-4">
-                        {% if performance.image_url %}
-                            <img src="{{ performance.image_url }}" alt="{{ performance.title }}" 
-                                 class="img-fluid rounded mb-3 zoomable-img" style="max-height: 200px; object-fit: cover; cursor: zoom-in;"
-                                 onclick="openImgZoom('{{ performance.image_url }}', event)">
-                        {% else %}
-                            <div class="bg-light d-flex align-items-center justify-content-center rounded mb-3" 
-                                 style="height: 200px;">
-                                <i class="fas fa-music fa-3x text-muted"></i>
-                            </div>
-                        {% endif %}
-                    </div>
-                    <div class="col-md-8">
-                        <h6><i class="fas fa-users me-2"></i>{% if lang == 'en' %}Team/Crew Name{% elif lang == 'ja' %}チーム名/クルー名{% elif lang == 'zh' %}团队/团队名{% else %}팀명/크루명{% endif %}</h6>
-                        <p>{{ performance.group_name }}</p>
-                        
-                        <h6><i class="fas fa-align-left me-2"></i>{% if lang == 'en' %}Performance Introduction{% elif lang == 'ja' %}公演紹介{% elif lang == 'zh' %}演出介绍{% else %}공연 소개{% endif %}</h6>
-                        <p>{{ performance.description|nl2br|safe }}</p>
-                        
-                        <h6><i class="fas fa-map-marker-alt me-2"></i>{% if lang == 'en' %}Performance Venue{% elif lang == 'ja' %}公演会場{% elif lang == 'zh' %}演出场馆{% else %}공연 장소{% endif %}</h6>
-                        <p>{{ performance.location }}</p>
-                        
-                        <h6><i class="fas fa-calendar me-2"></i>{% if lang == 'en' %}Performance Date and Time{% elif lang == 'ja' %}公演日時{% elif lang == 'zh' %}演出日期和时间{% else %}공연 일시{% endif %}</h6>
-                        <p>{{ performance.date }} {{ performance.time }}</p>
-                        
-                        <h6><i class="fas fa-ticket-alt me-2"></i>{% if lang == 'en' %}Ticket Price{% elif lang == 'ja' %}チケット価格{% elif lang == 'zh' %}票价{% else %}티켓 가격{% endif %}</h6>
-                        <p>₩{{ performance.price }}</p>
-                        
-                        <h6><i class="fas fa-envelope me-2"></i>{% if lang == 'en' %}Contact{% elif lang == 'ja' %}連絡先{% elif lang == 'zh' %}联系方式{% else %}연락처{% endif %}</h6>
-                        <p>{{ performance.contact_email }}</p>
-                        
-                        {% if performance.video_url %}
-                        <h6><i class="fas fa-video me-2"></i>{% if lang == 'en' %}Promotional Video{% elif lang == 'ja' %}宣伝動画{% elif lang == 'zh' %}宣传视频{% else %}홍보 동영상{% endif %}</h6>
-                        <p><a href="{{ performance.video_url }}" target="_blank">{{ performance.video_url }}</a></p>
-                        {% endif %}
-                        
-                        <h6><i class="fas fa-user me-2"></i>{% if lang == 'en' %}Applicant Information{% elif lang == 'ja' %}申請者情報{% elif lang == 'zh' %}申请人信息{% else %}신청자 정보{% endif %}</h6>
-                        {% for user in users %}
-                            {% if user.id == performance.user_id %}
-                                <p><strong>{{ user.name }}</strong> ({{ user.username }})<br>
-                                <small class="text-muted">{{ user.email }} | {{ user.phone }}</small></p>
-                            {% endif %}
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <form method="POST" action="/admin/approve/{{ performance.id }}" style="display: inline;">
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-check me-1"></i>{% if lang == 'en' %}Approve{% elif lang == 'ja' %}承認{% elif lang == 'zh' %}批准{% else %}승인{% endif %}
-                    </button>
-                </form>
-                <form method="POST" action="/admin/reject/{{ performance.id }}" style="display: inline;">
-                    <button type="submit" class="btn btn-danger" onclick="return confirm('{% if lang == 'en' %}Are you sure you want to reject?{% elif lang == 'ja' %}本当に拒否しますか？{% elif lang == 'zh' %}确定要拒绝吗？{% else %}정말 거절하시겠습니까?{% endif %}')">
-                        <i class="fas fa-times me-1"></i>{% if lang == 'en' %}Reject{% elif lang == 'ja' %}拒否{% elif lang == 'zh' %}拒绝{% else %}거절{% endif %}
-                    </button>
-                </form>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% if lang == 'en' %}Close{% elif lang == 'ja' %}閉じる{% elif lang == 'zh' %}关闭{% else %}닫기{% endif %}</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endfor %}
+// 공연 승인/거절 함수들
+function approvePerformance(id) {
+    if (confirm('이 공연을 승인하시겠습니까?')) {
+        fetch(`/admin/performance/${id}/approve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('승인 중 오류가 발생했습니다.');
+            }
+        });
+    }
+}
 
-<script>
-// 뒤로가기 방지 및 캐시 무효화
+function rejectPerformance(id) {
+    if (confirm('이 공연을 거절하시겠습니까?')) {
+        fetch(`/admin/performance/${id}/reject`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('거절 중 오류가 발생했습니다.');
+            }
+        });
+    }
+}
+
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('input[name="selected"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+}
+
+function approveAll() {
+    const selected = document.querySelectorAll('input[name="selected"]:checked');
+    if (selected.length === 0) {
+        alert('선택된 공연이 없습니다.');
+        return;
+    }
+    
+    if (confirm(`선택된 ${selected.length}개 공연을 모두 승인하시겠습니까?`)) {
+        const ids = Array.from(selected).map(cb => cb.value);
+        fetch('/admin/performance/bulk-approve', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ids: ids})
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('일괄 승인 중 오류가 발생했습니다.');
+            }
+        });
+    }
+}
+
+function rejectAll() {
+    const selected = document.querySelectorAll('input[name="selected"]:checked');
+    if (selected.length === 0) {
+        alert('선택된 공연이 없습니다.');
+        return;
+    }
+    
+    if (confirm(`선택된 ${selected.length}개 공연을 모두 거절하시겠습니까?`)) {
+        const ids = Array.from(selected).map(cb => cb.value);
+        fetch('/admin/performance/bulk-reject', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ids: ids})
+        }).then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('일괄 거절 중 오류가 발생했습니다.');
+            }
+        });
+    }
+}
+
+// 뒤로가기 버튼 처리
 window.addEventListener('pageshow', function(event) {
     if (event.persisted) {
-        // 뒤로가기로 인한 페이지 로드 시 새로고침
-        window.location.reload();
+        location.reload();
     }
 });
-
-// 브라우저 캐시 무효화
-if (window.performance && window.performance.navigation.type === window.performance.navigation.TYPE_BACK_FORWARD) {
-    window.location.reload();
-}
 </script>
-
 {% endblock %} 
