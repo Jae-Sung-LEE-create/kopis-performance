@@ -63,8 +63,8 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="abtest-tab" data-bs-toggle="tab" data-bs-target="#abtest" type="button" role="tab">
-                🧪 A/B 테스트
+            <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab">
+                📊 공연 통계
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -279,89 +279,60 @@
             </div>
         </div>
 
-        <!-- A/B 테스트 탭 -->
-        <div class="tab-pane fade" id="abtest" role="tabpanel">
+        <!-- 공연 통계 탭 -->
+        <div class="tab-pane fade" id="stats" role="tabpanel">
             <div class="row">
-                <!-- 새 테스트 생성 -->
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">🧪 새 A/B 테스트 생성</h5>
-                        </div>
-                        <div class="card-body">
-                            <form method="POST" action="{{ url_for('create_ab_test') }}">
-                                <div class="mb-3">
-                                    <label for="test_name" class="form-label">테스트명</label>
-                                    <input type="text" class="form-control" id="test_name" name="test_name" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="test_type" class="form-label">테스트 유형</label>
-                                    <select class="form-select" id="test_type" name="test_type" required>
-                                        <option value="">선택하세요</option>
-                                        <option value="title">제목</option>
-                                        <option value="image">이미지</option>
-                                        <option value="description">설명</option>
-                                        <option value="price">가격</option>
-                                    </select>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="variant_a" class="form-label">A 버전</label>
-                                    <input type="text" class="form-control" id="variant_a" name="variant_a" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="variant_b" class="form-label">B 버전</label>
-                                    <input type="text" class="form-control" id="variant_b" name="variant_b" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label for="end_date" class="form-label">종료일 (선택사항)</label>
-                                    <input type="date" class="form-control" id="end_date" name="end_date">
-                                </div>
-                                <button type="submit" class="btn btn-primary">테스트 생성</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 진행 중인 테스트 -->
+                <!-- 공연별 상세 통계 -->
                 <div class="col-md-8 mb-4">
                     <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0">진행 중인 A/B 테스트</h5>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">📊 공연별 상세 통계 (최근 30일)</h5>
+                            <a href="{{ url_for('export_performance_stats_excel') }}" class="btn btn-success btn-sm">
+                                <i class="fas fa-download"></i> 엑셀 다운로드
+                            </a>
                         </div>
                         <div class="card-body">
-                            {% if ab_test_results.active_tests %}
+                            {% if performance_stats %}
                                 <div class="table-responsive">
                                     <table class="table table-hover">
                                         <thead>
                                             <tr>
-                                                <th>테스트명</th>
-                                                <th>유형</th>
-                                                <th>상태</th>
-                                                <th>시작일</th>
-                                                <th>작업</th>
+                                                <th>공연명</th>
+                                                <th>카테고리</th>
+                                                <th>조회수</th>
+                                                <th>좋아요</th>
+                                                <th>댓글</th>
+                                                <th>티켓클릭</th>
+                                                <th>평점</th>
+                                                <th>참여율</th>
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {% for test in ab_test_results.active_tests %}
+                                            {% for stat in performance_stats %}
                                             <tr>
-                                                <td>{{ test.test_name }}</td>
-                                                <td>{{ test.test_type }}</td>
+                                                <td>{{ stat.title }}</td>
+                                                <td><span class="badge bg-secondary">{{ stat.category }}</span></td>
+                                                <td>{{ stat.total_views }}</td>
+                                                <td>{{ stat.total_likes }}</td>
+                                                <td>{{ stat.total_comments }}</td>
+                                                <td>{{ stat.total_ticket_clicks }}</td>
                                                 <td>
-                                                    <span class="badge bg-{{ 'success' if test.status == 'active' else 'warning' }}">
-                                                        {{ '진행중' if test.status == 'active' else '일시정지' }}
+                                                    <span class="text-warning">
+                                                        {% for i in range(5) %}
+                                                            {% if i < stat.avg_rating %}
+                                                                ★
+                                                            {% else %}
+                                                                ☆
+                                                            {% endif %}
+                                                        {% endfor %}
                                                     </span>
+                                                    ({{ stat.avg_rating }})
                                                 </td>
-                                                <td>{{ test.start_date.strftime('%Y-%m-%d') }}</td>
                                                 <td>
-                                                    <div class="btn-group" role="group">
-                                                        <form method="POST" action="{{ url_for('toggle_ab_test', test_id=test.id) }}" style="display: inline;">
-                                                            <button type="submit" class="btn btn-{{ 'warning' if test.status == 'active' else 'success' }} btn-sm">
-                                                                {{ '일시정지' if test.status == 'active' else '재시작' }}
-                                                            </button>
-                                                        </form>
-                                                        <form method="POST" action="{{ url_for('complete_ab_test', test_id=test.id) }}" style="display: inline;">
-                                                            <button type="submit" class="btn btn-info btn-sm">완료</button>
-                                                        </form>
+                                                    <div class="progress" style="height: 20px;">
+                                                        <div class="progress-bar bg-success" style="width: {{ stat.engagement_rate }}%">
+                                                            {{ stat.engagement_rate }}%
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -371,7 +342,42 @@
                                 </div>
                             {% else %}
                                 <div class="text-center py-4">
-                                    <p class="text-muted">진행 중인 A/B 테스트가 없습니다.</p>
+                                    <p class="text-muted">통계 데이터가 없습니다.</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 카테고리 트렌드 -->
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">📈 카테고리 트렌드 (최근 7일)</h5>
+                        </div>
+                        <div class="card-body">
+                            {% if category_trends %}
+                                <div class="list-group">
+                                    {% for trend in category_trends %}
+                                    <div class="list-group-item">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-1">{{ trend.category }}</h6>
+                                            <span class="badge bg-primary rounded-pill">{{ trend.total_performances }}</span>
+                                        </div>
+                                        <p class="mb-1">
+                                            좋아요: {{ trend.total_likes }} | 
+                                            평점: {{ trend.avg_rating }}
+                                        </p>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-info" style="width: {{ (trend.popularity_score / 100) * 100 }}%"></div>
+                                        </div>
+                                        <small class="text-muted">인기도: {{ trend.popularity_score|round(1) }}</small>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <p class="text-muted">트렌드 데이터가 없습니다.</p>
                                 </div>
                             {% endif %}
                         </div>

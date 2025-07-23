@@ -16,6 +16,7 @@ import requests
 import time
 import xml.etree.ElementTree as ET
 import json
+from openpyxl import Workbook
 
 from flask_babel import Babel
 
@@ -1554,7 +1555,8 @@ def admin_panel():
         real_time_stats = get_real_time_stats()
         audience_analysis = get_audience_analysis()
         trend_prediction = get_trend_prediction()
-        ab_test_results = get_ab_test_results()
+        performance_stats = get_performance_statistics()
+        category_trends = get_category_trends()
         
         # 템플릿 렌더링
         response = make_response(render_template("admin.html", 
@@ -1569,7 +1571,8 @@ def admin_panel():
                              real_time_stats=real_time_stats,
                              audience_analysis=audience_analysis,
                              trend_prediction=trend_prediction,
-                             ab_test_results=ab_test_results))
+                             performance_stats=performance_stats,
+                             category_trends=category_trends))
         
         # 캐시 무효화 헤더 추가
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
@@ -2589,29 +2592,30 @@ class UserEvent(db.Model):
     user = db.relationship('User', backref='events')
     performance = db.relationship('Performance', backref='events')
 
-class ABTest(db.Model):
-    """A/B 테스트 관리"""
+class PerformanceStats(db.Model):
+    """공연별 상세 통계"""
     id = db.Column(db.Integer, primary_key=True)
-    test_name = db.Column(db.String(100), nullable=False)
-    test_type = db.Column(db.String(50))  # 'title', 'image', 'description', 'price'
-    variant_a = db.Column(db.Text)
-    variant_b = db.Column(db.Text)
-    start_date = db.Column(db.DateTime, default=func.now())
-    end_date = db.Column(db.DateTime)
-    status = db.Column(db.String(20), default='active')  # 'active', 'completed', 'paused'
-    created_at = db.Column(db.DateTime, default=func.now())
-
-class ABTestResult(db.Model):
-    """A/B 테스트 결과"""
-    id = db.Column(db.Integer, primary_key=True)
-    test_id = db.Column(db.Integer, db.ForeignKey('ab_test.id'))
-    variant = db.Column(db.String(10))  # 'A' or 'B'
+    performance_id = db.Column(db.Integer, db.ForeignKey('performance.id'))
+    date = db.Column(db.Date, nullable=False)
     views = db.Column(db.Integer, default=0)
-    clicks = db.Column(db.Integer, default=0)
-    conversions = db.Column(db.Integer, default=0)
-    timestamp = db.Column(db.DateTime, default=func.now())
+    likes = db.Column(db.Integer, default=0)
+    comments = db.Column(db.Integer, default=0)
+    shares = db.Column(db.Integer, default=0)
+    ticket_clicks = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=func.now())
     
-    test = db.relationship('ABTest', backref='results')
+    performance = db.relationship('Performance', backref='stats')
+
+class CategoryTrend(db.Model):
+    """카테고리별 트렌드 분석"""
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(50), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    total_performances = db.Column(db.Integer, default=0)
+    total_views = db.Column(db.Integer, default=0)
+    total_likes = db.Column(db.Integer, default=0)
+    avg_rating = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=func.now())
 
 class TrendData(db.Model):
     """트렌드 분석 데이터"""
@@ -2786,118 +2790,150 @@ def get_trend_prediction():
         logger.error(f"트렌드 예측 조회 실패: {e}")
         return {}
 
-def get_ab_test_results():
-    """A/B 테스트 결과"""
+def get_performance_statistics():
+    """공연별 상세 통계 조회"""
     try:
-        active_tests = ABTest.query.filter_by(status='active').all()
-        completed_tests = ABTest.query.filter_by(status='completed').all()
+        # 최근 30일간의 통계
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=30)
         
-        return {
-            'active_tests': active_tests,
-            'completed_tests': completed_tests
-        }
+        stats = db.session.query(
+            Performance.id,
+            Performance.title,
+            Performance.category,
+            func.sum(PerformanceStats.views).label('total_views'),
+            func.sum(PerformanceStats.likes).label('total_likes'),
+            func.sum(PerformanceStats.comments).label('total_comments'),
+            func.sum(PerformanceStats.ticket_clicks).label('total_ticket_clicks'),
+            func.avg(Comment.rating).label('avg_rating')
+        ).outerjoin(PerformanceStats, Performance.id == PerformanceStats.performance_id)\
+         .outerjoin(Comment, Performance.id == Comment.performance_id)\
+         .filter(PerformanceStats.date >= start_date)\
+         .group_by(Performance.id, Performance.title, Performance.category)\
+         .order_by(func.sum(PerformanceStats.views).desc())\
+         .limit(10).all()
+        
+        return [{
+            'id': stat.id,
+            'title': stat.title,
+            'category': stat.category,
+            'total_views': stat.total_views or 0,
+            'total_likes': stat.total_likes or 0,
+            'total_comments': stat.total_comments or 0,
+            'total_ticket_clicks': stat.total_ticket_clicks or 0,
+            'avg_rating': round(stat.avg_rating, 1) if stat.avg_rating else 0,
+            'engagement_rate': round(((stat.total_likes or 0) + (stat.total_comments or 0)) / (stat.total_views or 1) * 100, 2)
+        } for stat in stats]
     except Exception as e:
-        logger.error(f"A/B 테스트 결과 조회 실패: {e}")
-        return {'active_tests': [], 'completed_tests': []}
+        app.logger.error(f"공연 통계 조회 오류: {e}")
+        return []
 
-@app.route('/admin/ab-test/create', methods=['POST'])
+def get_category_trends():
+    """카테고리별 트렌드 분석"""
+    try:
+        # 최근 7일간의 카테고리별 트렌드
+        end_date = datetime.now().date()
+        start_date = end_date - timedelta(days=7)
+        
+        trends = db.session.query(
+            Performance.category,
+            func.count(Performance.id).label('total_performances'),
+            func.sum(Performance.likes).label('total_likes'),
+            func.avg(Comment.rating).label('avg_rating')
+        ).outerjoin(Comment, Performance.id == Comment.performance_id)\
+         .filter(Performance.created_at >= start_date)\
+         .group_by(Performance.category)\
+         .order_by(func.count(Performance.id).desc())\
+         .all()
+        
+        return [{
+            'category': trend.category or '기타',
+            'total_performances': trend.total_performances,
+            'total_likes': trend.total_likes or 0,
+            'avg_rating': round(trend.avg_rating, 1) if trend.avg_rating else 0,
+            'popularity_score': (trend.total_performances * 0.4) + ((trend.total_likes or 0) * 0.4) + ((trend.avg_rating or 0) * 0.2)
+        } for trend in trends]
+    except Exception as e:
+        app.logger.error(f"카테고리 트렌드 조회 오류: {e}")
+        return []
+
+@app.route('/admin/performance-stats')
 @login_required
-def create_ab_test():
-    """A/B 테스트 생성"""
+def performance_stats():
+    """공연별 상세 통계 페이지"""
     if not current_user.is_admin:
         flash('관리자 권한이 필요합니다.', 'error')
         return redirect(url_for('admin_panel'))
     
     try:
-        test_name = request.form.get('test_name')
-        test_type = request.form.get('test_type')
-        variant_a = request.form.get('variant_a')
-        variant_b = request.form.get('variant_b')
-        end_date_str = request.form.get('end_date')
+        performance_stats = get_performance_statistics()
+        category_trends = get_category_trends()
         
-        if not all([test_name, test_type, variant_a, variant_b]):
-            flash('모든 필드를 입력해주세요.', 'error')
-            return redirect(url_for('admin_panel'))
-        
-        # 종료일 파싱
-        end_date = None
-        if end_date_str:
-            try:
-                end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
-            except ValueError:
-                flash('올바른 날짜 형식을 입력해주세요.', 'error')
-                return redirect(url_for('admin_panel'))
-        
-        # A/B 테스트 생성
-        ab_test = ABTest(
-            test_name=test_name,
-            test_type=test_type,
-            variant_a=variant_a,
-            variant_b=variant_b,
-            end_date=end_date
-        )
-        
-        db.session.add(ab_test)
-        db.session.commit()
-        
-        flash(f'A/B 테스트 "{test_name}"이 성공적으로 생성되었습니다.', 'success')
-        logger.info(f'A/B 테스트 생성: {test_name}')
-        
+        return render_template('performance_stats.html', 
+                             performance_stats=performance_stats,
+                             category_trends=category_trends)
     except Exception as e:
-        logger.error(f"A/B 테스트 생성 실패: {e}")
-        flash('A/B 테스트 생성 중 오류가 발생했습니다.', 'error')
-        db.session.rollback()
-    
-    return redirect(url_for('admin_panel'))
+        app.logger.error(f"공연 통계 페이지 오류: {e}")
+        flash('통계 데이터를 불러오는 중 오류가 발생했습니다.', 'error')
+        return redirect(url_for('admin_panel'))
 
-@app.route('/admin/ab-test/<int:test_id>/toggle', methods=['POST'])
+@app.route('/admin/export-stats/excel')
 @login_required
-def toggle_ab_test(test_id):
-    """A/B 테스트 상태 변경"""
+def export_performance_stats_excel():
+    """공연 통계 엑셀 내보내기"""
     if not current_user.is_admin:
         flash('관리자 권한이 필요합니다.', 'error')
         return redirect(url_for('admin_panel'))
     
     try:
-        ab_test = ABTest.query.get_or_404(test_id)
+        performance_stats = get_performance_statistics()
+        category_trends = get_category_trends()
         
-        if ab_test.status == 'active':
-            ab_test.status = 'paused'
-            message = '일시정지'
-        else:
-            ab_test.status = 'active'
-            message = '재시작'
+        # 엑셀 파일 생성
+        wb = Workbook()
         
-        db.session.commit()
-        flash(f'A/B 테스트 "{ab_test.test_name}"이 {message}되었습니다.', 'success')
+        # 공연별 통계 시트
+        ws1 = wb.active
+        ws1.title = "공연별 통계"
+        ws1.append(['공연명', '카테고리', '조회수', '좋아요', '댓글', '티켓클릭', '평점', '참여율(%)'])
+        
+        for stat in performance_stats:
+            ws1.append([
+                stat['title'],
+                stat['category'],
+                stat['total_views'],
+                stat['total_likes'],
+                stat['total_comments'],
+                stat['total_ticket_clicks'],
+                stat['avg_rating'],
+                stat['engagement_rate']
+            ])
+        
+        # 카테고리 트렌드 시트
+        ws2 = wb.create_sheet("카테고리 트렌드")
+        ws2.append(['카테고리', '공연 수', '총 좋아요', '평균 평점', '인기도 점수'])
+        
+        for trend in category_trends:
+            ws2.append([
+                trend['category'],
+                trend['total_performances'],
+                trend['total_likes'],
+                trend['avg_rating'],
+                round(trend['popularity_score'], 2)
+            ])
+        
+        # 파일 저장
+        filename = f"performance_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+        filepath = os.path.join(app.static_folder, 'exports', filename)
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        wb.save(filepath)
+        
+        return send_file(filepath, as_attachment=True, download_name=filename)
         
     except Exception as e:
-        logger.error(f"A/B 테스트 상태 변경 실패: {e}")
-        flash('A/B 테스트 상태 변경 중 오류가 발생했습니다.', 'error')
-    
-    return redirect(url_for('admin_panel'))
-
-@app.route('/admin/ab-test/<int:test_id>/complete', methods=['POST'])
-@login_required
-def complete_ab_test(test_id):
-    """A/B 테스트 완료"""
-    if not current_user.is_admin:
-        flash('관리자 권한이 필요합니다.', 'error')
+        app.logger.error(f"통계 엑셀 내보내기 오류: {e}")
+        flash('엑셀 파일 생성 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
-    
-    try:
-        ab_test = ABTest.query.get_or_404(test_id)
-        ab_test.status = 'completed'
-        ab_test.end_date = datetime.now()
-        
-        db.session.commit()
-        flash(f'A/B 테스트 "{ab_test.test_name}"이 완료되었습니다.', 'success')
-        
-    except Exception as e:
-        logger.error(f"A/B 테스트 완료 실패: {e}")
-        flash('A/B 테스트 완료 중 오류가 발생했습니다.', 'error')
-    
-    return redirect(url_for('admin_panel'))
 
 if __name__ == "__main__":
     try:
