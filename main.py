@@ -2936,6 +2936,101 @@ def export_performance_stats_excel():
         return redirect(url_for('admin_panel'))
 
 # AI 채팅 어시스턴트 관련 함수들
+import json
+import random
+from datetime import datetime, timedelta
+from collections import defaultdict
+
+# AI 대화 컨텍스트 관리
+class AIConversationContext:
+    def __init__(self):
+        self.conversation_history = []
+        self.user_preferences = {
+            'favorite_categories': defaultdict(int),
+            'favorite_locations': defaultdict(int),
+            'price_range': None,
+            'last_searches': [],
+            'interaction_count': 0
+        }
+        self.current_context = {
+            'last_query': None,
+            'last_results': [],
+            'current_topic': None,
+            'mood': 'neutral'
+        }
+    
+    def add_interaction(self, user_query, ai_response, performances=None):
+        """대화 기록 추가 및 사용자 선호도 학습"""
+        self.conversation_history.append({
+            'timestamp': datetime.now().isoformat(),
+            'user_query': user_query,
+            'ai_response': ai_response,
+            'performances': performances
+        })
+        
+        # 사용자 선호도 학습
+        self._learn_user_preferences(user_query, performances)
+        self.user_preferences['interaction_count'] += 1
+        
+        # 컨텍스트 업데이트
+        self.current_context['last_query'] = user_query
+        self.current_context['last_results'] = performances or []
+        
+        # 대화 기록 최대 10개 유지
+        if len(self.conversation_history) > 10:
+            self.conversation_history.pop(0)
+    
+    def _learn_user_preferences(self, query, performances):
+        """사용자 선호도 학습"""
+        if not performances:
+            return
+        
+        # 카테고리 선호도 학습
+        for performance in performances:
+            if performance.category:
+                self.user_preferences['favorite_categories'][performance.category] += 1
+            
+            # 지역 선호도 학습
+            if performance.location:
+                self.user_preferences['favorite_locations'][performance.location] += 1
+        
+        # 최근 검색 기록 저장
+        self.user_preferences['last_searches'].append({
+            'query': query,
+            'timestamp': datetime.now().isoformat(),
+            'result_count': len(performances)
+        })
+        
+        # 최근 5개 검색만 유지
+        if len(self.user_preferences['last_searches']) > 5:
+            self.user_preferences['last_searches'].pop(0)
+    
+    def get_user_preferences(self):
+        """사용자 선호도 반환"""
+        return {
+            'top_categories': sorted(
+                self.user_preferences['favorite_categories'].items(),
+                key=lambda x: x[1], reverse=True
+            )[:3],
+            'top_locations': sorted(
+                self.user_preferences['favorite_locations'].items(),
+                key=lambda x: x[1], reverse=True
+            )[:3],
+            'interaction_count': self.user_preferences['interaction_count']
+        }
+    
+    def get_conversation_context(self):
+        """현재 대화 컨텍스트 반환"""
+        return {
+            'history_length': len(self.conversation_history),
+            'last_query': self.current_context['last_query'],
+            'last_result_count': len(self.current_context['last_results']),
+            'user_preferences': self.get_user_preferences()
+        }
+
+# 전역 AI 컨텍스트 (실제로는 세션별로 관리해야 함)
+ai_context = AIConversationContext()
+
 def parse_user_query(query):
     """사용자 질문을 파싱하여 검색 조건 추출 (고도화된 버전)"""
     query = query.lower().strip()
@@ -3120,6 +3215,75 @@ def parse_user_query(query):
             conditions['keywords'].append(keyword)
     
     return conditions
+
+def analyze_performance_data():
+    """공연 데이터 분석 및 인사이트 생성"""
+    try:
+        # 전체 공연 통계
+        total_performances = Performance.query.filter_by(is_approved=True).count()
+        
+        # 카테고리별 통계
+        categories = db.session.query(Performance.category, db.func.count(Performance.id)).\
+            filter_by(is_approved=True).\
+            group_by(Performance.category).\
+            order_by(db.func.count(Performance.id).desc()).all()
+        
+        # 지역별 통계
+        locations = db.session.query(Performance.location, db.func.count(Performance.id)).\
+            filter_by(is_approved=True).\
+            group_by(Performance.location).\
+            order_by(db.func.count(Performance.id).desc()).all()
+        
+        # 인기 공연 (좋아요 수 기준)
+        popular_performances = Performance.query.filter_by(is_approved=True).\
+            order_by(Performance.likes.desc()).limit(5).all()
+        
+        # 최근 공연
+        recent_performances = Performance.query.filter_by(is_approved=True).\
+            order_by(Performance.date.desc()).limit(5).all()
+        
+        return {
+            'total_count': total_performances,
+            'categories': categories,
+            'locations': locations,
+            'popular': popular_performances,
+            'recent': recent_performances
+        }
+    except Exception as e:
+        app.logger.error(f"공연 데이터 분석 오류: {e}")
+        return None
+
+def generate_personalized_recommendations(user_preferences, conditions):
+    """개인화된 추천 생성"""
+    try:
+        query = Performance.query.filter_by(is_approved=True)
+        
+        # 사용자 선호도 기반 가중치 적용
+        recommendations = []
+        
+        # 선호 카테고리 기반 추천
+        if user_preferences.get('top_categories'):
+            for category, weight in user_preferences['top_categories']:
+                category_performances = query.filter(Performance.category.contains(category)).\
+                    order_by(Performance.likes.desc()).limit(3).all()
+                recommendations.extend(category_performances)
+        
+        # 선호 지역 기반 추천
+        if user_preferences.get('top_locations'):
+            for location, weight in user_preferences['top_locations']:
+                location_performances = query.filter(Performance.location.contains(location)).\
+                    order_by(Performance.likes.desc()).limit(2).all()
+                recommendations.extend(location_performances)
+        
+        # 중복 제거 및 정렬
+        unique_recommendations = list({p.id: p for p in recommendations}.values())
+        unique_recommendations.sort(key=lambda x: x.likes, reverse=True)
+        
+        return unique_recommendations[:5]
+        
+    except Exception as e:
+        app.logger.error(f"개인화 추천 오류: {e}")
+        return []
 
 def search_performances_by_ai(conditions):
     """AI 조건에 따른 공연 검색 (고도화된 버전)"""
@@ -3321,17 +3485,384 @@ def search_performances_by_ai(conditions):
         app.logger.error(f"AI 공연 검색 오류: {e}")
         return []
 
-def generate_ai_response(user_query, performances):
-    """AI 응답 생성 (고도화된 버전)"""
-    import random
+def understand_user_intent(query, context):
+    """사용자 의도 파악 및 대화 맥락 이해"""
+    query_lower = query.lower()
     
-    # 다양한 응답 템플릿
-    greeting_templates = [
-        "안녕하세요! 🎭",
-        "반갑습니다! ✨",
-        "어서오세요! 🎪",
-        "환영합니다! 🌟"
+    # 대화 의도 분류
+    intents = {
+        'greeting': ['안녕', '하이', 'hello', 'hi', '반가워', '처음'],
+        'farewell': ['잘가', '바이', 'goodbye', 'bye', '그만', '끝'],
+        'thanks': ['고마워', '감사', 'thank', 'thanks', '좋아'],
+        'help': ['도움', 'help', '어떻게', '방법', '사용법'],
+        'search': ['찾아', '검색', '보여', '추천', '알려', '궁금'],
+        'compare': ['비교', '어떤게', '더', 'vs', 'versus'],
+        'complaint': ['별로', '좋지', '싫어', '아니', 'no'],
+        'praise': ['좋아', '멋져', '최고', 'great', 'awesome'],
+        'question': ['뭐', '무엇', '어떤', '언제', '어디', '왜', '어떻게']
+    }
+    
+    detected_intent = 'search'  # 기본값
+    for intent, keywords in intents.items():
+        if any(keyword in query_lower for keyword in keywords):
+            detected_intent = intent
+            break
+    
+    # 대화 맥락 분석
+    conversation_context = context.get_conversation_context()
+    
+    # 이전 대화와의 연관성 확인
+    follow_up = False
+    if conversation_context['last_query']:
+        last_query = conversation_context['last_query'].lower()
+        # 이전 질문에 대한 후속 질문인지 확인
+        follow_up_keywords = ['그거', '그것', '그', '이거', '이것', '이', '저거', '저것', '저', '다른', '더', '또', '또한']
+        if any(keyword in query_lower for keyword in follow_up_keywords):
+            follow_up = True
+    
+    return {
+        'intent': detected_intent,
+        'follow_up': follow_up,
+        'context': conversation_context
+    }
+
+def generate_contextual_response(user_query, performances, context):
+    """컨텍스트 기반 지능형 응답 생성"""
+    intent_analysis = understand_user_intent(user_query, context)
+    intent = intent_analysis['intent']
+    follow_up = intent_analysis['follow_up']
+    
+    # 의도별 맞춤 응답
+    if intent == 'greeting':
+        return generate_greeting_response(context)
+    elif intent == 'farewell':
+        return generate_farewell_response(context)
+    elif intent == 'thanks':
+        return generate_thanks_response(context)
+    elif intent == 'help':
+        return generate_help_response(context)
+    elif intent == 'complaint':
+        return generate_complaint_response(context)
+    elif intent == 'praise':
+        return generate_praise_response(context)
+    else:
+        return generate_search_response(user_query, performances, context, follow_up)
+
+def generate_greeting_response(context):
+    """인사 응답 생성"""
+    conversation_context = context.get_conversation_context()
+    interaction_count = conversation_context['user_preferences']['interaction_count']
+    
+    greetings = [
+        "안녕하세요! 공연 추천 AI 어시스턴트입니다! 🎭✨",
+        "반갑습니다! 오늘도 멋진 공연을 찾아드릴게요! 🎪🌟",
+        "어서오세요! 어떤 공연을 찾고 계신가요? 🎵💫",
+        "환영합니다! 공연 세계로 함께 떠나볼까요? 🎬🎉"
     ]
+    
+    if interaction_count == 0:
+        message = random.choice(greetings)
+        message += "\n\n처음 뵙는 분이시네요! 다음과 같이 물어보세요:"
+        message += "\n• '서울에서 5만원대 뮤지컬 추천해줘'"
+        message += "\n• '이번 주말에 볼만한 공연 있어?'"
+        message += "\n• '무료로 볼 수 있는 공연 찾아줘'"
+    else:
+        message = random.choice(greetings)
+        message += f"\n\n오늘 {interaction_count}번째로 만나뵙네요! 😊"
+        
+        # 개인화된 추천
+        if conversation_context['user_preferences']['top_categories']:
+            top_category = conversation_context['user_preferences']['top_categories'][0][0]
+            message += f"\n\n{top_category}을 좋아하시는 것 같아요! 오늘도 {top_category} 공연을 찾아드릴까요?"
+    
+    return {
+        'message': message,
+        'suggestions': ['인기 공연 보기', '전체 공연 보기', '무료 공연 보기']
+    }
+
+def generate_farewell_response(context):
+    """작별 인사 응답 생성"""
+    farewells = [
+        "안녕히 가세요! 또 멋진 공연으로 찾아뵙겠습니다! 👋✨",
+        "다음에 또 만나요! 공연 즐기세요! 🎭💫",
+        "좋은 하루 되세요! 공연으로 행복한 시간 보내세요! 🌟🎪",
+        "또 오세요! 언제든지 공연 추천해드릴게요! 🎵😊"
+    ]
+    
+    return {
+        'message': random.choice(farewells),
+        'suggestions': []
+    }
+
+def generate_thanks_response(context):
+    """감사 응답 생성"""
+    thanks_responses = [
+        "천만에요! 도움이 되어서 기뻐요! 😊✨",
+        "별 말씀을요! 더 좋은 공연을 찾아드릴게요! 🎭💫",
+        "감사합니다! 저도 즐거웠어요! 🎪🌟",
+        "도움이 되었다니 다행이에요! 또 찾아주세요! 🎵💖"
+    ]
+    
+    return {
+        'message': random.choice(thanks_responses),
+        'suggestions': ['더 많은 공연 보기', '인기 공연 보기']
+    }
+
+def generate_help_response(context):
+    """도움말 응답 생성"""
+    help_message = """🎭 **공연 AI 어시스턴트 사용법** 🎭
+
+**기본 검색:**
+• "서울에서 뮤지컬 추천해줘"
+• "5만원대 공연 찾아줘"
+• "이번 주말에 볼만한 것"
+
+**고급 검색:**
+• "강남에서 3-5만원대 다음주 뮤지컬"
+• "뮤지컬 말고 연극으로"
+• "20대가 좋아할 만한 로맨틱한 공연"
+
+**특별 검색:**
+• "무료 공연"
+• "인기 공연"
+• "곧 끝나는 공연"
+
+**대화:**
+• "안녕하세요" - 인사
+• "고마워" - 감사
+• "도움" - 사용법
+
+무엇이든 편하게 물어보세요! 🎪✨"""
+
+    return {
+        'message': help_message,
+        'suggestions': ['인기 공연 보기', '전체 공연 보기', '무료 공연 보기']
+    }
+
+def generate_complaint_response(context):
+    """불만 응답 생성"""
+    complaint_responses = [
+        "아쉽네요... 😔 다른 조건으로 찾아드릴까요?",
+        "죄송해요! 더 좋은 공연을 찾아보겠습니다! 🤗",
+        "그렇다면 다른 장르나 지역은 어떠세요? 💡",
+        "아쉽지만, 다른 옵션도 많아요! 다시 찾아볼까요? ✨"
+    ]
+    
+    return {
+        'message': random.choice(complaint_responses),
+        'suggestions': ['다른 카테고리 보기', '다른 지역 보기', '전체 공연 보기']
+    }
+
+def generate_praise_response(context):
+    """칭찬 응답 생성"""
+    praise_responses = [
+        "정말 기뻐요! 더 좋은 공연을 찾아드릴게요! 🎉✨",
+        "감사합니다! 저도 즐거워요! 🎭💫",
+        "좋아하신다니 다행이에요! 더 추천해드릴게요! 🎪🌟",
+        "와! 정말 기뻐요! 또 찾아주세요! 🎵💖"
+    ]
+    
+    return {
+        'message': random.choice(praise_responses),
+        'suggestions': ['더 많은 공연 보기', '인기 공연 보기', '새로운 공연 보기']
+    }
+
+def generate_search_response(user_query, performances, context, follow_up):
+    """검색 결과 응답 생성 (지능형)"""
+    conversation_context = context.get_conversation_context()
+    
+    # 데이터 분석
+    performance_data = analyze_performance_data()
+    
+    if not performances:
+        return generate_no_result_response(user_query, context, performance_data)
+    
+    # 개인화된 추천 추가
+    user_preferences = conversation_context['user_preferences']
+    personalized_recs = generate_personalized_recommendations(user_preferences, {})
+    
+    # 응답 생성
+    if len(performances) == 1:
+        return generate_single_result_response(performances[0], context, follow_up)
+    else:
+        return generate_multiple_results_response(performances, context, follow_up, personalized_recs)
+
+def generate_no_result_response(user_query, context, performance_data):
+    """검색 결과 없음 응답"""
+    conversation_context = context.get_conversation_context()
+    
+    # 데이터 기반 제안
+    suggestions = []
+    if performance_data:
+        if performance_data['categories']:
+            top_category = performance_data['categories'][0][0]
+            suggestions.append(f"{top_category} 공연 보기")
+        
+        if performance_data['popular']:
+            suggestions.append("인기 공연 보기")
+        
+        if performance_data['recent']:
+            suggestions.append("최신 공연 보기")
+    
+    # 개인화된 제안
+    if conversation_context['user_preferences']['top_categories']:
+        top_category = conversation_context['user_preferences']['top_categories'][0][0]
+        suggestions.append(f"{top_category} 공연 더 보기")
+    
+    no_result_messages = [
+        "아쉽게도 조건에 맞는 공연을 찾지 못했어요. 😅\n\n다른 조건으로 다시 물어보시거나, 전체 공연 목록을 확인해보세요!",
+        "죄송해요! 해당 조건의 공연이 없네요. 🤔\n\n지역이나 날짜를 바꿔서 검색해보시는 건 어떨까요?",
+        "음... 그런 조건의 공연은 아직 등록되지 않았어요. 😊\n\n전체 공연 목록에서 마음에 드는 공연을 찾아보세요!",
+        "조건을 조금 바꿔서 다시 물어보시는 건 어떨까요? 💡\n\n다른 키워드로 검색해보시면 좋은 공연을 찾을 수 있을 거예요!"
+    ]
+    
+    return {
+        'message': random.choice(no_result_messages),
+        'suggestions': suggestions[:5]
+    }
+
+def generate_single_result_response(performance, context, follow_up):
+    """단일 결과 응답 생성"""
+    conversation_context = context.get_conversation_context()
+    
+    # 카테고리별 맞춤 응답
+    category_emojis = {
+        '뮤지컬': '🎵',
+        '연극': '🎬', 
+        '콘서트': '🎤',
+        '클래식': '🎻',
+        '오페라': '🎭',
+        '발레': '🩰',
+        '무용': '💃',
+        '전시': '🖼️',
+        '축제': '🎪'
+    }
+    
+    emoji = category_emojis.get(performance.category, '🎭')
+    
+    # 개인화된 메시지
+    personalization = ""
+    if conversation_context['user_preferences']['top_categories']:
+        top_category = conversation_context['user_preferences']['top_categories'][0][0]
+        if performance.category and top_category in performance.category:
+            personalization = "\n\n이런 종류의 공연을 좋아하시는 것 같아요! 😊"
+    
+    # 가격대별 반응
+    price_reaction = ""
+    if performance.price:
+        if '무료' in performance.price:
+            price_reaction = "\n\n무료라니 정말 좋네요! 🎉"
+        elif any(x in performance.price for x in ['1만', '2만']):
+            price_reaction = "\n\n합리적인 가격이에요! 👍"
+        elif any(x in performance.price for x in ['5만', '6만']):
+            price_reaction = "\n\n퀄리티 대비 괜찮은 가격이에요! 💎"
+    
+    # 평점 시스템
+    likes = performance.likes or 0
+    if likes > 50:
+        stars = "★★★★★"
+        rating_text = "매우 인기!"
+    elif likes > 30:
+        stars = "★★★★☆"
+        rating_text = "인기 공연!"
+    elif likes > 10:
+        stars = "★★★☆☆"
+        rating_text = "괜찮은 공연!"
+    else:
+        stars = "★★☆☆☆"
+        rating_text = "새로운 공연!"
+    
+    message = f"🎭 **{performance.title}**{personalization}\n\n"
+    message += f"{emoji} **장르**: {performance.category or '공연'}\n"
+    message += f"📍 **장소**: {performance.location}\n"
+    message += f"📅 **날짜**: {performance.date}\n"
+    message += f"💰 **가격**: {performance.price}\n"
+    message += f"⭐ **평점**: {stars} ({rating_text}){price_reaction}\n\n"
+    
+    if follow_up:
+        message += "이 공연은 어떠세요? 더 자세한 정보를 원하시면 공연 제목을 클릭해보세요! 🎪"
+    else:
+        message += "정말 멋진 공연이네요! 더 자세한 정보를 원하시면 공연 제목을 클릭해보세요! ✨"
+    
+    return {
+        'message': message,
+        'performances': [performance],
+        'suggestions': ['더 많은 공연 보기', '비슷한 공연 보기', '인기 공연 보기']
+    }
+
+def generate_multiple_results_response(performances, context, follow_up, personalized_recs):
+    """다중 결과 응답 생성"""
+    conversation_context = context.get_conversation_context()
+    
+    # 개인화된 인사
+    personalization = ""
+    if conversation_context['user_preferences']['interaction_count'] > 3:
+        personalization = "오랜 고객님이시네요! "
+    
+    message = f"{personalization}🎭 조건에 맞는 공연을 **{len(performances)}개** 찾았어요!\n\n"
+    
+    # 상위 3개 공연 상세 표시
+    category_emojis = {
+        '뮤지컬': '🎵',
+        '연극': '🎬', 
+        '콘서트': '🎤',
+        '클래식': '🎻',
+        '오페라': '🎭',
+        '발레': '🩰',
+        '무용': '💃',
+        '전시': '🖼️',
+        '축제': '🎪'
+    }
+    
+    for i, performance in enumerate(performances[:3], 1):
+        emoji = category_emojis.get(performance.category, '🎭')
+        message += f"**{i}. {emoji} {performance.title}**\n"
+        message += f"   📍 {performance.location} | 📅 {performance.date} | 💰 {performance.price}\n\n"
+    
+    if len(performances) > 3:
+        remaining = len(performances) - 3
+        message += f"...그 외 **{remaining}개**의 공연이 더 있어요! 🎪\n\n"
+    
+    # 개인화된 추천 추가
+    if personalized_recs and len(personalized_recs) > 0:
+        message += "💡 **개인화 추천**:\n"
+        for i, rec in enumerate(personalized_recs[:2], 1):
+            emoji = category_emojis.get(rec.category, '🎭')
+            message += f"   {emoji} {rec.title} ({rec.category})\n"
+        message += "\n"
+    
+    # 상황별 메시지
+    if len(performances) >= 5:
+        message += "정말 다양한 공연들이 있네요! 마음에 드는 공연을 선택해보세요! ✨"
+    else:
+        message += "더 자세한 정보를 원하시면 공연 제목을 클릭해보세요! 🎪"
+    
+    # 추천 제안
+    suggestions = ['더 많은 공연 보기', '다른 조건으로 검색', '인기 공연 보기']
+    
+    # 조건별 추가 제안
+    if any('무료' in p.price for p in performances if p.price):
+        suggestions.append('무료 공연 더 보기')
+    if any('뮤지컬' in p.category for p in performances if p.category):
+        suggestions.append('뮤지컬 더 보기')
+    if any('콘서트' in p.category for p in performances if p.category):
+        suggestions.append('콘서트 더 보기')
+    
+    return {
+        'message': message,
+        'performances': performances,
+        'suggestions': suggestions[:5]
+    }
+
+def generate_ai_response(user_query, performances):
+    """AI 응답 생성 (ChatGPT 수준 고도화)"""
+    # 컨텍스트 기반 응답 생성
+    response = generate_contextual_response(user_query, performances, ai_context)
+    
+    # 대화 기록 추가
+    ai_context.add_interaction(user_query, response, performances)
+    
+    return response
     
     no_result_templates = [
         "아쉽게도 조건에 맞는 공연을 찾지 못했어요. 😅",
@@ -3480,7 +4011,7 @@ def generate_ai_response(user_query, performances):
 
 @app.route('/api/ai-chat', methods=['POST'])
 def ai_chat():
-    """AI 채팅 API"""
+    """AI 채팅 API (ChatGPT 수준)"""
     try:
         data = request.get_json()
         user_query = data.get('message', '').strip()
@@ -3491,14 +4022,31 @@ def ai_chat():
                 'message': '메시지를 입력해주세요.'
             })
         
-        # 사용자 질문 파싱
-        conditions = parse_user_query(user_query)
+        # 사용자 의도 분석
+        intent_analysis = understand_user_intent(user_query, ai_context)
         
-        # 공연 검색
-        performances = search_performances_by_ai(conditions)
+        # 검색이 필요한 경우에만 공연 검색
+        if intent_analysis['intent'] in ['search', 'question']:
+            # 사용자 질문 파싱
+            conditions = parse_user_query(user_query)
+            
+            # 공연 검색
+            performances = search_performances_by_ai(conditions)
+        else:
+            # 대화형 응답의 경우 공연 검색 없음
+            performances = []
         
         # AI 응답 생성
         response = generate_ai_response(user_query, performances)
+        
+        # 디버깅 정보 추가 (개발용)
+        if app.debug:
+            response['debug'] = {
+                'intent': intent_analysis['intent'],
+                'follow_up': intent_analysis['follow_up'],
+                'conditions': conditions if intent_analysis['intent'] in ['search', 'question'] else None,
+                'context': ai_context.get_conversation_context()
+            }
         
         return jsonify({
             'success': True,
@@ -3509,7 +4057,7 @@ def ai_chat():
         app.logger.error(f"AI 채팅 오류: {e}")
         return jsonify({
             'success': False,
-            'message': '죄송해요! 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.'
+            'message': '죄송해요! 잠시 문제가 생겼어요. 다시 시도해주세요! 😅'
         })
 
 if __name__ == "__main__":

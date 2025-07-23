@@ -797,7 +797,7 @@
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        // AI 메시지 전송
+        // AI 메시지 전송 (ChatGPT 수준)
         function sendAIMessage() {
             const input = document.getElementById('ai-chat-input');
             const message = input.value.trim();
@@ -817,7 +817,7 @@
                     <i class="fas fa-robot"></i>
                 </div>
                 <div class="ai-message-content">
-                    <i class="fas fa-spinner fa-spin"></i> AI가 답변을 준비하고 있어요...
+                    <i class="fas fa-spinner fa-spin"></i> 🤔 AI가 생각하고 있어요...
                 </div>
             `;
             document.getElementById('ai-chat-messages').appendChild(loadingDiv);
@@ -839,11 +839,13 @@
                 }
                 
                 if (data.success) {
-                    // AI 응답 추가
-                    addAIMessage(data.response.message);
+                    const response = data.response;
+                    
+                    // AI 응답 추가 (마크다운 스타일 지원)
+                    addAIMessage(formatMessage(response.message));
                     
                     // 공연 링크 추가 (있는 경우)
-                    if (data.response.performances && data.response.performances.length > 0) {
+                    if (response.performances && response.performances.length > 0) {
                         const performancesDiv = document.createElement('div');
                         performancesDiv.className = 'ai-message';
                         performancesDiv.innerHTML = `
@@ -851,16 +853,42 @@
                                 <i class="fas fa-robot"></i>
                             </div>
                             <div class="ai-message-content">
-                                <strong>추천 공연:</strong><br>
-                                ${data.response.performances.map(p => 
-                                    `<a href="/performance/${p.id}" style="color: #667eea; text-decoration: none;">🎭 ${p.title}</a>`
-                                ).join('<br>')}
+                                <strong>🎭 추천 공연:</strong><br>
+                                ${response.performances.map(p => 
+                                    `<a href="/performance/${p.id}" style="color: #667eea; text-decoration: none; display: block; margin: 5px 0; padding: 8px; background: rgba(102, 126, 234, 0.1); border-radius: 8px; transition: all 0.2s;">
+                                        🎪 ${p.title}<br>
+                                        <small style="color: #666;">📍 ${p.location} | 📅 ${p.date} | 💰 ${p.price}</small>
+                                    </a>`
+                                ).join('')}
                             </div>
                         `;
                         document.getElementById('ai-chat-messages').appendChild(performancesDiv);
                     }
+                    
+                    // 제안 버튼 추가 (있는 경우)
+                    if (response.suggestions && response.suggestions.length > 0) {
+                        const suggestionsDiv = document.createElement('div');
+                        suggestionsDiv.className = 'ai-message';
+                        suggestionsDiv.innerHTML = `
+                            <div class="ai-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="ai-message-content">
+                                <strong>💡 제안:</strong><br>
+                                ${response.suggestions.map(suggestion => 
+                                    `<button onclick="sendSuggestion('${suggestion}')" style="background: #667eea; color: white; border: none; padding: 5px 10px; margin: 2px; border-radius: 15px; font-size: 0.9em; cursor: pointer; transition: all 0.2s;">${suggestion}</button>`
+                                ).join('')}
+                            </div>
+                        `;
+                        document.getElementById('ai-chat-messages').appendChild(suggestionsDiv);
+                    }
+                    
+                    // 디버깅 정보 (개발용)
+                    if (response.debug && window.location.hostname === 'localhost') {
+                        console.log('AI Debug Info:', response.debug);
+                    }
                 } else {
-                    addAIMessage('죄송해요! 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
+                    addAIMessage(data.message || '죄송해요! 오류가 발생했어요. 다시 시도해주세요. 😅');
                 }
             })
             .catch(error => {
@@ -869,8 +897,26 @@
                 if (loadingMessage) {
                     loadingMessage.remove();
                 }
-                addAIMessage('죄송해요! 네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
+                addAIMessage('죄송해요! 네트워크 오류가 발생했어요. 😅');
             });
+        }
+        
+        // 메시지 포맷팅 (마크다운 스타일)
+        function formatMessage(message) {
+            // **텍스트** -> <strong>텍스트</strong>
+            message = message.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // 줄바꿈 처리
+            message = message.replace(/\n/g, '<br>');
+            
+            return message;
+        }
+        
+        // 제안 버튼 클릭 처리
+        function sendSuggestion(suggestion) {
+            const input = document.getElementById('ai-chat-input');
+            input.value = suggestion;
+            sendAIMessage();
         }
 
         // 엔터키 처리
