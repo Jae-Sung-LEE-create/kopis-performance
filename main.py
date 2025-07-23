@@ -2637,6 +2637,28 @@ class UserProfile(db.Model):
     
     user = db.relationship('User', backref='profile', uselist=False)
 
+# 템플릿 헬퍼 함수들
+def format_date(date_obj):
+    """안전한 날짜 포맷팅"""
+    if date_obj and hasattr(date_obj, 'strftime'):
+        return date_obj.strftime('%Y-%m-%d')
+    elif date_obj:
+        return str(date_obj)
+    else:
+        return '미정'
+
+def format_datetime(datetime_obj):
+    """안전한 날짜시간 포맷팅"""
+    if datetime_obj and hasattr(datetime_obj, 'strftime'):
+        return datetime_obj.strftime('%Y-%m-%d %H:%M')
+    elif datetime_obj:
+        return str(datetime_obj)
+    else:
+        return '알 수 없음'
+
+# 템플릿에 함수 등록
+app.jinja_env.globals.update(format_date=format_date, format_datetime=format_datetime)
+
 # 데이터 분석 유틸리티 함수들
 def track_user_event(user_id, event_type, performance_id=None, metadata=None):
     """사용자 이벤트 추적"""

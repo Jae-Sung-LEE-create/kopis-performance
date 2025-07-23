@@ -107,10 +107,10 @@
                                         <td><input type="checkbox" name="selected" value="{{ performance.id }}"></td>
                                         <td>{{ performance.title }}</td>
                                         <td><span class="badge bg-secondary">{{ performance.category }}</span></td>
-                                        <td>{{ performance.date.strftime('%Y-%m-%d') if performance.date else '미정' }}</td>
+                                        <td>{{ format_date(performance.date) }}</td>
                                         <td>{{ performance.venue }}</td>
                                         <td>{{ performance.user.username if performance.user else '알 수 없음' }}</td>
-                                        <td>{{ performance.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                        <td>{{ format_datetime(performance.created_at) }}</td>
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <button class="btn btn-success btn-sm" onclick="approvePerformance({{ performance.id }})">승인</button>
@@ -158,10 +158,10 @@
                                     <tr>
                                         <td>{{ performance.title }}</td>
                                         <td><span class="badge bg-secondary">{{ performance.category }}</span></td>
-                                        <td>{{ performance.date.strftime('%Y-%m-%d') if performance.date else '미정' }}</td>
+                                        <td>{{ format_date(performance.date) }}</td>
                                         <td>{{ performance.venue }}</td>
                                         <td>{{ performance.user.username if performance.user else '알 수 없음' }}</td>
-                                        <td>{{ performance.updated_at.strftime('%Y-%m-%d %H:%M') if performance.updated_at else '알 수 없음' }}</td>
+                                        <td>{{ format_datetime(performance.updated_at) }}</td>
                                         <td>
                                             <a href="{{ url_for('performance_detail', performance_id=performance.id) }}" class="btn btn-info btn-sm">상세보기</a>
                                             {% if performance.kopis_id %}
