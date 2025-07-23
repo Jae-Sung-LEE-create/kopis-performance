@@ -416,106 +416,86 @@ def detect_region_from_address(address):
     return None
 
 def create_tables():
-    """데이터베이스 테이블 생성"""
-    max_retries = 2  # 3에서 2로 줄임
-    retry_delay = 1  # 2에서 1로 줄임
-    
-    for attempt in range(max_retries):
-        try:
-            with app.app_context():
-                logger.info(f"Creating database tables... (attempt {attempt + 1}/{max_retries})")
+    """데이터베이스 테이블 생성 (무한 루프 방지)"""
+    try:
+        with app.app_context():
+            logger.info("Checking database schema...")
+            
+            # 기존 테이블 확인
+            result = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance'"))
+            if result.fetchone():
+                # 기존 테이블이 있으면 컬럼 확인
+                result = db.session.execute(text("PRAGMA table_info(performance)"))
+                columns = [row[1] for row in result.fetchall()]
                 
-                # Performance 테이블에 필수 컬럼 체크
-                result = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance'"))
-                if result.fetchone():
-                    result = db.session.execute(text("PRAGMA table_info(performance)"))
-                    columns = [row[1] for row in result.fetchall()]
-                    required = {'address', 'purchase_methods'}
-                    if not required.issubset(set(columns)):
-                        logger.warning("Performance table missing required columns. Dropping and recreating tables...")
-                        db.drop_all()
-                # 기존 테이블에 address 컬럼이 있는지 확인
-                try:
-                    # Performance 테이블이 존재하는지 확인
-                    result = db.session.execute(text("SELECT name FROM sqlite_master WHERE type='table' AND name='performance'"))
-                    if result.fetchone():
-                        # address 컬럼이 있는지 확인
-                        result = db.session.execute(text("PRAGMA table_info(performance)"))
-                        columns = [row[1] for row in result.fetchall()]
-                        if 'address' not in columns:
-                            logger.warning("Performance table exists but missing 'address' column. Dropping and recreating tables...")
-                            db.drop_all()
-                            logger.info("All tables dropped successfully")
-                except Exception as schema_check_error:
-                    logger.info(f"Schema check failed (this is normal for new databases): {schema_check_error}")
+                # booking_phone 컬럼이 없으면 스킵
+                if 'booking_phone' not in columns:
+                    logger.warning("Database schema mismatch detected. Skipping initialization to prevent infinite loop.")
+                    return False
+            
+            # 테이블 생성
+            db.create_all()
+            logger.info("Database tables created successfully!")
+            return True
                 
-                # 테이블 생성 (간소화된 연결 테스트)
-                db.create_all()
-                logger.info("Database tables created successfully!")
-                
-                return  # 성공하면 함수 종료
-                
-        except Exception as e:
-            logger.error(f"Database creation attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries - 1:
-                logger.info(f"Retrying in {retry_delay} seconds...")
-                time.sleep(retry_delay)
-            else:
-                logger.error("All database creation attempts failed!")
-                raise
+    except Exception as e:
+        logger.error(f"Database creation failed: {e}")
+        logger.warning("Continuing without database initialization to prevent infinite loop.")
+        return False
 
 def create_sample_data_if_needed():
-    with app.app_context():
-        from datetime import datetime, timedelta
-        # 사용자 샘플 생성 (기존과 동일)
-        if User.query.count() == 0:
-            sample_users = [
-                {
-                    'name': '관리자',
-                    'username': 'admin',
-                    'email': 'admin@admin.com',
-                    'phone': '010-0000-0000',
-                    'password': 'admin123',
-                    'is_admin': True
-                },
-                {
-                    'name': '김댄서',
-                    'username': 'dancer1',
-                    'email': 'dancer1@test.com',
-                    'phone': '010-1111-1111',
-                    'password': 'test123',
-                    'is_admin': False
-                },
-                {
-                    'name': '이크루',
-                    'username': 'crew2',
-                    'email': 'crew2@test.com',
-                    'phone': '010-2222-2222',
-                    'password': 'test123',
-                    'is_admin': False
-                },
-                {
-                    'name': '박스트릿',
-                    'username': 'street3',
-                    'email': 'street3@test.com',
-                    'phone': '010-3333-3333',
-                    'password': 'test123',
-                    'is_admin': False
-                }
-            ]
-            created_users = []
-            for user_data in sample_users:
-                user = User(
-                    name=user_data['name'],
-                    username=user_data['username'],
-                    email=user_data['email'],
-                    phone=user_data['phone'],
-                    password_hash=generate_password_hash(user_data['password']),
-                    is_admin=user_data['is_admin']
-                )
-                db.session.add(user)
-                created_users.append(user)
-            db.session.commit()
+    try:
+        with app.app_context():
+            from datetime import datetime, timedelta
+            # 사용자 샘플 생성 (기존과 동일)
+            if User.query.count() == 0:
+                sample_users = [
+                    {
+                        'name': '관리자',
+                        'username': 'admin',
+                        'email': 'admin@admin.com',
+                        'phone': '010-0000-0000',
+                        'password': 'admin123',
+                        'is_admin': True
+                    },
+                    {
+                        'name': '김댄서',
+                        'username': 'dancer1',
+                        'email': 'dancer1@test.com',
+                        'phone': '010-1111-1111',
+                        'password': 'test123',
+                        'is_admin': False
+                    },
+                    {
+                        'name': '이크루',
+                        'username': 'crew2',
+                        'email': 'crew2@test.com',
+                        'phone': '010-2222-2222',
+                        'password': 'test123',
+                        'is_admin': False
+                    },
+                    {
+                        'name': '박스트릿',
+                        'username': 'street3',
+                        'email': 'street3@test.com',
+                        'phone': '010-3333-3333',
+                        'password': 'test123',
+                        'is_admin': False
+                    }
+                ]
+                created_users = []
+                for user_data in sample_users:
+                    user = User(
+                        name=user_data['name'],
+                        username=user_data['username'],
+                        email=user_data['email'],
+                        phone=user_data['phone'],
+                        password_hash=generate_password_hash(user_data['password']),
+                        is_admin=user_data['is_admin']
+                    )
+                    db.session.add(user)
+                    created_users.append(user)
+                db.session.commit()
         admin_user = User.query.filter_by(username='admin').first()
         if not admin_user:
             return
@@ -1193,6 +1173,9 @@ def create_sample_data_if_needed():
                 db.session.add(performance)
         db.session.commit()
         logger.info('✅ 카테고리별 샘플 공연 데이터 생성 완료!')
+    except Exception as e:
+        logger.error(f"Sample data creation failed: {e}")
+        logger.warning("Continuing without sample data initialization.")
 
 # Cloudinary 설정
 cloudinary.config(
@@ -4062,7 +4045,7 @@ def ai_chat():
 
 if __name__ == "__main__":
     try:
-        # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
+        # 데이터베이스 테이블 생성 시도 (무한 루프 방지)
         logger.info("Starting application initialization...")
         create_tables()
         create_sample_data_if_needed()  # 샘플 계정 자동 생성
@@ -4072,4 +4055,11 @@ if __name__ == "__main__":
         logger.warning("Server will start without database initialization. Some features may not work.")
         # 데이터베이스 초기화 실패해도 서버는 시작
         pass
-    app.run(debug=True) 
+    
+    # 무한 루프 방지를 위한 안전한 서버 시작
+    try:
+        app.run(debug=False, host='0.0.0.0', port=10000)
+    except KeyboardInterrupt:
+        logger.info("Server stopped by user")
+    except Exception as e:
+        logger.error(f"Server error: {e}") 
