@@ -11,17 +11,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    try:
-        # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
-        logger.info("Starting application initialization...")
-        create_tables()
-        create_sample_data_if_needed()  # 샘플 계정 자동 생성
-        logger.info("Database initialization completed successfully!")
-    except Exception as e:
-        logger.error(f"Database initialization failed: {e}")
-        logger.warning("Server will start without database initialization. Some features may not work.")
-        # 데이터베이스 초기화 실패해도 서버는 시작
-        pass
+    # 애플리케이션 컨텍스트 내에서 실행
+    with app.app_context():
+        try:
+            # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
+            logger.info("Starting application initialization...")
+            create_tables()
+            create_sample_data_if_needed()  # 샘플 계정 자동 생성
+            logger.info("Database initialization completed successfully!")
+        except Exception as e:
+            logger.error(f"Database initialization failed: {e}")
+            logger.warning("Server will start without database initialization. Some features may not work.")
+            # 데이터베이스 초기화 실패해도 서버는 시작
+            pass
     
     # 서버 시작 - 렌더 환경변수 PORT 사용
     port = int(os.getenv("PORT", 10000))
