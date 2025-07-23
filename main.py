@@ -2937,7 +2937,7 @@ def export_performance_stats_excel():
 
 # AI 채팅 어시스턴트 관련 함수들
 def parse_user_query(query):
-    """사용자 질문을 파싱하여 검색 조건 추출"""
+    """사용자 질문을 파싱하여 검색 조건 추출 (고도화된 버전)"""
     query = query.lower().strip()
     
     # 기본 검색 조건
@@ -2946,118 +2946,374 @@ def parse_user_query(query):
         'price_range': None,
         'date_range': None,
         'category': None,
-        'keywords': []
+        'keywords': [],
+        'exclude_category': None,
+        'price_min': None,
+        'price_max': None,
+        'age_group': None,
+        'mood': None
     }
     
-    # 지역 추출
-    location_keywords = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '강남', '홍대', '명동', '잠실']
-    for loc in location_keywords:
-        if loc in query:
-            conditions['location'] = loc
+    # 지역 추출 (확장된 키워드)
+    location_keywords = {
+        '서울': ['서울', '서울시', '서울특별시'],
+        '부산': ['부산', '부산시', '부산광역시'],
+        '대구': ['대구', '대구시', '대구광역시'],
+        '인천': ['인천', '인천시', '인천광역시'],
+        '광주': ['광주', '광주시', '광주광역시'],
+        '대전': ['대전', '대전시', '대전광역시'],
+        '울산': ['울산', '울산시', '울산광역시'],
+        '세종': ['세종', '세종시', '세종특별시'],
+        '강남': ['강남', '강남구', '강남역', '강남대로'],
+        '홍대': ['홍대', '홍대입구', '홍대역', '홍익대'],
+        '명동': ['명동', '명동역', '명동길'],
+        '잠실': ['잠실', '잠실역', '잠실로'],
+        '강북': ['강북', '강북구', '강북역'],
+        '신촌': ['신촌', '신촌역', '신촌로'],
+        '이태원': ['이태원', '이태원역', '이태원로'],
+        '동대문': ['동대문', '동대문역', '동대문시장'],
+        '종로': ['종로', '종로구', '종로역'],
+        '마포': ['마포', '마포구', '마포역'],
+        '용산': ['용산', '용산구', '용산역'],
+        '영등포': ['영등포', '영등포구', '영등포역']
+    }
+    
+    for location, keywords in location_keywords.items():
+        for keyword in keywords:
+            if keyword in query:
+                conditions['location'] = location
+                break
+        if conditions['location']:
             break
     
-    # 가격대 추출
-    if '무료' in query or '0원' in query:
-        conditions['price_range'] = 'free'
-    elif '1만원' in query or '1만' in query:
-        conditions['price_range'] = 'low'
-    elif '3만원' in query or '3만' in query:
-        conditions['price_range'] = 'medium'
-    elif '5만원' in query or '5만' in query:
-        conditions['price_range'] = 'high'
-    elif '10만원' in query or '10만' in query:
-        conditions['price_range'] = 'premium'
+    # 가격대 추출 (더 정교한 처리)
+    price_patterns = [
+        (r'무료|0원|공짜|free', 'free'),
+        (r'1만원?대?|1만\s*원?|1만원\s*이하', 'low'),
+        (r'2만원?대?|2만\s*원?|2만원\s*이하', 'low'),
+        (r'3만원?대?|3만\s*원?|3만원\s*이하', 'medium'),
+        (r'4만원?대?|4만\s*원?|4만원\s*이하', 'medium'),
+        (r'5만원?대?|5만\s*원?|5만원\s*이하', 'high'),
+        (r'6만원?대?|6만\s*원?|6만원\s*이하', 'high'),
+        (r'7만원?대?|7만\s*원?|7만원\s*이하', 'premium'),
+        (r'8만원?대?|8만\s*원?|8만원\s*이하', 'premium'),
+        (r'9만원?대?|9만\s*원?|9만원\s*이하', 'premium'),
+        (r'10만원?대?|10만\s*원?|10만원\s*이하', 'premium'),
+        (r'10만원?\s*이상|10만원?\s*초과', 'premium')
+    ]
     
-    # 날짜 추출
-    if '오늘' in query:
-        conditions['date_range'] = 'today'
-    elif '내일' in query:
-        conditions['date_range'] = 'tomorrow'
-    elif '이번주' in query or '이번 주' in query:
-        conditions['date_range'] = 'this_week'
-    elif '다음주' in query or '다음 주' in query:
-        conditions['date_range'] = 'next_week'
-    elif '이번달' in query or '이번 달' in query:
-        conditions['date_range'] = 'this_month'
+    import re
+    for pattern, price_range in price_patterns:
+        if re.search(pattern, query):
+            conditions['price_range'] = price_range
+            break
     
-    # 카테고리 추출
+    # 가격 범위 추출 (예: 3-5만원)
+    price_range_match = re.search(r'(\d+)만원?\s*[-~]\s*(\d+)만원?', query)
+    if price_range_match:
+        conditions['price_min'] = int(price_range_match.group(1))
+        conditions['price_max'] = int(price_range_match.group(2))
+    
+    # 날짜 추출 (확장된 키워드)
+    date_patterns = [
+        (r'오늘|today|금일', 'today'),
+        (r'내일|tomorrow|명일', 'tomorrow'),
+        (r'모레|day\s*after\s*tomorrow', 'day_after_tomorrow'),
+        (r'이번주|이번\s*주|this\s*week|금주', 'this_week'),
+        (r'다음주|다음\s*주|next\s*week|내주', 'next_week'),
+        (r'이번달|이번\s*달|this\s*month|금월', 'this_month'),
+        (r'다음달|다음\s*달|next\s*month|내월', 'next_month'),
+        (r'주말|weekend|토일', 'weekend'),
+        (r'평일|weekday|월화수목금', 'weekday'),
+        (r'곧|soon|빨리|급하게', 'soon'),
+        (r'나중에|later|시간\s*많음', 'later')
+    ]
+    
+    for pattern, date_range in date_patterns:
+        if re.search(pattern, query):
+            conditions['date_range'] = date_range
+            break
+    
+    # 카테고리 추출 (확장된 키워드)
     category_keywords = {
-        '뮤지컬': '뮤지컬',
-        '연극': '연극',
-        '콘서트': '콘서트',
-        '클래식': '클래식',
-        '오페라': '오페라',
-        '발레': '발레',
-        '무용': '무용',
-        '전시': '전시',
-        '축제': '축제'
+        '뮤지컬': ['뮤지컬', 'musical', '뮤지컬공연', '뮤지컬쇼'],
+        '연극': ['연극', 'play', '드라마', '극', '연극공연'],
+        '콘서트': ['콘서트', 'concert', '음악회', '공연', '라이브'],
+        '클래식': ['클래식', 'classical', '교향악', '실내악', '오케스트라'],
+        '오페라': ['오페라', 'opera', '가극'],
+        '발레': ['발레', 'ballet', '무용', '춤'],
+        '무용': ['무용', 'dance', '현대무용', '한국무용'],
+        '전시': ['전시', 'exhibition', '미술관', '갤러리', '아트'],
+        '축제': ['축제', 'festival', '페스티벌', '행사'],
+        '뮤지컬': ['뮤지컬', 'musical', '뮤지컬공연'],
+        '연극': ['연극', 'play', '드라마', '극'],
+        '콘서트': ['콘서트', 'concert', '음악회', '라이브'],
+        '클래식': ['클래식', 'classical', '교향악'],
+        '오페라': ['오페라', 'opera', '가극'],
+        '발레': ['발레', 'ballet', '무용'],
+        '무용': ['무용', 'dance', '현대무용'],
+        '전시': ['전시', 'exhibition', '미술관'],
+        '축제': ['축제', 'festival', '페스티벌']
     }
     
-    for keyword, category in category_keywords.items():
-        if keyword in query:
-            conditions['category'] = category
+    for category, keywords in category_keywords.items():
+        for keyword in keywords:
+            if keyword in query:
+                conditions['category'] = category
+                break
+        if conditions['category']:
             break
     
-    # 키워드 추출
-    keywords = ['추천', '좋은', '인기', '핫한', '신나는', '감동적인', '재미있는']
-    for keyword in keywords:
+    # 제외할 카테고리 추출
+    exclude_patterns = [
+        (r'뮤지컬\s*말고|뮤지컬\s*제외|뮤지컬\s*빼고', '뮤지컬'),
+        (r'연극\s*말고|연극\s*제외|연극\s*빼고', '연극'),
+        (r'콘서트\s*말고|콘서트\s*제외|콘서트\s*빼고', '콘서트'),
+        (r'클래식\s*말고|클래식\s*제외|클래식\s*빼고', '클래식')
+    ]
+    
+    for pattern, exclude_category in exclude_patterns:
+        if re.search(pattern, query):
+            conditions['exclude_category'] = exclude_category
+            break
+    
+    # 연령대 추출
+    age_patterns = [
+        (r'10대|10살|10대\s*학생', '10s'),
+        (r'20대|20살|20대\s*대학생', '20s'),
+        (r'30대|30살|30대\s*직장인', '30s'),
+        (r'40대|40살|40대\s*성인', '40s'),
+        (r'50대|50살|50대\s*중년', '50s'),
+        (r'어린이|아이|키즈|children|kids', 'children'),
+        (r'청소년|중고등학생|teen', 'teen'),
+        (r'성인|어른|adult', 'adult'),
+        (r'노인|어르신|elderly', 'elderly')
+    ]
+    
+    for pattern, age_group in age_patterns:
+        if re.search(pattern, query):
+            conditions['age_group'] = age_group
+            break
+    
+    # 분위기/무드 추출
+    mood_patterns = [
+        (r'신나는|활기찬|energetic|fun', 'energetic'),
+        (r'감동적인|감동|touching|moving', 'touching'),
+        (r'재미있는|재밌는|funny|fun', 'fun'),
+        (r'로맨틱한|로맨틱|romantic|사랑', 'romantic'),
+        (r'슬픈|우울한|sad|melancholy', 'sad'),
+        (r'긴장감|스릴|thrilling|exciting', 'thrilling'),
+        (r'평화로운|차분한|calm|peaceful', 'calm'),
+        (r'고급스러운|세련된|elegant|sophisticated', 'elegant'),
+        (r'힐링|치유|healing|therapeutic', 'healing')
+    ]
+    
+    for pattern, mood in mood_patterns:
+        if re.search(pattern, query):
+            conditions['mood'] = mood
+            break
+    
+    # 키워드 추출 (확장된 버전)
+    positive_keywords = ['추천', '좋은', '인기', '핫한', '신나는', '감동적인', '재미있는', '보여줘', '알려줘', '찾아줘', '보고싶어', '가고싶어', '궁금해', '어떤', '뭐가', '뭔가']
+    for keyword in positive_keywords:
         if keyword in query:
             conditions['keywords'].append(keyword)
     
     return conditions
 
 def search_performances_by_ai(conditions):
-    """AI 조건에 따른 공연 검색"""
+    """AI 조건에 따른 공연 검색 (고도화된 버전)"""
     try:
         query = Performance.query.filter_by(is_approved=True)
         
-        # 지역 필터
+        # 지역 필터 (더 정교한 처리)
         if conditions['location']:
-            if conditions['location'] in ['강남', '홍대', '명동', '잠실']:
-                query = query.filter(Performance.address.contains(conditions['location']))
+            location = conditions['location']
+            if location in ['강남', '홍대', '명동', '잠실', '강북', '신촌', '이태원', '동대문', '종로', '마포', '용산', '영등포']:
+                # 서울 지역별 세부 검색
+                if location == '강남':
+                    query = query.filter(
+                        (Performance.address.contains('강남')) |
+                        (Performance.location.contains('강남')) |
+                        (Performance.address.contains('서초'))
+                    )
+                elif location == '홍대':
+                    query = query.filter(
+                        (Performance.address.contains('홍대')) |
+                        (Performance.location.contains('홍대')) |
+                        (Performance.address.contains('마포'))
+                    )
+                elif location == '명동':
+                    query = query.filter(
+                        (Performance.address.contains('명동')) |
+                        (Performance.location.contains('명동')) |
+                        (Performance.address.contains('중구'))
+                    )
+                else:
+                    query = query.filter(
+                        (Performance.address.contains(location)) |
+                        (Performance.location.contains(location))
+                    )
             else:
-                query = query.filter(Performance.location.contains(conditions['location']))
+                # 다른 도시 검색
+                query = query.filter(
+                    (Performance.location.contains(location)) |
+                    (Performance.address.contains(location))
+                )
         
-        # 가격대 필터
+        # 가격대 필터 (더 정교한 처리)
         if conditions['price_range']:
-            if conditions['price_range'] == 'free':
-                query = query.filter(Performance.price.contains('무료'))
-            elif conditions['price_range'] == 'low':
-                query = query.filter(Performance.price.contains('1만'))
-            elif conditions['price_range'] == 'medium':
-                query = query.filter(Performance.price.contains('3만'))
-            elif conditions['price_range'] == 'high':
-                query = query.filter(Performance.price.contains('5만'))
-            elif conditions['price_range'] == 'premium':
-                query = query.filter(Performance.price.contains('10만'))
+            price_range = conditions['price_range']
+            if price_range == 'free':
+                query = query.filter(
+                    (Performance.price.contains('무료')) |
+                    (Performance.price.contains('0원')) |
+                    (Performance.price.contains('공짜'))
+                )
+            elif price_range == 'low':
+                query = query.filter(
+                    (Performance.price.contains('1만')) |
+                    (Performance.price.contains('2만')) |
+                    (Performance.price.contains('무료'))
+                )
+            elif price_range == 'medium':
+                query = query.filter(
+                    (Performance.price.contains('3만')) |
+                    (Performance.price.contains('4만')) |
+                    (Performance.price.contains('2만'))
+                )
+            elif price_range == 'high':
+                query = query.filter(
+                    (Performance.price.contains('5만')) |
+                    (Performance.price.contains('6만')) |
+                    (Performance.price.contains('4만'))
+                )
+            elif price_range == 'premium':
+                query = query.filter(
+                    (Performance.price.contains('7만')) |
+                    (Performance.price.contains('8만')) |
+                    (Performance.price.contains('9만')) |
+                    (Performance.price.contains('10만'))
+                )
         
-        # 날짜 필터
+        # 가격 범위 필터 (예: 3-5만원)
+        if conditions['price_min'] and conditions['price_max']:
+            # 가격 문자열에서 숫자 추출하여 범위 검색
+            # 실제 구현에서는 가격 필드를 숫자로 저장하는 것이 좋음
+            pass
+        
+        # 날짜 필터 (확장된 처리)
         if conditions['date_range']:
             today = datetime.now().date()
-            if conditions['date_range'] == 'today':
+            date_range = conditions['date_range']
+            
+            if date_range == 'today':
                 query = query.filter(Performance.date == today.strftime('%Y-%m-%d'))
-            elif conditions['date_range'] == 'tomorrow':
+            elif date_range == 'tomorrow':
                 tomorrow = today + timedelta(days=1)
                 query = query.filter(Performance.date == tomorrow.strftime('%Y-%m-%d'))
-            elif conditions['date_range'] == 'this_week':
+            elif date_range == 'day_after_tomorrow':
+                day_after = today + timedelta(days=2)
+                query = query.filter(Performance.date == day_after.strftime('%Y-%m-%d'))
+            elif date_range == 'this_week':
                 end_of_week = today + timedelta(days=7)
                 query = query.filter(Performance.date >= today.strftime('%Y-%m-%d'))
                 query = query.filter(Performance.date <= end_of_week.strftime('%Y-%m-%d'))
-            elif conditions['date_range'] == 'next_week':
+            elif date_range == 'next_week':
                 next_week_start = today + timedelta(days=7)
                 next_week_end = today + timedelta(days=14)
                 query = query.filter(Performance.date >= next_week_start.strftime('%Y-%m-%d'))
                 query = query.filter(Performance.date <= next_week_end.strftime('%Y-%m-%d'))
+            elif date_range == 'this_month':
+                end_of_month = today.replace(day=28) + timedelta(days=4)
+                end_of_month = end_of_month.replace(day=1) - timedelta(days=1)
+                query = query.filter(Performance.date >= today.strftime('%Y-%m-%d'))
+                query = query.filter(Performance.date <= end_of_month.strftime('%Y-%m-%d'))
+            elif date_range == 'next_month':
+                next_month_start = today.replace(day=1) + timedelta(days=32)
+                next_month_start = next_month_start.replace(day=1)
+                next_month_end = next_month_start.replace(day=28) + timedelta(days=4)
+                next_month_end = next_month_end.replace(day=1) - timedelta(days=1)
+                query = query.filter(Performance.date >= next_month_start.strftime('%Y-%m-%d'))
+                query = query.filter(Performance.date <= next_month_end.strftime('%Y-%m-%d'))
+            elif date_range == 'weekend':
+                # 주말 필터링 (실제로는 요일 정보가 필요)
+                pass
+            elif date_range == 'soon':
+                # 곧 (1주일 이내)
+                end_soon = today + timedelta(days=7)
+                query = query.filter(Performance.date >= today.strftime('%Y-%m-%d'))
+                query = query.filter(Performance.date <= end_soon.strftime('%Y-%m-%d'))
         
         # 카테고리 필터
         if conditions['category']:
-            query = query.filter(Performance.category.contains(conditions['category']))
+            category = conditions['category']
+            query = query.filter(Performance.category.contains(category))
         
-        # 정렬 (좋아요 수 기준)
-        query = query.order_by(Performance.likes.desc())
+        # 제외할 카테고리 필터
+        if conditions['exclude_category']:
+            exclude_category = conditions['exclude_category']
+            query = query.filter(~Performance.category.contains(exclude_category))
         
-        # 상위 5개 결과 반환
-        results = query.limit(5).all()
+        # 연령대별 필터 (간접적)
+        if conditions['age_group']:
+            age_group = conditions['age_group']
+            if age_group == 'children':
+                # 어린이 공연 키워드
+                query = query.filter(
+                    (Performance.category.contains('어린이')) |
+                    (Performance.title.contains('어린이')) |
+                    (Performance.category.contains('키즈'))
+                )
+            elif age_group == 'teen':
+                # 청소년 공연 키워드
+                query = query.filter(
+                    (Performance.category.contains('청소년')) |
+                    (Performance.title.contains('청소년'))
+                )
+        
+        # 분위기/무드 필터 (간접적)
+        if conditions['mood']:
+            mood = conditions['mood']
+            mood_keywords = {
+                'energetic': ['신나는', '활기찬', '댄스', '힙합'],
+                'touching': ['감동', '드라마', '로맨스'],
+                'fun': ['코미디', '재미', '웃음'],
+                'romantic': ['로맨스', '사랑', '로맨틱'],
+                'sad': ['드라마', '슬픈', '감동'],
+                'thrilling': ['스릴', '액션', '긴장'],
+                'calm': ['클래식', '힐링', '평화'],
+                'elegant': ['클래식', '오페라', '발레'],
+                'healing': ['힐링', '치유', '마음']
+            }
+            
+            if mood in mood_keywords:
+                keywords = mood_keywords[mood]
+                mood_filter = query.filter(
+                    *[Performance.title.contains(keyword) | Performance.category.contains(keyword) for keyword in keywords]
+                )
+                if mood_filter.count() > 0:
+                    query = mood_filter
+        
+        # 정렬 (다양한 기준)
+        if conditions['keywords'] and any(keyword in ['인기', '핫한', '좋은'] for keyword in conditions['keywords']):
+            # 인기도 기준 정렬
+            query = query.order_by(Performance.likes.desc())
+        elif conditions['date_range'] in ['soon', 'today', 'tomorrow']:
+            # 날짜순 정렬 (급한 경우)
+            query = query.order_by(Performance.date.asc())
+        else:
+            # 기본 정렬 (좋아요 수 + 날짜)
+            query = query.order_by(Performance.likes.desc(), Performance.date.asc())
+        
+        # 결과 수 조정 (조건에 따라)
+        limit_count = 5
+        if conditions['date_range'] in ['today', 'tomorrow']:
+            limit_count = 3  # 오늘/내일은 적은 수
+        elif len(conditions['keywords']) > 2:
+            limit_count = 7  # 많은 키워드가 있으면 더 많은 결과
+        
+        results = query.limit(limit_count).all()
         
         return results
         
@@ -3066,51 +3322,160 @@ def search_performances_by_ai(conditions):
         return []
 
 def generate_ai_response(user_query, performances):
-    """AI 응답 생성"""
+    """AI 응답 생성 (고도화된 버전)"""
+    import random
+    
+    # 다양한 응답 템플릿
+    greeting_templates = [
+        "안녕하세요! 🎭",
+        "반갑습니다! ✨",
+        "어서오세요! 🎪",
+        "환영합니다! 🌟"
+    ]
+    
+    no_result_templates = [
+        "아쉽게도 조건에 맞는 공연을 찾지 못했어요. 😅",
+        "죄송해요! 해당 조건의 공연이 없네요. 🤔",
+        "음... 그런 조건의 공연은 아직 등록되지 않았어요. 😊",
+        "조건을 조금 바꿔서 다시 물어보시는 건 어떨까요? 💡"
+    ]
+    
+    suggestion_templates = [
+        "다른 조건으로 다시 물어보시거나, 전체 공연 목록을 확인해보세요!",
+        "지역이나 날짜를 바꿔서 검색해보시는 건 어떨까요?",
+        "전체 공연 목록에서 마음에 드는 공연을 찾아보세요!",
+        "다른 키워드로 검색해보시면 좋은 공연을 찾을 수 있을 거예요!"
+    ]
+    
     if not performances:
+        greeting = random.choice(greeting_templates)
+        no_result = random.choice(no_result_templates)
+        suggestion = random.choice(suggestion_templates)
+        
         return {
-            'message': '죄송해요! 조건에 맞는 공연을 찾지 못했어요. 😅\n\n다른 조건으로 다시 물어보시거나, 전체 공연 목록을 확인해보세요!',
+            'message': f"{greeting}\n\n{no_result}\n\n{suggestion}",
             'suggestions': [
                 '전체 공연 보기',
                 '다른 지역 검색',
                 '다른 가격대 검색',
-                '다른 날짜 검색'
+                '다른 날짜 검색',
+                '인기 공연 보기'
             ]
         }
     
-    # 응답 메시지 생성
-    location_text = ""
-    price_text = ""
-    date_text = ""
+    # 성공적인 검색 결과 응답
+    greeting = random.choice(greeting_templates)
     
     if len(performances) == 1:
         performance = performances[0]
-        message = f"🎭 **{performance.title}**\n\n"
+        
+        # 공연별 맞춤 응답
+        if performance.category and '뮤지컬' in performance.category:
+            category_emoji = "🎵"
+            category_text = "멋진 뮤지컬"
+        elif performance.category and '연극' in performance.category:
+            category_emoji = "🎬"
+            category_text = "감동적인 연극"
+        elif performance.category and '콘서트' in performance.category:
+            category_emoji = "🎤"
+            category_text = "신나는 콘서트"
+        elif performance.category and '클래식' in performance.category:
+            category_emoji = "🎻"
+            category_text = "우아한 클래식"
+        else:
+            category_emoji = "🎭"
+            category_text = "흥미로운 공연"
+        
+        # 가격대별 반응
+        price_reaction = ""
+        if performance.price and '무료' in performance.price:
+            price_reaction = "무료라니 정말 좋네요! 🎉"
+        elif performance.price and any(x in performance.price for x in ['1만', '2만']):
+            price_reaction = "합리적인 가격이에요! 👍"
+        elif performance.price and any(x in performance.price for x in ['5만', '6만']):
+            price_reaction = "퀄리티 대비 괜찮은 가격이에요! 💎"
+        
+        message = f"{greeting}\n\n"
+        message += f"{category_emoji} **{performance.title}**\n\n"
         message += f"📍 **장소**: {performance.location}\n"
         message += f"📅 **날짜**: {performance.date}\n"
         message += f"💰 **가격**: {performance.price}\n"
-        message += f"⭐ **평점**: {'★' * min(performance.likes // 10, 5)}\n\n"
-        message += f"이 공연은 어떠세요? 더 자세한 정보를 원하시면 공연 제목을 클릭해보세요!"
-    else:
-        message = f"🎭 조건에 맞는 공연을 {len(performances)}개 찾았어요!\n\n"
         
+        # 평점 표시 (좋아요 수 기반)
+        likes = performance.likes or 0
+        if likes > 50:
+            stars = "★★★★★"
+            rating_text = "매우 인기!"
+        elif likes > 30:
+            stars = "★★★★☆"
+            rating_text = "인기 공연!"
+        elif likes > 10:
+            stars = "★★★☆☆"
+            rating_text = "괜찮은 공연!"
+        else:
+            stars = "★★☆☆☆"
+            rating_text = "새로운 공연!"
+        
+        message += f"⭐ **평점**: {stars} ({rating_text})\n\n"
+        
+        if price_reaction:
+            message += f"{price_reaction}\n\n"
+        
+        message += f"이 {category_text}은 어떠세요? 더 자세한 정보를 원하시면 공연 제목을 클릭해보세요! 🎪"
+        
+    else:
+        # 여러 공연 결과
+        message = f"{greeting}\n\n"
+        message += f"🎭 조건에 맞는 공연을 **{len(performances)}개** 찾았어요!\n\n"
+        
+        # 상위 3개 공연 상세 표시
         for i, performance in enumerate(performances[:3], 1):
-            message += f"**{i}. {performance.title}**\n"
+            # 카테고리별 이모지
+            if performance.category and '뮤지컬' in performance.category:
+                emoji = "🎵"
+            elif performance.category and '연극' in performance.category:
+                emoji = "🎬"
+            elif performance.category and '콘서트' in performance.category:
+                emoji = "🎤"
+            elif performance.category and '클래식' in performance.category:
+                emoji = "🎻"
+            else:
+                emoji = "🎭"
+            
+            message += f"**{i}. {emoji} {performance.title}**\n"
             message += f"   📍 {performance.location} | 📅 {performance.date} | 💰 {performance.price}\n\n"
         
         if len(performances) > 3:
-            message += f"...그 외 {len(performances) - 3}개의 공연이 더 있어요!\n\n"
+            remaining = len(performances) - 3
+            message += f"...그 외 **{remaining}개**의 공연이 더 있어요! 🎪\n\n"
         
-        message += "더 자세한 정보를 원하시면 공연 제목을 클릭해보세요!"
+        # 추천 메시지
+        if len(performances) >= 5:
+            message += "정말 다양한 공연들이 있네요! 마음에 드는 공연을 선택해보세요! ✨"
+        else:
+            message += "더 자세한 정보를 원하시면 공연 제목을 클릭해보세요! 🎪"
+    
+    # 추천 제안
+    suggestions = []
+    if len(performances) > 0:
+        suggestions.extend([
+            '더 많은 공연 보기',
+            '다른 조건으로 검색',
+            '인기 공연 보기'
+        ])
+        
+        # 조건별 추가 제안
+        if any('무료' in p.price for p in performances if p.price):
+            suggestions.append('무료 공연 더 보기')
+        if any('뮤지컬' in p.category for p in performances if p.category):
+            suggestions.append('뮤지컬 더 보기')
+        if any('콘서트' in p.category for p in performances if p.category):
+            suggestions.append('콘서트 더 보기')
     
     return {
         'message': message,
         'performances': performances,
-        'suggestions': [
-            '더 많은 공연 보기',
-            '다른 조건으로 검색',
-            '인기 공연 보기'
-        ]
+        'suggestions': suggestions[:5]  # 최대 5개 제안
     }
 
 @app.route('/api/ai-chat', methods=['POST'])
