@@ -103,6 +103,196 @@
             border-color: transparent;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
         }
+
+        /* AI 채팅 위젯 스타일 */
+        .ai-chat-widget {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+        }
+
+        .ai-chat-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .ai-chat-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .ai-chat-container {
+            position: absolute;
+            bottom: 70px;
+            right: 0;
+            width: 350px;
+            height: 500px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .ai-chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ai-chat-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .ai-chat-close {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+        }
+
+        .ai-chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            background: #f8f9fa;
+        }
+
+        .ai-message, .user-message {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-message {
+            justify-content: flex-start;
+        }
+
+        .user-message {
+            justify-content: flex-end;
+        }
+
+        .ai-avatar {
+            width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+
+        .user-avatar {
+            width: 35px;
+            height: 35px;
+            background: #e9ecef;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .ai-message-content, .user-message-content {
+            max-width: 250px;
+            padding: 12px 16px;
+            border-radius: 18px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .ai-message-content {
+            background: white;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .ai-chat-input-container {
+            padding: 15px 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+
+        .ai-chat-input {
+            flex: 1;
+            border: 1px solid #e9ecef;
+            border-radius: 25px;
+            padding: 10px 15px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .ai-chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .ai-chat-send {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .ai-chat-send:hover {
+            transform: scale(1.1);
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 768px) {
+            .ai-chat-container {
+                width: 300px;
+                height: 400px;
+                bottom: 60px;
+                right: 10px;
+            }
+            
+            .ai-chat-button {
+                padding: 12px 16px;
+                font-size: 13px;
+            }
+        }
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
         
         /* 모바일 앱 다운로드 섹션 스타일 */
         .mobile-app-section {
@@ -512,6 +702,46 @@
 
     {% block content %}{% endblock %}
 
+    <!-- AI 채팅 위젯 -->
+    <div id="ai-chat-widget" class="ai-chat-widget">
+        <div id="ai-chat-button" class="ai-chat-button" onclick="toggleAIChat()">
+            <i class="fas fa-robot"></i>
+            <span>AI 어시스턴트</span>
+        </div>
+        
+        <div id="ai-chat-container" class="ai-chat-container" style="display: none;">
+            <div class="ai-chat-header">
+                <div class="ai-chat-title">
+                    <i class="fas fa-robot me-2"></i>
+                    <span>공연 AI 어시스턴트</span>
+                </div>
+                <button class="ai-chat-close" onclick="toggleAIChat()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div id="ai-chat-messages" class="ai-chat-messages">
+                <div class="ai-message">
+                    <div class="ai-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="ai-message-content">
+                        안녕하세요! 🎭 공연 AI 어시스턴트입니다!<br><br>
+                        어떤 공연을 찾고 계신가요?<br>
+                        예시: "서울에서 5만원대로 다음주에 볼만한 공연이 있을까?"
+                    </div>
+                </div>
+            </div>
+            
+            <div class="ai-chat-input-container">
+                <input type="text" id="ai-chat-input" class="ai-chat-input" placeholder="공연에 대해 물어보세요..." onkeypress="handleAIChatKeyPress(event)">
+                <button class="ai-chat-send" onclick="sendAIMessage()">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <footer class="bg-dark text-white text-center py-4 mt-5">
         <div class="container">
             <p>&copy; 2024 {% if lang == 'en' %}KOPIS Performing Arts Platform. A new beginning for all performing arts.{% elif lang == 'ja' %}KOPIS公演プラットフォーム。すべての舞台芸術の新しい始まり。{% elif lang == 'zh' %}KOPIS演出宣传平台。多元表演艺术的新起点。{% else %}KOPIS 공연 홍보 플랫폼. 대중무용의 새로운 시작.{% endif %}</p>
@@ -519,5 +749,136 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- AI 채팅 JavaScript -->
+    <script>
+        // AI 채팅 토글
+        function toggleAIChat() {
+            const container = document.getElementById('ai-chat-container');
+            const button = document.getElementById('ai-chat-button');
+            
+            if (container.style.display === 'none') {
+                container.style.display = 'flex';
+                button.style.display = 'none';
+                document.getElementById('ai-chat-input').focus();
+            } else {
+                container.style.display = 'none';
+                button.style.display = 'flex';
+            }
+        }
+
+        // 사용자 메시지 추가
+        function addUserMessage(message) {
+            const messagesContainer = document.getElementById('ai-chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'user-message';
+            messageDiv.innerHTML = `
+                <div class="user-message-content">${message}</div>
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // AI 메시지 추가
+        function addAIMessage(message) {
+            const messagesContainer = document.getElementById('ai-chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'ai-message';
+            messageDiv.innerHTML = `
+                <div class="ai-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="ai-message-content">${message}</div>
+            `;
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // AI 메시지 전송
+        function sendAIMessage() {
+            const input = document.getElementById('ai-chat-input');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // 사용자 메시지 추가
+            addUserMessage(message);
+            input.value = '';
+            
+            // 로딩 표시
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'ai-message';
+            loadingDiv.id = 'loading-message';
+            loadingDiv.innerHTML = `
+                <div class="ai-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="ai-message-content">
+                    <i class="fas fa-spinner fa-spin"></i> AI가 답변을 준비하고 있어요...
+                </div>
+            `;
+            document.getElementById('ai-chat-messages').appendChild(loadingDiv);
+            
+            // AI API 호출
+            fetch('/api/ai-chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // 로딩 메시지 제거
+                const loadingMessage = document.getElementById('loading-message');
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+                
+                if (data.success) {
+                    // AI 응답 추가
+                    addAIMessage(data.response.message);
+                    
+                    // 공연 링크 추가 (있는 경우)
+                    if (data.response.performances && data.response.performances.length > 0) {
+                        const performancesDiv = document.createElement('div');
+                        performancesDiv.className = 'ai-message';
+                        performancesDiv.innerHTML = `
+                            <div class="ai-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="ai-message-content">
+                                <strong>추천 공연:</strong><br>
+                                ${data.response.performances.map(p => 
+                                    `<a href="/performance/${p.id}" style="color: #667eea; text-decoration: none;">🎭 ${p.title}</a>`
+                                ).join('<br>')}
+                            </div>
+                        `;
+                        document.getElementById('ai-chat-messages').appendChild(performancesDiv);
+                    }
+                } else {
+                    addAIMessage('죄송해요! 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
+                }
+            })
+            .catch(error => {
+                console.error('AI 채팅 오류:', error);
+                const loadingMessage = document.getElementById('loading-message');
+                if (loadingMessage) {
+                    loadingMessage.remove();
+                }
+                addAIMessage('죄송해요! 네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요.');
+            });
+        }
+
+        // 엔터키 처리
+        function handleAIChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendAIMessage();
+            }
+        }
+    </script>
 </body>
 </html> 

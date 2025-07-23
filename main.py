@@ -2935,6 +2935,218 @@ def export_performance_stats_excel():
         flash('엑셀 파일 생성 중 오류가 발생했습니다.', 'error')
         return redirect(url_for('admin_panel'))
 
+# AI 채팅 어시스턴트 관련 함수들
+def parse_user_query(query):
+    """사용자 질문을 파싱하여 검색 조건 추출"""
+    query = query.lower().strip()
+    
+    # 기본 검색 조건
+    conditions = {
+        'location': None,
+        'price_range': None,
+        'date_range': None,
+        'category': None,
+        'keywords': []
+    }
+    
+    # 지역 추출
+    location_keywords = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '강남', '홍대', '명동', '잠실']
+    for loc in location_keywords:
+        if loc in query:
+            conditions['location'] = loc
+            break
+    
+    # 가격대 추출
+    if '무료' in query or '0원' in query:
+        conditions['price_range'] = 'free'
+    elif '1만원' in query or '1만' in query:
+        conditions['price_range'] = 'low'
+    elif '3만원' in query or '3만' in query:
+        conditions['price_range'] = 'medium'
+    elif '5만원' in query or '5만' in query:
+        conditions['price_range'] = 'high'
+    elif '10만원' in query or '10만' in query:
+        conditions['price_range'] = 'premium'
+    
+    # 날짜 추출
+    if '오늘' in query:
+        conditions['date_range'] = 'today'
+    elif '내일' in query:
+        conditions['date_range'] = 'tomorrow'
+    elif '이번주' in query or '이번 주' in query:
+        conditions['date_range'] = 'this_week'
+    elif '다음주' in query or '다음 주' in query:
+        conditions['date_range'] = 'next_week'
+    elif '이번달' in query or '이번 달' in query:
+        conditions['date_range'] = 'this_month'
+    
+    # 카테고리 추출
+    category_keywords = {
+        '뮤지컬': '뮤지컬',
+        '연극': '연극',
+        '콘서트': '콘서트',
+        '클래식': '클래식',
+        '오페라': '오페라',
+        '발레': '발레',
+        '무용': '무용',
+        '전시': '전시',
+        '축제': '축제'
+    }
+    
+    for keyword, category in category_keywords.items():
+        if keyword in query:
+            conditions['category'] = category
+            break
+    
+    # 키워드 추출
+    keywords = ['추천', '좋은', '인기', '핫한', '신나는', '감동적인', '재미있는']
+    for keyword in keywords:
+        if keyword in query:
+            conditions['keywords'].append(keyword)
+    
+    return conditions
+
+def search_performances_by_ai(conditions):
+    """AI 조건에 따른 공연 검색"""
+    try:
+        query = Performance.query.filter_by(is_approved=True)
+        
+        # 지역 필터
+        if conditions['location']:
+            if conditions['location'] in ['강남', '홍대', '명동', '잠실']:
+                query = query.filter(Performance.address.contains(conditions['location']))
+            else:
+                query = query.filter(Performance.location.contains(conditions['location']))
+        
+        # 가격대 필터
+        if conditions['price_range']:
+            if conditions['price_range'] == 'free':
+                query = query.filter(Performance.price.contains('무료'))
+            elif conditions['price_range'] == 'low':
+                query = query.filter(Performance.price.contains('1만'))
+            elif conditions['price_range'] == 'medium':
+                query = query.filter(Performance.price.contains('3만'))
+            elif conditions['price_range'] == 'high':
+                query = query.filter(Performance.price.contains('5만'))
+            elif conditions['price_range'] == 'premium':
+                query = query.filter(Performance.price.contains('10만'))
+        
+        # 날짜 필터
+        if conditions['date_range']:
+            today = datetime.now().date()
+            if conditions['date_range'] == 'today':
+                query = query.filter(Performance.date == today.strftime('%Y-%m-%d'))
+            elif conditions['date_range'] == 'tomorrow':
+                tomorrow = today + timedelta(days=1)
+                query = query.filter(Performance.date == tomorrow.strftime('%Y-%m-%d'))
+            elif conditions['date_range'] == 'this_week':
+                end_of_week = today + timedelta(days=7)
+                query = query.filter(Performance.date >= today.strftime('%Y-%m-%d'))
+                query = query.filter(Performance.date <= end_of_week.strftime('%Y-%m-%d'))
+            elif conditions['date_range'] == 'next_week':
+                next_week_start = today + timedelta(days=7)
+                next_week_end = today + timedelta(days=14)
+                query = query.filter(Performance.date >= next_week_start.strftime('%Y-%m-%d'))
+                query = query.filter(Performance.date <= next_week_end.strftime('%Y-%m-%d'))
+        
+        # 카테고리 필터
+        if conditions['category']:
+            query = query.filter(Performance.category.contains(conditions['category']))
+        
+        # 정렬 (좋아요 수 기준)
+        query = query.order_by(Performance.likes.desc())
+        
+        # 상위 5개 결과 반환
+        results = query.limit(5).all()
+        
+        return results
+        
+    except Exception as e:
+        app.logger.error(f"AI 공연 검색 오류: {e}")
+        return []
+
+def generate_ai_response(user_query, performances):
+    """AI 응답 생성"""
+    if not performances:
+        return {
+            'message': '죄송해요! 조건에 맞는 공연을 찾지 못했어요. 😅\n\n다른 조건으로 다시 물어보시거나, 전체 공연 목록을 확인해보세요!',
+            'suggestions': [
+                '전체 공연 보기',
+                '다른 지역 검색',
+                '다른 가격대 검색',
+                '다른 날짜 검색'
+            ]
+        }
+    
+    # 응답 메시지 생성
+    location_text = ""
+    price_text = ""
+    date_text = ""
+    
+    if len(performances) == 1:
+        performance = performances[0]
+        message = f"🎭 **{performance.title}**\n\n"
+        message += f"📍 **장소**: {performance.location}\n"
+        message += f"📅 **날짜**: {performance.date}\n"
+        message += f"💰 **가격**: {performance.price}\n"
+        message += f"⭐ **평점**: {'★' * min(performance.likes // 10, 5)}\n\n"
+        message += f"이 공연은 어떠세요? 더 자세한 정보를 원하시면 공연 제목을 클릭해보세요!"
+    else:
+        message = f"🎭 조건에 맞는 공연을 {len(performances)}개 찾았어요!\n\n"
+        
+        for i, performance in enumerate(performances[:3], 1):
+            message += f"**{i}. {performance.title}**\n"
+            message += f"   📍 {performance.location} | 📅 {performance.date} | 💰 {performance.price}\n\n"
+        
+        if len(performances) > 3:
+            message += f"...그 외 {len(performances) - 3}개의 공연이 더 있어요!\n\n"
+        
+        message += "더 자세한 정보를 원하시면 공연 제목을 클릭해보세요!"
+    
+    return {
+        'message': message,
+        'performances': performances,
+        'suggestions': [
+            '더 많은 공연 보기',
+            '다른 조건으로 검색',
+            '인기 공연 보기'
+        ]
+    }
+
+@app.route('/api/ai-chat', methods=['POST'])
+def ai_chat():
+    """AI 채팅 API"""
+    try:
+        data = request.get_json()
+        user_query = data.get('message', '').strip()
+        
+        if not user_query:
+            return jsonify({
+                'success': False,
+                'message': '메시지를 입력해주세요.'
+            })
+        
+        # 사용자 질문 파싱
+        conditions = parse_user_query(user_query)
+        
+        # 공연 검색
+        performances = search_performances_by_ai(conditions)
+        
+        # AI 응답 생성
+        response = generate_ai_response(user_query, performances)
+        
+        return jsonify({
+            'success': True,
+            'response': response
+        })
+        
+    except Exception as e:
+        app.logger.error(f"AI 채팅 오류: {e}")
+        return jsonify({
+            'success': False,
+            'message': '죄송해요! 일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.'
+        })
+
 if __name__ == "__main__":
     try:
         # 데이터베이스 테이블 생성 시도 (타임아웃 최소화)
