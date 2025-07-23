@@ -60,8 +60,7 @@ if __name__ == "__main__":
             port=port, 
             debug=False, 
             threaded=True,
-            use_reloader=False,  # 렌더에서는 리로더 비활성화
-            request_timeout=30   # 요청 타임아웃 설정
+            use_reloader=False  # 렌더에서는 리로더 비활성화
         )
     except Exception as e:
         logger.error(f"Server failed to start: {e}")
